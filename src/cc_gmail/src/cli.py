@@ -57,6 +57,62 @@ app.add_typer(accounts_app, name="accounts")
 
 console = Console()
 
+
+def handle_api_error(error: Exception, account: str) -> None:
+    """Parse API errors and provide helpful guidance."""
+    error_str = str(error)
+
+    # Gmail API not enabled
+    if "Gmail API has not been used in project" in error_str or "accessNotConfigured" in error_str:
+        console.print("[red]Error:[/red] Gmail API is not enabled for your Google Cloud project.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Go to: https://console.cloud.google.com/apis/library/gmail.googleapis.com")
+        console.print("2. Make sure your project is selected at the top")
+        console.print("3. Click 'Enable'")
+        console.print("4. Wait a minute, then try again")
+        return
+
+    # OAuth redirect mismatch
+    if "redirect_uri_mismatch" in error_str:
+        console.print("[red]Error:[/red] OAuth client type is incorrect.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Go to: https://console.cloud.google.com/apis/credentials")
+        console.print("2. Delete your existing OAuth client")
+        console.print("3. Create a new one with type 'Desktop app' (not 'Web application')")
+        console.print("4. Download the new credentials.json")
+        console.print(f"5. Replace: {get_credentials_path(account)}")
+        return
+
+    # App not verified / test user not added
+    if "access_denied" in error_str or "has not completed the Google verification" in error_str:
+        console.print("[red]Error:[/red] Your Google account is not authorized to use this app.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Go to: https://console.cloud.google.com/apis/credentials/consent")
+        console.print("2. Under 'Test users', click 'Add Users'")
+        console.print("3. Add your Gmail address")
+        console.print("4. Try again")
+        return
+
+    # Token expired or revoked
+    if "invalid_grant" in error_str or "Token has been expired or revoked" in error_str:
+        console.print("[red]Error:[/red] Your authentication token has expired or been revoked.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print(f"  cc_gmail --account {account} auth --force")
+        return
+
+    # Invalid credentials file
+    if "invalid_client" in error_str:
+        console.print("[red]Error:[/red] The credentials.json file is invalid or corrupted.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Go to: https://console.cloud.google.com/apis/credentials")
+        console.print("2. Download your OAuth client credentials again")
+        console.print(f"3. Replace: {get_credentials_path(account)}")
+        return
+
+    # Generic error - show the error and point to README
+    console.print(f"[red]Error:[/red] {error}")
+    console.print(f"\nSee README for troubleshooting: {get_readme_path()}")
+
 # Global state for account selection
 class State:
     account: Optional[str] = None
@@ -81,7 +137,10 @@ def get_client(account: Optional[str] = None) -> GmailClient:
     if not credentials_exist(acct):
         console.print(f"[red]Error:[/red] OAuth credentials not found for account '{acct}'")
         console.print(f"\nExpected location: {get_credentials_path(acct)}")
-        console.print(f"\nSee README for setup instructions: {get_readme_path()}")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Download credentials from Google Cloud Console")
+        console.print("2. Save as: credentials.json in the path above")
+        console.print(f"\nSee README for detailed steps: {get_readme_path()}")
         raise typer.Exit(1)
 
     try:
@@ -91,8 +150,7 @@ def get_client(account: Optional[str] = None) -> GmailClient:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Authentication error:[/red] {e}")
-        console.print(f"\nSee README for help: {get_readme_path()}")
+        handle_api_error(e, acct)
         raise typer.Exit(1)
 
 
@@ -325,8 +383,7 @@ def auth(
 
         console.print(f"\n[green]Authenticated as:[/green] {profile.get('emailAddress')}")
     except Exception as e:
-        console.print(f"[red]Authentication failed:[/red] {e}")
-        console.print(f"\nSee README for help: {get_readme_path()}")
+        handle_api_error(e, acct)
         raise typer.Exit(1)
 
 

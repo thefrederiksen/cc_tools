@@ -10,7 +10,7 @@ Supports **multiple Gmail accounts** with easy switching between them.
 # 1. Add your first account
 cc_gmail accounts add personal
 
-# 2. Follow the setup instructions (see below)
+# 2. Complete Google Cloud setup (see detailed steps below)
 # 3. Place credentials.json in the account folder
 # 4. Authenticate
 cc_gmail auth
@@ -21,100 +21,175 @@ cc_gmail list
 
 ---
 
-## Google Cloud Setup (Required)
+## Google Cloud Setup (Required - One Time)
 
 Before using cc_gmail, you need OAuth credentials from Google Cloud Console.
-This is a one-time setup per Google account.
+This is a one-time setup. You can use the same credentials for multiple Gmail accounts.
 
-### Step 1: Create a Google Cloud Project
+### Step 1: Go to Google Cloud Console
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Click the project dropdown at the top
-3. Click "New Project"
-4. Enter a name (e.g., "cc_gmail")
-5. Click "Create"
+1. Open https://console.cloud.google.com/
+2. Sign in with your Google account
 
-### Step 2: Enable the Gmail API
+### Step 2: Create or Select a Project
 
-1. In your project, go to **APIs & Services** -> **Library**
-2. Search for "Gmail API"
-3. Click on "Gmail API"
-4. Click **Enable**
+1. Click the project dropdown at the top (next to "Google Cloud")
+2. Either:
+   - Select an existing project, OR
+   - Click "New Project", enter a name (e.g., "cc_gmail"), click "Create"
 
-### Step 3: Configure OAuth Consent Screen
+### Step 3: Set Up OAuth Consent Screen
 
-1. Go to **APIs & Services** -> **OAuth consent screen**
-2. Select **External** (or Internal if using Google Workspace)
-3. Click "Create"
-4. Fill in required fields:
-   - App name: `cc_gmail`
-   - User support email: Your email
-   - Developer contact: Your email
-5. Click "Save and Continue"
-6. On "Scopes" page, click "Add or Remove Scopes"
-7. Add these scopes:
-   - `https://www.googleapis.com/auth/gmail.readonly`
-   - `https://www.googleapis.com/auth/gmail.send`
-   - `https://www.googleapis.com/auth/gmail.compose`
-   - `https://www.googleapis.com/auth/gmail.modify`
-8. Click "Save and Continue"
-9. On "Test users" page, click "Add Users"
-10. Add your Gmail address(es)
-11. Click "Save and Continue"
+This tells Google what your app is and who can use it.
 
-### Step 4: Create OAuth Credentials
+1. In the left sidebar, go to **APIs & Services** -> **OAuth consent screen**
+   - Or go directly to: https://console.cloud.google.com/apis/credentials/consent
+2. If you see "Google Auth Platform not configured yet", click **"Get started"**
+3. Fill in the required fields:
+   - **App name:** `cc_gmail`
+   - **User support email:** Select your email
+   - **Audience:** Select **"External"** (unless you have Google Workspace)
+   - **Contact email:** Enter your email
+4. Click **"Create"** or **"Save and Continue"**
+5. On the Scopes page, click **"Save and Continue"** (we'll use default scopes)
+6. On the Test users page:
+   - Click **"Add Users"**
+   - Enter your Gmail address(es) that you want to use with cc_gmail
+   - Click **"Save and Continue"**
+
+### Step 4: Enable the Gmail API
+
+1. Go to **APIs & Services** -> **Library**
+   - Or go directly to: https://console.cloud.google.com/apis/library
+2. Search for **"Gmail API"**
+3. Click on **"Gmail API"** in the results
+4. Click the **"Enable"** button
+5. Wait a few seconds for it to enable
+
+**IMPORTANT:** If you skip this step, you'll get this error when authenticating:
+```
+Gmail API has not been used in project XXXXX before or it is disabled.
+```
+
+### Step 5: Create OAuth Credentials
 
 1. Go to **APIs & Services** -> **Credentials**
-2. Click **Create Credentials** -> **OAuth client ID**
-3. Application type: **Desktop app**
-4. Name: `cc_gmail`
-5. Click "Create"
-6. Click **Download JSON** (download icon)
-7. Save the file - you'll need it in the next step
+   - Or go directly to: https://console.cloud.google.com/apis/credentials
+2. Click **"+ CREATE CREDENTIALS"** at the top
+3. Select **"OAuth client ID"**
+4. For **Application type**, select **"Desktop app"**
+5. For **Name**, enter `cc_gmail` (or any name you want)
+6. Click **"Create"**
 
-### Step 5: Add Account to cc_gmail
+### Step 6: Download the Credentials File
+
+1. After creating, a popup shows your Client ID and Secret
+2. Click **"DOWNLOAD JSON"** (the download icon)
+3. Save the file - it will have a long name like:
+   `client_secret_XXXXX.apps.googleusercontent.com.json`
+
+### Step 7: Set Up cc_gmail Account
 
 ```bash
-# Add an account (e.g., "personal" or "work")
+# Create an account in cc_gmail
 cc_gmail accounts add personal
 ```
 
 This will show you where to place the credentials file:
-
 ```
 ~/.cc_gmail/accounts/personal/credentials.json
 ```
 
-Copy your downloaded JSON file to that location, then authenticate:
+Copy/rename your downloaded JSON file to that location:
+```bash
+# Windows example:
+copy "C:\Users\YOU\Downloads\client_secret_XXX.json" "C:\Users\YOU\.cc_gmail\accounts\personal\credentials.json"
+
+# Or manually copy and rename the file
+```
+
+### Step 8: Authenticate
 
 ```bash
 cc_gmail auth
 ```
 
-A browser window will open. Sign in with your Gmail account and grant permissions.
+This will:
+1. Open a browser window
+2. Ask you to sign in to your Google account
+3. Ask you to grant permissions to cc_gmail
+4. Show "Authenticated as: your@email.com" when successful
+
+---
+
+## Common Setup Errors
+
+### "Gmail API has not been used in project XXXXX before or it is disabled"
+
+**Problem:** The Gmail API is not enabled for your project.
+
+**Solution:**
+1. Go to: https://console.cloud.google.com/apis/library/gmail.googleapis.com
+2. Make sure your project is selected at the top
+3. Click **"Enable"**
+4. Wait a minute, then run `cc_gmail auth` again
+
+### "Access blocked: This app's request is invalid" or "Error 400: redirect_uri_mismatch"
+
+**Problem:** The OAuth client type is wrong.
+
+**Solution:**
+1. Go to: https://console.cloud.google.com/apis/credentials
+2. Delete the existing OAuth client
+3. Create a new one with type **"Desktop app"** (not "Web application")
+
+### "Access blocked: cc_gmail has not completed the Google verification process"
+
+**Problem:** Your app is in testing mode and you're not listed as a test user.
+
+**Solution:**
+1. Go to: https://console.cloud.google.com/apis/credentials/consent
+2. Under "Test users", click **"Add Users"**
+3. Add your Gmail address
+4. Try again
+
+### "OAuth credentials not found"
+
+**Problem:** The credentials.json file is missing or in the wrong location.
+
+**Solution:**
+1. Run `cc_gmail accounts add <name>` to see the expected path
+2. Copy your downloaded JSON file to that exact path
+3. Make sure it's named `credentials.json`
+
+### "No accounts configured"
+
+**Problem:** You haven't created any accounts yet.
+
+**Solution:**
+```bash
+cc_gmail accounts add personal
+```
 
 ---
 
 ## Managing Multiple Accounts
 
-cc_gmail supports multiple Gmail accounts. Each account has its own credentials
-and can be used independently.
+cc_gmail supports multiple Gmail accounts. Each account has its own token
+but can share the same OAuth credentials from Google Cloud.
 
 ### Add Multiple Accounts
 
 ```bash
-# Add personal account
+# Add personal account (set as default)
 cc_gmail accounts add personal --default
 
 # Add work account
 cc_gmail accounts add work
 
-# Add another account
-cc_gmail accounts add side-project
+# Each account needs credentials.json in its folder
+# You can copy the SAME credentials.json to each account folder
 ```
-
-Each account needs its own `credentials.json` file in its folder.
-You can use the same Google Cloud project credentials for multiple Gmail accounts.
 
 ### List Accounts
 
@@ -310,40 +385,6 @@ Configuration files are stored in `~/.cc_gmail/`:
         work/
             credentials.json
             token.json
-```
-
----
-
-## Troubleshooting
-
-### "OAuth credentials not found"
-
-Run `cc_gmail accounts add <name>` to see where to place your `credentials.json` file.
-
-### "No accounts configured"
-
-1. Run `cc_gmail accounts add <name>` to create an account
-2. Download credentials from Google Cloud Console
-3. Place `credentials.json` in the account folder
-4. Run `cc_gmail auth`
-
-### "Multiple accounts configured but no default set"
-
-Either:
-- Set a default: `cc_gmail accounts default <name>`
-- Specify account: `cc_gmail --account <name> <command>`
-
-### "Access blocked" or "App not verified"
-
-Your app is in testing mode. Make sure your Gmail address is added as a test user:
-1. Go to Google Cloud Console -> APIs & Services -> OAuth consent screen
-2. Under "Test users", add your Gmail address
-
-### "Token expired" or authentication issues
-
-```bash
-cc_gmail auth --revoke
-cc_gmail auth
 ```
 
 ---

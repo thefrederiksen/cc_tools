@@ -17,8 +17,28 @@ def format_timestamp(timestamp_ms: Optional[str]) -> str:
         return "Unknown"
 
 
+def sanitize_text(text: str) -> str:
+    """Remove non-ASCII characters to avoid encoding issues."""
+    # Replace common Unicode characters with ASCII equivalents
+    replacements = {
+        '\u2013': '-',  # en-dash
+        '\u2014': '-',  # em-dash
+        '\u2018': "'",  # left single quote
+        '\u2019': "'",  # right single quote
+        '\u201c': '"',  # left double quote
+        '\u201d': '"',  # right double quote
+        '\u2026': '...',  # ellipsis
+        '\u00a0': ' ',  # non-breaking space
+    }
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+    # Remove any remaining non-ASCII characters
+    return text.encode('ascii', 'ignore').decode('ascii')
+
+
 def truncate(text: str, max_length: int = 80) -> str:
     """Truncate text to max length with ellipsis."""
+    text = sanitize_text(text)
     if len(text) <= max_length:
         return text
     return text[: max_length - 3] + "..."
@@ -73,10 +93,10 @@ def format_message_summary(msg: Dict[str, Any]) -> Dict[str, str]:
 
     return {
         "id": msg.get("id", ""),
-        "from": headers.get("from", "Unknown"),
-        "to": headers.get("to", "Unknown"),
-        "subject": headers.get("subject", "(No subject)"),
-        "date": headers.get("date", "Unknown"),
-        "snippet": msg.get("snippet", ""),
+        "from": sanitize_text(headers.get("from", "Unknown")),
+        "to": sanitize_text(headers.get("to", "Unknown")),
+        "subject": sanitize_text(headers.get("subject", "(No subject)")),
+        "date": sanitize_text(headers.get("date", "Unknown")),
+        "snippet": sanitize_text(msg.get("snippet", "")),
         "labels": ", ".join(msg.get("labels", [])),
     }
