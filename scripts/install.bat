@@ -1,13 +1,13 @@
 @echo off
-REM Add C:\cc-tools to user PATH (one-time setup)
-REM Usage: install.bat
+REM Add C:\cc_tools to user PATH (one-time setup)
+REM Usage: scripts\install.bat
 
 setlocal
 
-set "INSTALL_DIR=C:\cc-tools"
+set "INSTALL_DIR=C:\cc_tools"
 
 echo ============================================
-echo cc-tools PATH Installation
+echo cc_tools PATH Installation
 echo ============================================
 echo.
 
@@ -27,7 +27,7 @@ if %errorlevel% equ 0 (
 REM Add to user PATH using PowerShell
 echo Adding %INSTALL_DIR% to user PATH...
 
-powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*C:\cc-tools*'){[Environment]::SetEnvironmentVariable('Path',$p+';C:\cc-tools','User'); Write-Host '[OK] Added C:\cc-tools to user PATH'}else{Write-Host '[OK] C:\cc-tools already in PATH'}"
+powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*C:\cc_tools*'){[Environment]::SetEnvironmentVariable('Path',$p+';C:\cc_tools','User'); Write-Host '[OK] Added C:\cc_tools to user PATH'}else{Write-Host '[OK] C:\cc_tools already in PATH'}"
 
 if %errorlevel% neq 0 (
     echo [FAIL] Could not add to PATH
@@ -44,6 +44,8 @@ echo.
 echo IMPORTANT: Open a NEW terminal for PATH changes to take effect.
 echo.
 echo Available tools:
+echo.
+echo Python tools (compiled executables):
 if exist "%INSTALL_DIR%\cc_gmail.exe" echo   - cc_gmail
 if exist "%INSTALL_DIR%\cc_image.exe" echo   - cc_image
 if exist "%INSTALL_DIR%\cc_markdown.exe" echo   - cc_markdown
@@ -52,5 +54,8 @@ if exist "%INSTALL_DIR%\cc_transcribe.exe" echo   - cc_transcribe
 if exist "%INSTALL_DIR%\cc_video.exe" echo   - cc_video
 if exist "%INSTALL_DIR%\cc_voice.exe" echo   - cc_voice
 if exist "%INSTALL_DIR%\cc_whisper.exe" echo   - cc_whisper
+echo.
+echo Node.js tools:
+if exist "%INSTALL_DIR%\cc-browser.cmd" echo   - cc-browser
 echo.
 echo Run any tool with --help for usage info.

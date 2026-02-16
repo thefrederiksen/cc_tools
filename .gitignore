@@ -65,6 +65,10 @@ desktop.ini
 playwright-report/
 test-results/
 
+# Node.js
+node_modules/
+package-lock.json
+
 # Windows nul files (problematic)
 nul
 nul.*

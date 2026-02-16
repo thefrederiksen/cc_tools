@@ -1,0 +1,553 @@
+// CC Browser - Browser Interactions
+// Adapted from: OpenClaw src/browser/pw-tools-core.interactions.ts
+// All browser actions: click, type, hover, drag, select, etc.
+
+import {
+  ensurePageState,
+  getPageForTargetId,
+  refLocator,
+  restoreRoleRefsForTarget,
+} from './session.mjs';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizeTimeoutMs(value, defaultMs = 8000) {
+  const ms = typeof value === 'number' && Number.isFinite(value) ? value : defaultMs;
+  return Math.max(500, Math.min(60000, Math.floor(ms)));
+}
+
+function requireRef(ref) {
+  const trimmed = String(ref || '').trim();
+  if (!trimmed) {
+    throw new Error('ref is required');
+  }
+  return trimmed;
+}
+
+function toAIFriendlyError(err, ref) {
+  const msg = err?.message || String(err);
+
+  // Timeout errors
+  if (msg.includes('Timeout') || msg.includes('timeout')) {
+    return new Error(
+      `Element "${ref}" not found or not visible within timeout. ` +
+        `Try scrolling the element into view or waiting for it to appear.`
+    );
+  }
+
+  // Multiple matches
+  if (msg.includes('resolved to') && msg.includes('elements')) {
+    return new Error(
+      `Multiple elements matched "${ref}". Run a new snapshot to get updated refs.`
+    );
+  }
+
+  // Not attached
+  if (msg.includes('not attached') || msg.includes('detached')) {
+    return new Error(
+      `Element "${ref}" is no longer attached to the DOM. Run a new snapshot.`
+    );
+  }
+
+  return new Error(`Action failed on "${ref}": ${msg}`);
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+export async function navigateViaPlaywright(opts) {
+  const { cdpUrl, targetId, url, waitUntil = 'load', timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  const timeout = normalizeTimeoutMs(timeoutMs, 30000);
+  await page.goto(url, { waitUntil, timeout });
+
+  return {
+    url: page.url(),
+    title: await page.title().catch(() => ''),
+  };
+}
+
+export async function reloadViaPlaywright(opts) {
+  const { cdpUrl, targetId, waitUntil = 'load', timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  const timeout = normalizeTimeoutMs(timeoutMs, 30000);
+  await page.reload({ waitUntil, timeout });
+
+  return {
+    url: page.url(),
+    title: await page.title().catch(() => ''),
+  };
+}
+
+export async function goBackViaPlaywright(opts) {
+  const { cdpUrl, targetId, waitUntil = 'load', timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  const timeout = normalizeTimeoutMs(timeoutMs, 30000);
+  await page.goBack({ waitUntil, timeout });
+
+  return {
+    url: page.url(),
+    title: await page.title().catch(() => ''),
+  };
+}
+
+export async function goForwardViaPlaywright(opts) {
+  const { cdpUrl, targetId, waitUntil = 'load', timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  const timeout = normalizeTimeoutMs(timeoutMs, 30000);
+  await page.goForward({ waitUntil, timeout });
+
+  return {
+    url: page.url(),
+    title: await page.title().catch(() => ''),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Element Interactions
+// ---------------------------------------------------------------------------
+
+export async function clickViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, doubleClick, button, modifiers, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  const locator = refLocator(page, refStr);
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  try {
+    if (doubleClick) {
+      await locator.dblclick({ timeout, button, modifiers });
+    } else {
+      await locator.click({ timeout, button, modifiers });
+    }
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+export async function hoverViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  const locator = refLocator(page, refStr);
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  try {
+    await locator.hover({ timeout });
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+export async function dragViaPlaywright(opts) {
+  const { cdpUrl, targetId, startRef, endRef, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const start = requireRef(startRef);
+  const end = requireRef(endRef);
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  try {
+    await refLocator(page, start).dragTo(refLocator(page, end), { timeout });
+  } catch (err) {
+    throw toAIFriendlyError(err, `${start} -> ${end}`);
+  }
+}
+
+export async function selectOptionViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, values, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  if (!values?.length) {
+    throw new Error('values are required');
+  }
+
+  const locator = refLocator(page, refStr);
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  try {
+    await locator.selectOption(values, { timeout });
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+export async function highlightViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  try {
+    await refLocator(page, refStr).highlight();
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Text Input
+// ---------------------------------------------------------------------------
+
+export async function pressKeyViaPlaywright(opts) {
+  const { cdpUrl, targetId, key, delayMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  const keyStr = String(key || '').trim();
+  if (!keyStr) {
+    throw new Error('key is required');
+  }
+
+  await page.keyboard.press(keyStr, {
+    delay: Math.max(0, Math.floor(delayMs || 0)),
+  });
+}
+
+export async function typeViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, text, submit, slowly, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  const textStr = String(text ?? '');
+  const locator = refLocator(page, refStr);
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  try {
+    if (slowly) {
+      await locator.click({ timeout });
+      await locator.type(textStr, { timeout, delay: 75 });
+    } else {
+      await locator.fill(textStr, { timeout });
+    }
+    if (submit) {
+      await locator.press('Enter', { timeout });
+    }
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+export async function fillFormViaPlaywright(opts) {
+  const { cdpUrl, targetId, fields, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const timeout = normalizeTimeoutMs(timeoutMs);
+
+  for (const field of fields || []) {
+    const ref = String(field.ref || '').trim();
+    const type = String(field.type || '').trim();
+    const rawValue = field.value;
+
+    if (!ref || !type) continue;
+
+    const value =
+      typeof rawValue === 'string'
+        ? rawValue
+        : typeof rawValue === 'number' || typeof rawValue === 'boolean'
+          ? String(rawValue)
+          : '';
+
+    const locator = refLocator(page, ref);
+
+    try {
+      if (type === 'checkbox' || type === 'radio') {
+        const checked =
+          rawValue === true || rawValue === 1 || rawValue === '1' || rawValue === 'true';
+        await locator.setChecked(checked, { timeout });
+      } else {
+        await locator.fill(value, { timeout });
+      }
+    } catch (err) {
+      throw toAIFriendlyError(err, ref);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// JavaScript Evaluation
+// ---------------------------------------------------------------------------
+
+export async function evaluateViaPlaywright(opts) {
+  const { cdpUrl, targetId, fn, ref } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const fnText = String(fn || '').trim();
+  if (!fnText) {
+    throw new Error('function is required');
+  }
+
+  if (ref) {
+    const locator = refLocator(page, ref);
+    const elementEvaluator = new Function(
+      'el',
+      'fnBody',
+      `
+      "use strict";
+      try {
+        var candidate = eval("(" + fnBody + ")");
+        return typeof candidate === "function" ? candidate(el) : candidate;
+      } catch (err) {
+        throw new Error("Invalid evaluate function: " + (err && err.message ? err.message : String(err)));
+      }
+      `
+    );
+    return await locator.evaluate(elementEvaluator, fnText);
+  }
+
+  const browserEvaluator = new Function(
+    'fnBody',
+    `
+    "use strict";
+    try {
+      var candidate = eval("(" + fnBody + ")");
+      return typeof candidate === "function" ? candidate() : candidate;
+    } catch (err) {
+      throw new Error("Invalid evaluate function: " + (err && err.message ? err.message : String(err)));
+    }
+    `
+  );
+  return await page.evaluate(browserEvaluator, fnText);
+}
+
+// ---------------------------------------------------------------------------
+// Scrolling
+// ---------------------------------------------------------------------------
+
+export async function scrollIntoViewViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  const refStr = requireRef(ref);
+  const timeout = normalizeTimeoutMs(timeoutMs, 20000);
+
+  try {
+    await refLocator(page, refStr).scrollIntoViewIfNeeded({ timeout });
+  } catch (err) {
+    throw toAIFriendlyError(err, refStr);
+  }
+}
+
+export async function scrollViaPlaywright(opts) {
+  const { cdpUrl, targetId, direction, amount, ref, timeoutMs } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  // If ref provided, scroll to element
+  if (ref) {
+    const timeout = normalizeTimeoutMs(timeoutMs, 20000);
+    try {
+      await refLocator(page, ref).scrollIntoViewIfNeeded({ timeout });
+    } catch (err) {
+      throw toAIFriendlyError(err, ref);
+    }
+    return;
+  }
+
+  // Otherwise, scroll viewport
+  const scrollAmount = amount || 500;
+  const dir = String(direction || 'down').toLowerCase();
+
+  let deltaX = 0;
+  let deltaY = 0;
+
+  switch (dir) {
+    case 'up':
+      deltaY = -scrollAmount;
+      break;
+    case 'down':
+      deltaY = scrollAmount;
+      break;
+    case 'left':
+      deltaX = -scrollAmount;
+      break;
+    case 'right':
+      deltaX = scrollAmount;
+      break;
+    default:
+      deltaY = scrollAmount;
+  }
+
+  await page.mouse.wheel(deltaX, deltaY);
+}
+
+// ---------------------------------------------------------------------------
+// Wait
+// ---------------------------------------------------------------------------
+
+export async function waitForViaPlaywright(opts) {
+  const { cdpUrl, targetId, timeMs, text, textGone, selector, url, loadState, fn, timeoutMs } =
+    opts;
+
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  const timeout = normalizeTimeoutMs(timeoutMs, 20000);
+
+  if (typeof timeMs === 'number' && Number.isFinite(timeMs)) {
+    await page.waitForTimeout(Math.max(0, timeMs));
+  }
+
+  if (text) {
+    await page.getByText(text).first().waitFor({ state: 'visible', timeout });
+  }
+
+  if (textGone) {
+    await page.getByText(textGone).first().waitFor({ state: 'hidden', timeout });
+  }
+
+  if (selector) {
+    const sel = String(selector).trim();
+    if (sel) {
+      await page.locator(sel).first().waitFor({ state: 'visible', timeout });
+    }
+  }
+
+  if (url) {
+    const urlStr = String(url).trim();
+    if (urlStr) {
+      await page.waitForURL(urlStr, { timeout });
+    }
+  }
+
+  if (loadState) {
+    await page.waitForLoadState(loadState, { timeout });
+  }
+
+  if (fn) {
+    const fnStr = String(fn).trim();
+    if (fnStr) {
+      await page.waitForFunction(fnStr, { timeout });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Screenshots
+// ---------------------------------------------------------------------------
+
+export async function takeScreenshotViaPlaywright(opts) {
+  const { cdpUrl, targetId, ref, element, fullPage, type = 'png' } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  if (ref) {
+    if (fullPage) {
+      throw new Error('fullPage is not supported for element screenshots');
+    }
+    const locator = refLocator(page, ref);
+    const buffer = await locator.screenshot({ type });
+    return { buffer };
+  }
+
+  if (element) {
+    if (fullPage) {
+      throw new Error('fullPage is not supported for element screenshots');
+    }
+    const locator = page.locator(element).first();
+    const buffer = await locator.screenshot({ type });
+    return { buffer };
+  }
+
+  const buffer = await page.screenshot({ type, fullPage: Boolean(fullPage) });
+  return { buffer };
+}
+
+// ---------------------------------------------------------------------------
+// File Upload
+// ---------------------------------------------------------------------------
+
+export async function setInputFilesViaPlaywright(opts) {
+  const { cdpUrl, targetId, inputRef, element, paths } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+  restoreRoleRefsForTarget({ cdpUrl, targetId, page });
+
+  if (!paths?.length) {
+    throw new Error('paths are required');
+  }
+
+  const ref = String(inputRef || '').trim();
+  const el = String(element || '').trim();
+
+  if (ref && el) {
+    throw new Error('inputRef and element are mutually exclusive');
+  }
+  if (!ref && !el) {
+    throw new Error('inputRef or element is required');
+  }
+
+  const locator = ref ? refLocator(page, ref) : page.locator(el).first();
+
+  try {
+    await locator.setInputFiles(paths);
+  } catch (err) {
+    throw toAIFriendlyError(err, ref || el);
+  }
+
+  // Dispatch events for sites that don't react to setInputFiles alone
+  try {
+    const handle = await locator.elementHandle();
+    if (handle) {
+      await handle.evaluate((el) => {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+  } catch {
+    // Best-effort
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Viewport
+// ---------------------------------------------------------------------------
+
+export async function resizeViaPlaywright(opts) {
+  const { cdpUrl, targetId, width, height } = opts;
+  const page = await getPageForTargetId({ cdpUrl, targetId });
+  ensurePageState(page);
+
+  if (typeof width !== 'number' || typeof height !== 'number') {
+    throw new Error('width and height are required');
+  }
+
+  await page.setViewportSize({
+    width: Math.max(320, Math.floor(width)),
+    height: Math.max(240, Math.floor(height)),
+  });
+
+  return { width, height };
+}
