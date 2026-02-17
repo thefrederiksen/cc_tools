@@ -762,6 +762,34 @@ def archive(
         raise typer.Exit(1)
 
 
+def _show_archive_sample(client: GmailClient, query: str) -> None:
+    """Show sample messages that would be archived in dry-run mode."""
+    console.print("\n[yellow]DRY RUN - No changes made.[/yellow]")
+    sample = client.list_messages(query=query, max_results=5)
+    if sample:
+        console.print("\nSample messages that would be archived:")
+        for msg_summary in sample:
+            msg = client.get_message_details(msg_summary["id"])
+            summary = format_message_summary(msg)
+            date_str = summary['date'][:10] if summary['date'] else 'N/A'
+            console.print(f"  - {date_str} | {truncate(summary['from'], 30)} | {truncate(summary['subject'], 40)}")
+
+
+def _execute_archive(client: GmailClient, query: str) -> int:
+    """Fetch and archive all messages matching query. Returns count archived."""
+    console.print("\n[blue]Fetching message IDs...[/blue]")
+    messages = client.list_all_messages(query=query)
+    total = len(messages)
+    console.print(f"[blue]Found {total:,} messages to archive.[/blue]")
+
+    if total == 0:
+        return 0
+
+    console.print("[blue]Archiving...[/blue]")
+    message_ids = [m["id"] for m in messages]
+    return client.batch_archive_messages(message_ids)
+
+
 @app.command("archive-before")
 def archive_before(
     date: str = typer.Argument(..., help="Archive messages before this date (YYYY-MM-DD)"),
@@ -772,15 +800,13 @@ def archive_before(
     """Archive all inbox messages before a specified date."""
     client = get_client()
 
-    # Build query
-    # Convert YYYY-MM-DD to YYYY/MM/DD for Gmail
+    # Build query (convert YYYY-MM-DD to YYYY/MM/DD for Gmail)
     date_formatted = date.replace("-", "/")
     query = f"in:inbox before:{date_formatted}"
     if category:
         query += f" category:{category.lower()}"
 
     try:
-        # Get count first (fast estimate)
         acct = resolve_account(state.account)
         estimate = client.count_messages(query=query)
         console.print(f"\n[cyan]Account:[/cyan] {acct}")
@@ -792,40 +818,19 @@ def archive_before(
             return
 
         if dry_run:
-            console.print("\n[yellow]DRY RUN - No changes made.[/yellow]")
-            # Show sample of what would be archived
-            sample = client.list_messages(query=query, max_results=5)
-            if sample:
-                console.print("\nSample messages that would be archived:")
-                for msg_summary in sample:
-                    msg = client.get_message_details(msg_summary["id"])
-                    summary = format_message_summary(msg)
-                    console.print(f"  - {summary['date'][:10] if summary['date'] else 'N/A'} | {truncate(summary['from'], 30)} | {truncate(summary['subject'], 40)}")
+            _show_archive_sample(client, query)
             return
 
-        # Confirmation
         if not yes:
-            confirm = typer.confirm(f"\nArchive ~{estimate:,} messages before {date}?")
-            if not confirm:
+            if not typer.confirm(f"\nArchive ~{estimate:,} messages before {date}?"):
                 console.print("[yellow]Cancelled.[/yellow]")
                 return
 
-        # Fetch all matching message IDs
-        console.print("\n[blue]Fetching message IDs...[/blue]")
-        messages = client.list_all_messages(query=query)
-        total = len(messages)
-        console.print(f"[blue]Found {total:,} messages to archive.[/blue]")
-
-        if total == 0:
+        archived = _execute_archive(client, query)
+        if archived > 0:
+            console.print(f"\n[green]Done! Archived {archived:,} messages.[/green]")
+        else:
             console.print("[yellow]No messages to archive.[/yellow]")
-            return
-
-        # Archive in batches
-        console.print("[blue]Archiving...[/blue]")
-        message_ids = [m["id"] for m in messages]
-        archived = client.batch_archive_messages(message_ids)
-
-        console.print(f"\n[green]Done! Archived {archived:,} messages.[/green]")
 
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
