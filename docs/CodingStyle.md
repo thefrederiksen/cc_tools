@@ -395,6 +395,72 @@ def get_api_key() -> str:
     return api_key
 ```
 
+### Common Secrets Patterns to Avoid
+
+Never commit code containing these patterns:
+
+| Pattern | Example | What It Usually Is |
+|---------|---------|-------------------|
+| `sk-` | `sk-abc123...` | OpenAI API key |
+| `AKIA` | `AKIAIOSFODNN7EXAMPLE` | AWS Access Key ID |
+| `ghp_` | `ghp_xxxx...` | GitHub Personal Access Token |
+| `gho_` | `gho_xxxx...` | GitHub OAuth Token |
+| `Bearer eyJ` | `Bearer eyJhbGc...` | JWT Auth Token |
+| `-----BEGIN` | `-----BEGIN RSA PRIVATE KEY-----` | Private Key |
+| `password=` | `password="secret123"` | Hardcoded Password |
+| `postgres://user:pass@` | `postgres://admin:pass123@host` | DB Connection String |
+| `client_secret` | `client_secret="abc..."` | OAuth Client Secret |
+
+**Where credentials should go:**
+- Environment variables (preferred)
+- `.env` files (must be in `.gitignore`)
+- Secure secret managers (Azure Key Vault, AWS Secrets Manager)
+- Config files excluded from version control
+
+### Never Commit PII (Personal Identifiable Information)
+
+PII in code is a security and privacy risk. Never commit:
+
+- **Real email addresses** (except @example.com, @test.com)
+- **Phone numbers** (real ones - 555-xxx-xxxx is OK for tests)
+- **Physical addresses** (street addresses, city/state/zip)
+- **Personal names** with other identifying info
+- **Employee IDs, account numbers**
+- **Internal company URLs or system names**
+
+**For test data, use:**
+
+```python
+# BAD - real data
+TEST_USER = {
+    "name": "John Smith",
+    "email": "jsmith@company.com",
+    "phone": "415-555-1234"
+}
+
+# GOOD - obviously fake data
+TEST_USER = {
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "555-000-0000"
+}
+
+# BETTER - use Faker library for realistic fake data
+from faker import Faker
+fake = Faker()
+TEST_USER = {
+    "name": fake.name(),
+    "email": fake.email(),
+    "phone": fake.phone_number()
+}
+```
+
+**Test domains and numbers:**
+- Use `@example.com`, `@test.com`, `@placeholder.com` for emails
+- Use `555-xxx-xxxx` for US phone numbers (reserved for fiction)
+- Use `John Doe`, `Jane Doe`, `Test User` for names
+- Use `123 Test Street, Anytown, ST 00000` for addresses
+
 ### Safe File Operations
 
 ```python
@@ -548,6 +614,9 @@ warn_unused_ignores = true
 | Fallback catches | Forbidden | Fix root cause instead |
 | Print for logs | Forbidden | Use `logging` module |
 | Hard-coded secrets | Forbidden | Use environment variables |
+| PII in code | Forbidden | Use fake/test data |
+| API keys | Forbidden | Use env vars or secret manager |
+| Real emails | Forbidden | Use @example.com or @test.com |
 | Star imports | Forbidden | Import specific names |
 | Functions | Under 50 lines | Split into smaller functions |
 | Tests | Required for public functions | pytest with AAA pattern |

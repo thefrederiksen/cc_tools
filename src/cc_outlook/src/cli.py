@@ -14,42 +14,23 @@ from rich.text import Text
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
-try:
-    from . import __version__
-    from .auth import (
-        authenticate,
-        get_auth_status,
-        revoke_token,
-        list_accounts,
-        set_default_account,
-        get_default_account,
-        delete_account,
-        resolve_account,
-        get_config_dir,
-        get_readme_path,
-        save_profile,
-        get_profile,
-    )
-    from .outlook_api import OutlookClient
-    from .utils import truncate, sanitize_text
-except ImportError:
-    from src import __version__
-    from src.auth import (
-        authenticate,
-        get_auth_status,
-        revoke_token,
-        list_accounts,
-        set_default_account,
-        get_default_account,
-        delete_account,
-        resolve_account,
-        get_config_dir,
-        get_readme_path,
-        save_profile,
-        get_profile,
-    )
-    from src.outlook_api import OutlookClient
-    from src.utils import truncate, sanitize_text
+from . import __version__
+from .auth import (
+    authenticate,
+    get_auth_status,
+    revoke_token,
+    list_accounts,
+    set_default_account,
+    get_default_account,
+    delete_account,
+    resolve_account,
+    get_config_dir,
+    get_readme_path,
+    save_profile,
+    get_profile,
+)
+from .outlook_api import OutlookClient
+from .utils import truncate, sanitize_text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -71,11 +52,8 @@ console = Console()
 # Global State
 # =============================================================================
 
-class State:
-    account: Optional[str] = None
-
-
-state = State()
+# Module-level state for current account selection
+_current_account: Optional[str] = None
 
 
 def version_callback(value: bool) -> None:
@@ -88,7 +66,7 @@ def version_callback(value: bool) -> None:
 def get_client(account: Optional[str] = None) -> OutlookClient:
     """Get authenticated Outlook client for the specified or default account."""
     try:
-        acct = resolve_account(account or state.account)
+        acct = resolve_account(account or _current_account)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -137,7 +115,8 @@ def main(
     ),
 ):
     """Outlook CLI: read, send, search emails and manage calendar."""
-    state.account = account
+    global _current_account
+    _current_account = account
     # Show help if no command provided
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
@@ -264,7 +243,7 @@ def auth(
 ):
     """Authenticate with Outlook using Device Code Flow."""
     try:
-        acct = resolve_account(state.account)
+        acct = resolve_account(_current_account)
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -333,7 +312,7 @@ def list_emails(
             console.print(f"[yellow]No messages in {folder}[/yellow]")
             return
 
-        acct = resolve_account(state.account)
+        acct = resolve_account(_current_account)
         console.print(f"\n[cyan]Messages in {folder} ({acct})[/cyan]\n")
 
         for msg in messages:
@@ -549,7 +528,7 @@ def search(
             console.print(f"[yellow]No messages matching:[/yellow] {query}")
             return
 
-        acct = resolve_account(state.account)
+        acct = resolve_account(_current_account)
         console.print(f"\n[cyan]Search: {query} ({acct})[/cyan]\n")
 
         for msg in messages:
@@ -804,6 +783,33 @@ def delete(
 
 
 @app.command()
+def archive(
+    message_id: str = typer.Argument(..., help="Message ID to archive"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation"),
+):
+    """Archive an email (move to Archive folder)."""
+    client = get_client()
+
+    if not yes:
+        confirm = typer.confirm(f"Archive message {message_id[:16]}...?")
+        if not confirm:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
+    try:
+        client.move_message(message_id, "Archive")
+        console.print("[green]Message archived.[/green]")
+    except ValueError as e:
+        logger.error(f"Archive error: {e}")
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except (ConnectionError, OSError) as e:
+        logger.error(f"Network error archiving message: {e}")
+        console.print(f"[red]Error:[/red] Network error: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def folders() -> None:
     """List all mail folders."""
     client = get_client()
@@ -847,7 +853,7 @@ def profile() -> None:
 
     try:
         info = client.get_profile()
-        acct = resolve_account(state.account)
+        acct = resolve_account(_current_account)
         status = get_auth_status(acct)
 
         table = Table(title=f"Outlook Profile ({acct})")
@@ -921,7 +927,7 @@ def calendar_events(
             console.print(f"[yellow]No events in the next {days} days[/yellow]")
             return
 
-        acct = resolve_account(state.account)
+        acct = resolve_account(_current_account)
         console.print(f"\n[cyan]Upcoming Events ({acct})[/cyan]\n")
 
         for event in events:
