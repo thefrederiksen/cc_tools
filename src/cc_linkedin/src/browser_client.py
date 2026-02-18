@@ -1,8 +1,10 @@
 """HTTP client wrapper for cc_browser daemon."""
 
 import httpx
+import json
+import os
+from pathlib import Path
 from typing import Optional
-from pydantic import BaseModel
 
 
 class BrowserError(Exception):
@@ -10,14 +12,142 @@ class BrowserError(Exception):
     pass
 
 
+class ProfileError(Exception):
+    """Error resolving browser profile."""
+    pass
+
+
+def get_cc_browser_dir() -> Path:
+    """Get cc-browser profiles directory."""
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if not local_app_data:
+        raise ProfileError(
+            "LOCALAPPDATA environment variable not set. "
+            "Cannot locate cc-browser profiles."
+        )
+    return Path(local_app_data) / "cc-browser"
+
+
+def resolve_profile(profile_name: str) -> dict:
+    """Resolve profile name or alias to profile config.
+
+    Scans all cc-browser profile directories for matching profile name or alias.
+
+    Args:
+        profile_name: Profile name or alias (e.g., "linkedin", "work", "chrome-work")
+
+    Returns:
+        Profile config dict with browser, profile, daemonPort, etc.
+
+    Raises:
+        ProfileError: If profile cannot be found or resolved.
+    """
+    cc_browser_dir = get_cc_browser_dir()
+
+    if not cc_browser_dir.exists():
+        raise ProfileError(
+            f"cc-browser directory not found: {cc_browser_dir}\n"
+            "Install cc-browser and create a profile first.\n"
+            "Run: cc-browser profile create linkedin"
+        )
+
+    # Scan all profile directories
+    for profile_dir in cc_browser_dir.iterdir():
+        if not profile_dir.is_dir():
+            continue
+
+        profile_json = profile_dir / "profile.json"
+        if not profile_json.exists():
+            continue
+
+        try:
+            with open(profile_json, "r") as f:
+                config = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            continue
+
+        # Check if profile name matches directory name
+        if profile_dir.name == profile_name:
+            return config
+
+        # Check if profile name matches browser-profile combo
+        browser = config.get("browser", "")
+        profile = config.get("profile", "")
+        if f"{browser}-{profile}" == profile_name:
+            return config
+
+        # Check aliases
+        aliases = config.get("aliases", [])
+        if profile_name in aliases:
+            return config
+
+    # Profile not found - provide helpful error
+    available = []
+    for profile_dir in cc_browser_dir.iterdir():
+        if profile_dir.is_dir():
+            profile_json = profile_dir / "profile.json"
+            if profile_json.exists():
+                try:
+                    with open(profile_json, "r") as f:
+                        config = json.load(f)
+                    aliases = config.get("aliases", [])
+                    available.append(f"{profile_dir.name} (aliases: {', '.join(aliases)})")
+                except:
+                    available.append(profile_dir.name)
+
+    available_str = "\n  - ".join(available) if available else "(none found)"
+    raise ProfileError(
+        f"Profile '{profile_name}' not found.\n\n"
+        f"Available profiles:\n  - {available_str}\n\n"
+        "To add 'linkedin' as an alias to an existing profile, edit its profile.json "
+        "and add 'linkedin' to the aliases array."
+    )
+
+
+def get_port_for_profile(profile_name: str) -> int:
+    """Get daemon port for a profile name or alias.
+
+    Args:
+        profile_name: Profile name or alias
+
+    Returns:
+        Daemon port number
+
+    Raises:
+        ProfileError: If profile not found or has no daemonPort.
+    """
+    config = resolve_profile(profile_name)
+
+    port = config.get("daemonPort")
+    if not port:
+        raise ProfileError(
+            f"Profile '{profile_name}' has no daemonPort configured.\n"
+            "Edit the profile.json and add a daemonPort field."
+        )
+
+    return port
+
+
 class BrowserClient:
     """HTTP client for cc_browser daemon.
 
-    Communicates with the cc_browser daemon on localhost:9280.
+    Communicates with the cc_browser daemon on localhost.
+    Profile is resolved to get the daemon port.
     """
 
-    def __init__(self, port: int = 9280, timeout: float = 30.0):
-        self.base_url = f"http://localhost:{port}"
+    def __init__(self, profile: str, timeout: float = 30.0):
+        """Initialize browser client for a profile.
+
+        Args:
+            profile: Profile name or alias (e.g., "linkedin", "work")
+            timeout: HTTP request timeout in seconds
+
+        Raises:
+            ProfileError: If profile cannot be resolved.
+        """
+        self.profile = profile
+        self.port = get_port_for_profile(profile)
+        self.base_url = f"http://localhost:{self.port}"
         self.timeout = timeout
         self._client = httpx.Client(timeout=timeout)
 
@@ -36,8 +166,8 @@ class BrowserClient:
             return result
         except httpx.ConnectError:
             raise BrowserError(
-                "Cannot connect to cc_browser daemon. "
-                "Start it with: cc-browser daemon"
+                f"Cannot connect to cc_browser daemon on port {self.port}.\n"
+                f"Start it with: cc-browser daemon --profile {self.profile}"
             )
         except httpx.TimeoutException:
             raise BrowserError(f"Request timed out after {self.timeout}s")
@@ -54,8 +184,8 @@ class BrowserClient:
             return result
         except httpx.ConnectError:
             raise BrowserError(
-                "Cannot connect to cc_browser daemon. "
-                "Start it with: cc-browser daemon"
+                f"Cannot connect to cc_browser daemon on port {self.port}.\n"
+                f"Start it with: cc-browser daemon --profile {self.profile}"
             )
         except httpx.TimeoutException:
             raise BrowserError(f"Request timed out after {self.timeout}s")
@@ -195,6 +325,6 @@ class BrowserClient:
 
 
 # Convenience function for quick operations
-def get_client(port: int = 9280) -> BrowserClient:
-    """Get a browser client instance."""
-    return BrowserClient(port=port)
+def get_client(profile: str) -> BrowserClient:
+    """Get a browser client instance for a profile."""
+    return BrowserClient(profile=profile)

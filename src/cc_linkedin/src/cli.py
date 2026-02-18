@@ -6,12 +6,14 @@ from rich.table import Table
 from rich import print as rprint
 from typing import Optional
 import json
+import os
 import re
 import time
+from pathlib import Path
 
 from urllib.parse import quote
 
-from .browser_client import BrowserClient, BrowserError
+from .browser_client import BrowserClient, BrowserError, ProfileError
 from .selectors import LinkedInURLs, LinkedIn
 
 app = typer.Typer(
@@ -23,9 +25,45 @@ app = typer.Typer(
 console = Console()
 
 
+def get_config_dir() -> Path:
+    """Get cc_linkedin config directory."""
+    return Path.home() / ".cc_linkedin"
+
+
+def load_default_profile() -> str:
+    """Load default profile from config.json.
+
+    Returns:
+        Default profile name from config, or 'linkedin' if not configured.
+
+    Raises:
+        typer.Exit: If config file is invalid.
+    """
+    config_file = get_config_dir() / "config.json"
+
+    if not config_file.exists():
+        console.print(
+            f"[yellow]WARNING:[/yellow] Config file not found: {config_file}\n"
+            "Using default profile: linkedin\n"
+            "Create config.json with: {\"default_profile\": \"linkedin\"}"
+        )
+        return "linkedin"
+
+    try:
+        with open(config_file, "r") as f:
+            data = json.load(f)
+        return data.get("default_profile", "linkedin")
+    except json.JSONDecodeError as e:
+        console.print(f"[red]ERROR:[/red] Invalid JSON in {config_file}: {e}")
+        raise typer.Exit(1)
+    except IOError as e:
+        console.print(f"[red]ERROR:[/red] Cannot read {config_file}: {e}")
+        raise typer.Exit(1)
+
+
 # Global options stored in context
 class Config:
-    port: int = 9280
+    profile: str = ""
     format: str = "text"
     delay: float = 1.0
     verbose: bool = False
@@ -35,8 +73,12 @@ config = Config()
 
 
 def get_client() -> BrowserClient:
-    """Get browser client instance."""
-    return BrowserClient(port=config.port)
+    """Get browser client instance for configured profile."""
+    try:
+        return BrowserClient(profile=config.profile)
+    except ProfileError as e:
+        console.print(f"[red]ERROR:[/red] {e}")
+        raise typer.Exit(1)
 
 
 def output(data: dict, message: str = "") -> None:
@@ -118,7 +160,7 @@ def find_element_ref_near_text(snapshot_text: str, near_text: str, keywords: lis
 
 @app.callback()
 def main(
-    port: int = typer.Option(9280, help="cc_browser daemon port"),
+    profile: Optional[str] = typer.Option(None, "--profile", "-p", help="cc_browser profile name or alias"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
     delay: float = typer.Option(1.0, help="Delay between actions (seconds)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
@@ -126,9 +168,13 @@ def main(
     """LinkedIn CLI via browser automation.
 
     Requires cc_browser daemon to be running.
-    Start it with: cc-browser daemon
+    Start it with: cc-browser daemon --profile linkedin
     """
-    config.port = port
+    # Load default profile from config if not specified
+    if profile is None:
+        profile = load_default_profile()
+
+    config.profile = profile
     config.format = format
     config.delay = delay
     config.verbose = verbose

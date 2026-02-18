@@ -236,8 +236,8 @@ const routes = {
 
   // Start browser
   'POST /start': async (req, res, params, body) => {
-    const profileName = body.profile || 'default';
-    const browserKind = body.browser || 'chrome';
+    const profileName = body.profile || defaultDaemonProfile || 'default';
+    const browserKind = body.browser || defaultDaemonBrowser || 'chrome';
 
     // Read profile.json to get cdpPort - priority: explicit body.port > profile.json > default
     let cdpPort = body.port; // Only use if explicitly provided
