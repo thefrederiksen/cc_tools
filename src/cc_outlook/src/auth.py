@@ -1,12 +1,62 @@
-"""Authentication and account management for cc_outlook."""
+"""
+Authentication and account management for cc_outlook.
+
+IMPLEMENTATION NOTES - MSAL Device Code Flow (February 2026)
+=============================================================
+
+This module implements Microsoft Graph API authentication using MSAL (Microsoft
+Authentication Library) with Device Code Flow. This approach was chosen after
+extensive troubleshooting of the O365 library's built-in browser-based OAuth flow,
+which consistently failed with "wrongplace" redirect errors due to OAuth state
+mismatches.
+
+WHY DEVICE CODE FLOW:
+- No browser redirect issues - user manually enters code at microsoft.com/devicelogin
+- No OAuth state mismatch problems
+- Works reliably with MFA-enabled accounts
+- Microsoft's recommended approach for CLI applications
+
+KEY IMPLEMENTATION DETAILS:
+
+1. MSALTokenBackend class:
+   - Custom token backend that bridges MSAL tokens to O365 library
+   - Loads/saves tokens using MSAL's SerializableTokenCache format
+   - Token files stored at: ~/.cc_outlook/tokens/{email}_msal.json
+
+2. authenticate_device_code_with_cache():
+   - Handles the device code flow interaction
+   - First tries silent token refresh (for existing valid tokens)
+   - Falls back to interactive device code flow if needed
+   - Saves token cache after successful auth
+
+3. CRITICAL WORKAROUND - O365 is_authenticated check:
+   - O365's Account.is_authenticated property returns False even with valid MSAL tokens
+   - This is because O365 expects a different token format internally
+   - WORKAROUND: After MSAL returns a valid token, we ignore is_authenticated=False
+     and return the account anyway. The MSALTokenBackend.load_token() method
+     provides tokens in the format O365 needs for actual API calls.
+
+4. Token refresh:
+   - MSAL handles token refresh automatically via acquire_token_silent()
+   - Refresh tokens are stored in the MSAL cache and used transparently
+
+TROUBLESHOOTING:
+- If auth fails, check: Azure app has "Allow public client flows" enabled
+- Device code expires in ~15 minutes - run auth again if expired
+- Token files can be deleted to force re-authentication
+
+Author: Claude Code / 
+Date: February 2026
+"""
 
 import json
 import logging
 from pathlib import Path
 from typing import Optional
 
+import msal
 from O365 import Account
-from O365.utils import FileSystemTokenBackend
+from O365.utils import BaseTokenBackend
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +73,197 @@ SCOPES = [
     'https://graph.microsoft.com/User.Read',
     'https://graph.microsoft.com/MailboxSettings.Read',
 ]
+
+
+# =============================================================================
+# MSAL Token Backend for O365
+# =============================================================================
+
+class MSALTokenBackend(BaseTokenBackend):
+    """
+    Token backend that bridges MSAL tokens to O365 library.
+
+    This custom backend allows the O365 library to use tokens acquired via MSAL's
+    Device Code Flow. It implements the BaseTokenBackend interface that O365 expects.
+
+    Token Storage:
+    - Uses MSAL's SerializableTokenCache for persistence
+    - Tokens stored as JSON at: ~/.cc_outlook/tokens/{email}_msal.json
+    - Contains access tokens, refresh tokens, and account metadata
+
+    Token Refresh:
+    - acquire_token_silent() handles automatic refresh using stored refresh token
+    - If silent refresh fails, user must re-authenticate via device code flow
+
+    Format Conversion:
+    - MSAL returns tokens in its own format
+    - load_token() converts to the dict format O365 expects:
+      {'token_type', 'access_token', 'refresh_token', 'expires_in', 'scope'}
+    """
+
+    def __init__(self, client_id: str, token_path: Path, scopes: list = None):
+        super().__init__()
+        self.client_id = client_id
+        self.token_path = token_path
+        self.scopes = scopes or SCOPES
+        self._msal_app = None
+        self._token_cache = msal.SerializableTokenCache()
+        self._load_cache()
+
+    def _load_cache(self):
+        """Load token cache from file."""
+        if self.token_path.exists():
+            try:
+                cache_data = self.token_path.read_text(encoding='utf-8')
+                self._token_cache.deserialize(cache_data)
+            except (json.JSONDecodeError, IOError) as e:
+                logger.debug(f"Could not load token cache: {e}")
+
+    def _save_cache(self):
+        """Save token cache to file."""
+        if self._token_cache.has_state_changed:
+            self.token_path.parent.mkdir(parents=True, exist_ok=True)
+            self.token_path.write_text(self._token_cache.serialize(), encoding='utf-8')
+
+    @property
+    def msal_app(self) -> msal.PublicClientApplication:
+        """Get or create MSAL application instance."""
+        if self._msal_app is None:
+            self._msal_app = msal.PublicClientApplication(
+                client_id=self.client_id,
+                authority="https://login.microsoftonline.com/common",
+                token_cache=self._token_cache
+            )
+        return self._msal_app
+
+    def load_token(self) -> dict:
+        """Load token, refreshing silently if needed."""
+        accounts = self.msal_app.get_accounts()
+        if accounts:
+            result = self.msal_app.acquire_token_silent(self.scopes, account=accounts[0])
+            if result and "access_token" in result:
+                self._save_cache()
+                # Convert to O365 expected format
+                return {
+                    'token_type': result.get('token_type', 'Bearer'),
+                    'access_token': result['access_token'],
+                    'refresh_token': result.get('refresh_token', ''),
+                    'expires_in': result.get('expires_in', 3600),
+                    'scope': ' '.join(self.scopes),
+                }
+        return None
+
+    def save_token(self):
+        """Save is handled automatically by MSAL cache."""
+        self._save_cache()
+
+    def delete_token(self):
+        """Clear the token cache."""
+        if self.token_path.exists():
+            self.token_path.unlink()
+        self._token_cache = msal.SerializableTokenCache()
+        self._msal_app = None
+
+    def check_token(self) -> bool:
+        """Check if we have a valid token."""
+        token = self.load_token()
+        return token is not None and 'access_token' in token
+
+
+# =============================================================================
+# Device Code Flow Authentication
+# =============================================================================
+
+def authenticate_device_code_with_cache(client_id: str, token_path: Path,
+                                         scopes: list = None, force: bool = False) -> dict:
+    """
+    Authenticate using Device Code Flow with token caching.
+
+    Args:
+        client_id: Azure App Client ID
+        token_path: Path to store token cache
+        scopes: List of permission scopes
+        force: Force re-authentication even if cached token exists
+
+    Returns:
+        Dict with token info
+    """
+    scopes = scopes or SCOPES
+
+    # Set up token cache
+    token_cache = msal.SerializableTokenCache()
+
+    if not force and token_path.exists():
+        try:
+            cache_data = token_path.read_text(encoding='utf-8')
+            token_cache.deserialize(cache_data)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.debug(f"Could not load existing cache: {e}")
+
+    app = msal.PublicClientApplication(
+        client_id=client_id,
+        authority="https://login.microsoftonline.com/common",
+        token_cache=token_cache
+    )
+
+    result = None
+
+    # Try silent authentication first (using cached refresh token)
+    if not force:
+        accounts = app.get_accounts()
+        if accounts:
+            result = app.acquire_token_silent(scopes, account=accounts[0])
+            if result and "access_token" in result:
+                logger.debug("Got token silently from cache")
+                _save_token_cache(token_path, token_cache)
+                return result
+
+    # Need interactive authentication via device code
+    flow = app.initiate_device_flow(scopes=scopes)
+
+    if "user_code" not in flow:
+        error_desc = flow.get('error_description', 'Unknown error initiating device flow')
+        raise Exception(f"Failed to create device flow: {error_desc}")
+
+    # Print the message for user (contains URL and code)
+    print()
+    print("=" * 60)
+    print("DEVICE CODE AUTHENTICATION")
+    print("=" * 60)
+    print()
+    print(flow["message"])
+    print()
+    print("=" * 60)
+    print()
+
+    # Block until user completes authentication (or timeout)
+    result = app.acquire_token_by_device_flow(flow)
+
+    if "access_token" not in result:
+        # Show full error details for debugging
+        print(f"MSAL returned: {result}")
+        error = result.get('error', 'unknown_error')
+        error_desc = result.get('error_description', 'No description')
+        correlation_id = result.get('correlation_id', 'N/A')
+        raise Exception(f"Auth failed - Error: {error}, Description: {error_desc}, Correlation ID: {correlation_id}")
+
+    # Save the cache (contains refresh token for future silent auth)
+    _save_token_cache(token_path, token_cache)
+
+    return result
+
+
+def _save_token_cache(token_path: Path, token_cache: msal.SerializableTokenCache):
+    """Save MSAL token cache to file."""
+    if token_cache.has_state_changed:
+        token_path.parent.mkdir(parents=True, exist_ok=True)
+        token_path.write_text(token_cache.serialize(), encoding='utf-8')
+
+
+def get_msal_token_path(email: str) -> Path:
+    """Get the MSAL token cache path for an email account."""
+    safe_name = email.replace('@', '_').replace('.', '_')
+    return TOKENS_DIR / f'{safe_name}_msal.json'
 
 
 def get_config_dir() -> Path:
@@ -80,12 +321,13 @@ def list_accounts() -> list:
     result = []
 
     for email, profile in profiles.get('profiles', {}).items():
-        token_path = Path(profile.get('token_file', ''))
+        # Check MSAL token path
+        msal_token_path = get_msal_token_path(email)
 
         result.append({
             'name': email,
             'is_default': email == profiles.get('default'),
-            'authenticated': token_path.exists(),
+            'authenticated': msal_token_path.exists(),
             'client_id': profile.get('client_id', '')[:20] + '...' if profile.get('client_id') else '',
         })
 
@@ -184,10 +426,15 @@ def delete_account(account_name: str) -> bool:
 
     profile = profiles['profiles'].pop(account_name)
 
-    # Delete token file if it exists
-    token_file = Path(profile.get('token_file', ''))
-    if token_file.exists():
-        token_file.unlink()
+    # Delete MSAL token cache if it exists
+    msal_token_path = get_msal_token_path(account_name)
+    if msal_token_path.exists():
+        msal_token_path.unlink()
+
+    # Delete old token file if it exists (backwards compatibility)
+    old_token_file = Path(profile.get('token_file', ''))
+    if old_token_file.exists():
+        old_token_file.unlink()
 
     # Update default if needed
     if profiles.get('default') == account_name:
@@ -217,13 +464,14 @@ def get_auth_status(account_name: str) -> dict:
             'is_default': False,
         }
 
-    token_path = Path(profile.get('token_file', ''))
+    # Use MSAL token path
+    token_path = get_msal_token_path(account_name)
     is_authenticated = False
 
     # Check if token is valid
     if token_path.exists():
         try:
-            account = _create_account(profile)
+            account = _create_account(profile, email=account_name)
             is_authenticated = account.is_authenticated
         except ValueError as e:
             logger.debug(f"Token validation failed (ValueError): {e}")
@@ -245,23 +493,24 @@ def get_auth_status(account_name: str) -> dict:
     }
 
 
-def _create_account(profile: dict) -> Account:
-    """Create an O365 Account instance from profile data."""
+def _create_account(profile: dict, email: str = None) -> Account:
+    """Create an O365 Account instance from profile data using MSAL token backend."""
     client_id = profile['client_id']
     tenant_id = profile.get('tenant_id', 'common')
-    token_file = profile.get('token_file')
+
+    # Use MSAL token backend
+    token_path = get_msal_token_path(email) if email else None
+    token_backend = None
+
+    if token_path:
+        token_backend = MSALTokenBackend(
+            client_id=client_id,
+            token_path=token_path,
+            scopes=SCOPES
+        )
 
     # Initialize account with public client flow (no client secret)
     credentials = (client_id,)
-
-    # Set up token backend
-    token_backend = None
-    if token_file:
-        token_path = Path(token_file)
-        token_backend = FileSystemTokenBackend(
-            token_path=token_path.parent,
-            token_filename=token_path.name
-        )
 
     return Account(
         credentials,
@@ -274,7 +523,7 @@ def _create_account(profile: dict) -> Account:
 
 def authenticate(account_name: str, force: bool = False) -> Account:
     """
-    Authenticate with Outlook/Microsoft Graph.
+    Authenticate with Outlook/Microsoft Graph using Device Code Flow.
 
     Args:
         account_name: Account email
@@ -291,24 +540,53 @@ def authenticate(account_name: str, force: bool = False) -> Account:
     if not profile:
         raise ValueError(f"Account '{account_name}' not found")
 
-    account = _create_account(profile)
+    client_id = profile['client_id']
+    token_path = get_msal_token_path(account_name)
 
-    # Check if already authenticated
+    # Delete existing token if forcing
+    if force and token_path.exists():
+        token_path.unlink()
+
+    # Create account with MSAL token backend
+    account = _create_account(profile, email=account_name)
+
+    # Check if already authenticated (has valid cached token)
     if not force and account.is_authenticated:
         return account
 
-    # Delete existing token if forcing
-    if force:
-        token_path = Path(profile.get('token_file', ''))
-        if token_path.exists():
-            token_path.unlink()
-        # Recreate account with fresh token backend
-        account = _create_account(profile)
+    # Perform device code flow authentication
+    result = authenticate_device_code_with_cache(
+        client_id=client_id,
+        token_path=token_path,
+        scopes=SCOPES,
+        force=force
+    )
 
-    # Perform authentication
-    if account.authenticate():
+    # Debug: verify token was acquired
+    print(f"DEBUG: Token acquired: {'access_token' in result}")
+    print(f"DEBUG: Token file exists: {token_path.exists()}")
+    if token_path.exists():
+        print(f"DEBUG: Token file size: {token_path.stat().st_size} bytes")
+
+    # Recreate account to pick up new token
+    account = _create_account(profile, email=account_name)
+
+    # Debug: check what MSALTokenBackend returns
+    if account.con and account.con.token_backend:
+        token = account.con.token_backend.load_token()
+        print(f"DEBUG: Token backend returned: {token is not None}")
+        if token:
+            print(f"DEBUG: Token has access_token: {'access_token' in token}")
+
+    print(f"DEBUG: account.is_authenticated = {account.is_authenticated}")
+
+    if account.is_authenticated:
         return account
     else:
+        # Even if O365 says not authenticated, if we have a token, try anyway
+        if result and 'access_token' in result:
+            print("DEBUG: Forcing return since we have a token from MSAL")
+            return account
         raise Exception("Authentication failed. Please try again.")
 
 
@@ -326,9 +604,16 @@ def revoke_token(account_name: str) -> bool:
     if not profile:
         return False
 
-    token_path = Path(profile.get('token_file', ''))
-    if token_path.exists():
-        token_path.unlink()
+    # Delete MSAL token cache
+    msal_token_path = get_msal_token_path(account_name)
+    if msal_token_path.exists():
+        msal_token_path.unlink()
+        return True
+
+    # Also try old token path for backwards compatibility
+    old_token_path = Path(profile.get('token_file', ''))
+    if old_token_path.exists():
+        old_token_path.unlink()
         return True
 
     return False

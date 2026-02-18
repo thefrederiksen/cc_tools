@@ -2,8 +2,10 @@
 
 ## Overview
 
-cc_outlook uses Microsoft Graph API via the O365 library with OAuth 2.0 public client flow.
-This guide walks you through the complete setup process.
+cc_outlook uses Microsoft Graph API with OAuth 2.0 Device Code Flow authentication.
+This is the most reliable authentication method for CLI applications - no browser redirects needed.
+
+**Technical Implementation Details:** See [IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md) for full technical documentation of how this works internally.
 
 ## Quick Reference
 
@@ -42,12 +44,12 @@ You only need to do this ONCE. The same app registration works for multiple emai
 | **Name** | `cc_outlook_cli` |
 | **Supported account types** | Select: **Accounts in any organizational directory and personal Microsoft accounts** |
 
-**IMPORTANT - Redirect URI:**
+**Redirect URI:**
 
 | Field | Value |
 |-------|-------|
 | **Platform** | Select: **Mobile and desktop applications** |
-| **URI** | Enter: `http://localhost` |
+| **URI** | Enter: `https://login.microsoftonline.com/common/oauth2/nativeclient` |
 
 Click **Register**
 
@@ -84,25 +86,9 @@ Microsoft Graph (5)
   User.Read                Delegated    No
 ```
 
-### Step 6: Add Second Redirect URI (CRITICAL)
-
-This step is **essential** - without it you'll get redirect errors.
+### Step 6: Enable Public Client Flow
 
 1. In the left menu, click **Authentication**
-2. Under **Mobile and desktop applications**, click **Add URI** or the existing row
-3. **Add** this URI (in addition to http://localhost):
-   ```
-   https://login.microsoftonline.com/common/oauth2/nativeclient
-   ```
-4. Click **Save**
-
-You should now have **TWO** redirect URIs:
-- `https://login.microsoftonline.com/common/oauth2/nativeclient`
-- `http://localhost`
-
-### Step 7: Enable Public Client Flow
-
-1. Still on the **Authentication** page
 2. Scroll down to **Advanced settings**
 3. Find **Allow public client flows**
 4. Set it to **Yes** (toggle should be enabled)
@@ -129,24 +115,38 @@ cc_outlook accounts add user@example.com --client-id YOUR_CLIENT_ID
 cc_outlook auth
 ```
 
-### The Authentication Flow
+### The Device Code Flow
 
-**IMPORTANT - Read this carefully!**
+Device Code Flow is simple and reliable:
 
-1. A URL is displayed in the terminal and a browser window opens
-2. **Sign in** with your Microsoft account
-3. **Accept the permissions** when prompted
-4. **You'll see a page that says "This is not the right page"** - **THIS IS NORMAL**
-5. **Copy the ENTIRE URL** from your browser's address bar (Ctrl+L, Ctrl+C)
-   - The URL looks like: `https://login.microsoftonline.com/common/oauth2/nativeclient?code=0.AXYA...`
-6. **Go back to the terminal** and paste the URL
-7. **Press Enter**
+1. Run `cc_outlook auth`
+2. A code and URL are displayed:
+   ```
+   ============================================================
+   DEVICE CODE AUTHENTICATION
+   ============================================================
+
+   To sign in, use a web browser to open the page https://microsoft.com/devicelogin
+   and enter the code XXXXXXXXX to authenticate.
+
+   ============================================================
+   ```
+3. Open **https://microsoft.com/devicelogin** in any browser
+4. Enter the code shown
+5. Sign in with your Microsoft account
+6. Accept the permissions when prompted
+7. The CLI automatically completes authentication
 
 You should see:
 ```
-Authentication Flow Completed. Oauth Access Token Stored. You can now use the API.
 [green]Authenticated as:[/green] your.email@domain.com
 ```
+
+**Why Device Code Flow?**
+- No browser redirect issues
+- No "wrongplace" errors
+- Works even if the browser is on a different device
+- No URL copying/pasting required
 
 ---
 
@@ -220,15 +220,14 @@ cc_outlook --account work send -t "to@example.com" -s "Subject" -b "Body"
 
 ## Part 4: Troubleshooting
 
-### Error: AADSTS50011 - Reply URL does not match
+### Error: "Failed to create device flow"
 
-**Cause:** Missing redirect URI in Azure.
+**Cause:** The Azure app may not have public client flow enabled.
 
 **Solution:**
 1. Go to Azure Portal -> App registrations -> your app -> Authentication
-2. Make sure BOTH redirect URIs are configured:
-   - `https://login.microsoftonline.com/common/oauth2/nativeclient`
-   - `http://localhost`
+2. Under "Advanced settings", set "Allow public client flows" to **Yes**
+3. Click Save
 
 ### Error: AADSTS65001 - User has not consented
 
@@ -236,44 +235,15 @@ cc_outlook --account work send -t "to@example.com" -s "Subject" -b "Body"
 
 **Solution:**
 1. Re-run `cc_outlook auth --force`
-2. Make sure to click "Accept" on the consent screen
+2. Make sure to click "Accept" on the consent screen at microsoft.com/devicelogin
 
-### "This is not the right page" in browser
+### Device code expired
 
-**This is NORMAL.** You need to:
-1. Copy the entire URL from the browser address bar
-2. Paste it back into the terminal
-3. Press Enter
-
-The URL should look like:
-```
-https://login.microsoftonline.com/common/oauth2/nativeclient?code=0.AXYA...&state=...
-```
-
-The URL contains the authorization code that the tool needs.
-
-### Redirected to "wrongplace" (no code in URL)
-
-If you see `https://login.microsoftonline.com/common/wrongplace` in the browser URL bar:
-
-**Cause:** OAuth state mismatch. The browser session completed authentication but the state parameter doesn't match what cc_outlook expects. This commonly happens when:
-- Using browser automation to complete the OAuth flow
-- The browser has cached SSO sessions that auto-complete login
-- Running multiple auth attempts without completing them
+The device code is valid for about 15 minutes. If you see an expiration error:
 
 **Solution:**
-1. Close the browser tab
-2. Run `cc_outlook auth --force` in a fresh terminal
-3. When the browser opens, complete the login manually
-4. The URL bar should show `nativeclient?code=...` (NOT `wrongplace`)
-5. Copy that URL and paste it back into the SAME terminal
-
-If still failing:
-- Clear cookies for `login.microsoftonline.com` in your browser
-- Or use an incognito/private browser window
-- Or try a different browser
-
-**IMPORTANT:** Do NOT use browser automation (Playwright, cc-browser, etc.) to complete OAuth flows - it causes state mismatch issues.
+1. Run `cc_outlook auth` again to get a fresh code
+2. Complete the authentication faster
 
 ### Token expired / Authentication required again
 
@@ -286,13 +256,9 @@ cc_outlook auth --revoke
 cc_outlook auth
 ```
 
-Or manually delete the token file:
+Or force re-authentication:
 ```bash
-# Windows
-del "%USERPROFILE%\.cc_outlook\tokens\your_email_domain_com.txt"
-
-# Then re-authenticate
-cc_outlook auth
+cc_outlook auth --force
 ```
 
 ### Error: Account not found
@@ -313,7 +279,7 @@ cc_outlook accounts add your@email.com --client-id YOUR_CLIENT_ID
 | Item | Location |
 |------|----------|
 | Profiles | `%USERPROFILE%\.cc_outlook\profiles.json` |
-| Tokens | `%USERPROFILE%\.cc_outlook\tokens\` |
+| Token Cache | `%USERPROFILE%\.cc_outlook\tokens\` |
 
 ---
 
@@ -328,12 +294,10 @@ For reference, here are all the Azure app settings needed:
 | Name | `cc_outlook_cli` |
 | Supported account types | Accounts in any organizational directory and personal Microsoft accounts |
 
-### Redirect URIs (Mobile and desktop applications)
+### Redirect URI (Mobile and desktop applications)
 
-Both of these MUST be configured:
 ```
 https://login.microsoftonline.com/common/oauth2/nativeclient
-http://localhost
 ```
 
 ### API Permissions (Microsoft Graph - Delegated)

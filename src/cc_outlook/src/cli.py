@@ -200,11 +200,12 @@ def accounts_add(
     console.print("Next step: Run authentication:")
     console.print(f"  cc_outlook auth")
     console.print()
-    console.print("[yellow]During authentication:[/yellow]")
-    console.print("  1. Browser opens -> Sign in -> Accept permissions")
-    console.print("  2. You'll see 'This is not the right page' - THIS IS NORMAL")
-    console.print("  3. Copy the ENTIRE URL from the browser address bar")
-    console.print("  4. Paste it into the terminal and press Enter")
+    console.print("[cyan]Device Code Flow Authentication:[/cyan]")
+    console.print("  1. Run 'cc_outlook auth'")
+    console.print("  2. A code will be displayed")
+    console.print("  3. Go to https://microsoft.com/devicelogin")
+    console.print("  4. Enter the code and sign in")
+    console.print("  5. Authentication completes automatically")
 
 
 @accounts_app.command("default")
@@ -261,7 +262,7 @@ def auth(
     force: bool = typer.Option(False, "--force", "-f", help="Force re-authentication"),
     revoke: bool = typer.Option(False, "--revoke", help="Revoke current token"),
 ):
-    """Authenticate with Outlook."""
+    """Authenticate with Outlook using Device Code Flow."""
     try:
         acct = resolve_account(state.account)
     except ValueError as e:
@@ -285,13 +286,12 @@ def auth(
     try:
         console.print(f"[blue]Authenticating account '{acct}'...[/blue]")
         console.print()
-        console.print("[yellow]IMPORTANT - Authentication Flow:[/yellow]")
-        console.print("  1. A browser window will open")
-        console.print("  2. Sign in with your Microsoft account")
-        console.print("  3. Accept the permissions")
-        console.print("  4. You'll see 'This is not the right page' - THIS IS NORMAL")
-        console.print("  5. Copy the ENTIRE URL from your browser address bar")
-        console.print("  6. Paste it back into this terminal and press Enter")
+        console.print("[cyan]Device Code Flow Authentication:[/cyan]")
+        console.print("  1. A code will be displayed below")
+        console.print("  2. Go to https://microsoft.com/devicelogin")
+        console.print("  3. Enter the code shown")
+        console.print("  4. Sign in with your Microsoft account")
+        console.print("  5. Authentication completes automatically")
         console.print()
 
         auth_account = authenticate(acct, force=force)
@@ -307,7 +307,7 @@ def auth(
         logger.error(f"Network error: {e}")
         console.print(f"[red]Error:[/red] Network error: {e}")
         raise typer.Exit(1)
-    except RuntimeError as e:
+    except Exception as e:
         logger.error(f"Authentication error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)

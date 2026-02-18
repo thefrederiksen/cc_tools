@@ -26,11 +26,10 @@ Outlook CLI for Claude Code: read, send, search emails and manage calendar from 
 3. Settings:
    - Name: `cc_outlook_cli`
    - Account types: "Accounts in any organizational directory and personal Microsoft accounts"
-   - Redirect URI: Mobile and desktop -> `http://localhost`
+   - Redirect URI: Mobile and desktop -> `https://login.microsoftonline.com/common/oauth2/nativeclient`
 4. Copy the Application (client) ID
 5. Go to API permissions -> Add: Mail.ReadWrite, Mail.Send, Calendars.ReadWrite, User.Read, MailboxSettings.Read
-6. Go to Authentication -> Add URI: `https://login.microsoftonline.com/common/oauth2/nativeclient`
-7. Enable "Allow public client flows"
+6. Go to Authentication -> Enable "Allow public client flows"
 
 See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for detailed setup instructions.
 
@@ -40,13 +39,16 @@ See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for detailed setup instruct
 cc_outlook accounts add your@email.com --client-id YOUR_CLIENT_ID
 ```
 
-### 3. Authenticate
+### 3. Authenticate (Device Code Flow)
 
 ```bash
 cc_outlook auth
 ```
 
-**IMPORTANT:** During authentication, you'll see "This is not the right page" - this is normal! Copy the URL and paste it back in the terminal.
+1. A code will be displayed (e.g., `XXXXXXXXX`)
+2. Go to https://microsoft.com/devicelogin
+3. Enter the code and sign in
+4. Authentication completes automatically in the CLI
 
 ## Usage
 
@@ -152,23 +154,13 @@ Configuration is stored in `~/.cc_outlook/`:
 
 ## Troubleshooting
 
-### "Reply URL does not match"
+### "Failed to create device flow"
 
-Add both redirect URIs in Azure:
-- `https://login.microsoftonline.com/common/oauth2/nativeclient`
-- `http://localhost`
+Ensure "Allow public client flows" is enabled in Azure app settings.
 
-### "This is not the right page"
+### Device code expired
 
-This is normal! The URL bar should show `nativeclient?code=...` - copy that full URL and paste it in the terminal.
-
-### Redirected to "wrongplace" (no code in URL)
-
-If the URL shows `wrongplace` instead of `nativeclient?code=...`:
-- OAuth state mismatch - browser session doesn't match what cc_outlook expects
-- Run `cc_outlook auth --force` in a fresh terminal
-- Complete login manually in browser (don't use browser automation)
-- Copy the redirect URL back to the SAME terminal
+The code is valid for ~15 minutes. Run `cc_outlook auth` again if it expires.
 
 ### Token expired
 
