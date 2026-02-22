@@ -24,7 +24,7 @@ if not exist "%INSTALL_DIR%" (
 REM ============================================
 REM Python tools (built with PyInstaller)
 REM ============================================
-set "PYTHON_TOOLS=cc_crawl4ai cc_gmail cc_hardware cc_image cc_linkedin cc_markdown cc_outlook cc_photos cc_reddit cc_setup cc_transcribe cc_vault cc_video cc_voice cc_whisper cc_youtube_info"
+set "PYTHON_TOOLS=cc_comm_queue cc_crawl4ai cc_gmail cc_hardware cc_image cc_linkedin cc_markdown cc_outlook cc_photos cc_reddit cc_setup cc_transcribe cc_vault cc_video cc_voice cc_whisper cc_youtube_info"
 
 for %%T in (%PYTHON_TOOLS%) do (
     echo.

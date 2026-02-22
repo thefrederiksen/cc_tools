@@ -2,7 +2,7 @@
 
 Command-line tools for document conversion, media processing, email, and AI workflows.
 
-**Install location:** `C:\cc-tools\`
+**Install location:** `C:\cc_tools\`
 
 ---
 
@@ -12,6 +12,7 @@ Command-line tools for document conversion, media processing, email, and AI work
 |------|-------------|--------------|
 | cc_browser | Persistent browser automation with profiles | Node.js, Playwright |
 | cc_click | Windows UI automation (click, type, inspect) | Windows, .NET |
+| cc_comm_queue | Communication Manager queue CLI | None |
 | cc_crawl4ai | AI-ready web crawler to clean markdown | Playwright browsers |
 | cc_gmail | Gmail CLI: read, send, search emails | Google OAuth |
 | cc_hardware | System hardware info (RAM, CPU, GPU, disk) | None (NVIDIA for GPU) |
@@ -390,6 +391,83 @@ cc_click focus "Notepad"
 
 ---
 
+## cc_comm_queue
+
+CLI tool for adding content to the Communication Manager approval queue.
+
+```bash
+# Add LinkedIn post
+cc_comm_queue add linkedin post "Process mining trends for 2024..." \
+    --persona mindzie \
+    --tags "process mining,trends"
+
+# Add LinkedIn comment
+cc_comm_queue add linkedin comment "Great insights!" \
+    --persona personal \
+    --context-url "https://linkedin.com/posts/..."
+
+# Add email
+cc_comm_queue add email email "Hi Sarah, following up..." \
+    --persona mindzie \
+    --email-to "sarah@techcorp.com" \
+    --email-subject "Following up from Summit"
+
+# Add Reddit post
+cc_comm_queue add reddit post "How we reduced processing time..." \
+    --persona personal \
+    --reddit-subreddit "r/processimprovement" \
+    --reddit-title "Case Study: 70% reduction"
+
+# Add from JSON file
+cc_comm_queue add-json content.json
+
+# Add from stdin
+cat content.json | cc_comm_queue add-json -
+
+# List pending items
+cc_comm_queue list --status pending
+
+# Show queue stats
+cc_comm_queue status
+
+# Show specific item
+cc_comm_queue show abc123
+
+# JSON output (for agents)
+cc_comm_queue add linkedin post "Hello" --json
+
+# Configuration
+cc_comm_queue config show
+cc_comm_queue config set queue_path "D:/path/to/content"
+cc_comm_queue config set default_persona mindzie
+```
+
+**Platforms:** linkedin, twitter, reddit, youtube, email, blog
+
+**Types:** post, comment, reply, message, article, email
+
+**Personas:**
+- `mindzie` - CTO of mindzie
+- `center_consulting` - President of Center Consulting
+- `personal` - Soren Frederiksen
+
+**Options:**
+- `--persona, -p` - Persona to use
+- `--destination, -d` - Where to post (URL)
+- `--context-url, -c` - What we're responding to
+- `--tags, -t` - Comma-separated tags
+- `--notes, -n` - Notes for reviewer
+- `--json` - JSON output for agents
+- `--linkedin-visibility` - public or connections
+- `--reddit-subreddit` - Target subreddit
+- `--reddit-title` - Reddit post title
+- `--email-to` - Recipient email
+- `--email-subject` - Email subject
+
+**Config:** `~/.cc_tools/config.json` (comm_manager section)
+
+---
+
 ## cc_image
 
 Image generation and analysis using OpenAI.
@@ -464,6 +542,7 @@ set OPENAI_API_KEY=your-key-here
 |------|--------------|
 | cc_browser | Node.js, Playwright |
 | cc_click | Windows, .NET runtime |
+| cc_comm_queue | None |
 | cc_crawl4ai | `playwright install chromium` |
 | cc_gmail | OAuth credentials from Google Cloud Console |
 | cc_hardware | None (NVIDIA drivers for GPU info) |
