@@ -12,7 +12,7 @@ from rich.table import Table
 try:
     from . import __version__
     from .parser import parse_markdown
-    from .html_generator import generate_html
+    from .html_generator import generate_html, embed_images_as_base64
     from .pdf_converter import convert_to_pdf
     from .word_converter import convert_to_word
     from .themes import THEMES, get_theme_css
@@ -20,7 +20,7 @@ except ImportError:
     # Frozen executable mode - use absolute imports
     from src import __version__
     from src.parser import parse_markdown
-    from src.html_generator import generate_html
+    from src.html_generator import generate_html, embed_images_as_base64
     from src.pdf_converter import convert_to_pdf
     from src.word_converter import convert_to_word
     from src.themes import THEMES, get_theme_css
@@ -143,7 +143,9 @@ def main(
 
         elif suffix == ".pdf":
             console.print(f"[blue]Converting:[/blue] PDF with {page_size} page size")
-            convert_to_pdf(html_content, output, page_size=page_size, margin=margin)
+            # Embed images as base64 so they work in Chrome headless PDF generation
+            html_with_images = embed_images_as_base64(html_content, input_file.parent)
+            convert_to_pdf(html_with_images, output, page_size=page_size, margin=margin)
 
         elif suffix == ".docx":
             console.print(f"[blue]Converting:[/blue] Word document")

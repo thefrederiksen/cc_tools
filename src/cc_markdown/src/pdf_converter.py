@@ -96,6 +96,7 @@ def convert_to_pdf(
             '--disable-dev-shm-usage',
             '--no-sandbox',
             '--no-pdf-header-footer',
+            '--allow-file-access-from-files',
             f'--print-to-pdf={abs_output_path}',
             '--virtual-time-budget=3000',
             file_uri
