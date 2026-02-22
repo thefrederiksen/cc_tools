@@ -5,7 +5,7 @@
 
 import { createServer } from 'http';
 import { parse as parseUrl } from 'url';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -94,6 +94,37 @@ import {
 
 const DEFAULT_DAEMON_PORT = 9280;
 const DEFAULT_CDP_PORT = 9222;
+
+// Lockfile path for daemon port auto-detection
+function getLockfilePath() {
+  const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
+  return join(localAppData, 'cc-browser', 'daemon.lock');
+}
+
+function writeLockfile(port, browser, profile) {
+  const lockPath = getLockfilePath();
+  const lockDir = join(lockPath, '..');
+  if (!existsSync(lockDir)) {
+    mkdirSync(lockDir, { recursive: true });
+  }
+  const data = {
+    port,
+    browser: browser || null,
+    profile: profile || null,
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+  };
+  writeFileSync(lockPath, JSON.stringify(data, null, 2));
+  console.log(`[cc-browser] Lockfile written: ${lockPath}`);
+}
+
+function removeLockfile() {
+  const lockPath = getLockfilePath();
+  if (existsSync(lockPath)) {
+    unlinkSync(lockPath);
+    console.log(`[cc-browser] Lockfile removed: ${lockPath}`);
+  }
+}
 
 // Track the actual port this daemon is listening on
 let actualDaemonPort = DEFAULT_DAEMON_PORT;
@@ -758,12 +789,15 @@ server.listen(daemonPort, '127.0.0.1', () => {
   } else {
     console.log(`[cc-browser] CDP port: ${DEFAULT_CDP_PORT}`);
   }
+  // Write lockfile for auto-detection
+  writeLockfile(daemonPort, defaultBrowser, defaultProfile);
   console.log('[cc-browser] Ready for commands');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n[cc-browser] Shutting down...');
+  removeLockfile();
   await disconnectBrowser();
   server.close();
   process.exit(0);
@@ -771,6 +805,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   console.log('\n[cc-browser] Shutting down...');
+  removeLockfile();
   await disconnectBrowser();
   server.close();
   process.exit(0);

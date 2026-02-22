@@ -17,6 +17,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_DAEMON_PORT = 9280;
 const DEFAULT_CDP_PORT = 9222;
 
+// Lockfile path for daemon port auto-detection
+function getLockfilePath() {
+  const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local');
+  return join(localAppData, 'cc-browser', 'daemon.lock');
+}
+
+// Read lockfile to get running daemon port
+function readLockfile() {
+  const lockPath = getLockfilePath();
+  if (!existsSync(lockPath)) {
+    return null;
+  }
+  try {
+    const content = readFileSync(lockPath, 'utf8');
+    return JSON.parse(content);
+  } catch (err) {
+    console.error(`[DEBUG] Failed to read lockfile: ${err.message}`);
+    return null;
+  }
+}
+
 // Get profile directory path
 function getProfileDir(browser, profile) {
   const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local');
@@ -58,7 +79,7 @@ function resolveAlias(alias) {
   return null;
 }
 
-// Get daemon port from profile.json or default
+// Get daemon port from profile.json, lockfile, or default
 function getDaemonPort(args) {
   // If port is explicitly provided, use it
   if (args.port) {
@@ -91,7 +112,14 @@ function getDaemonPort(args) {
     }
     console.error(`[DEBUG] Alias not found: ${args.profile}`);
   } else {
-    console.error(`[DEBUG] No browser/profile: browser=${args.browser}, profile=${args.profile}`);
+    // No browser/profile specified - check lockfile for running daemon
+    console.error(`[DEBUG] No browser/profile specified, checking lockfile...`);
+    const lockData = readLockfile();
+    if (lockData && lockData.port) {
+      console.error(`[DEBUG] Found running daemon via lockfile: port=${lockData.port}, browser=${lockData.browser}, profile=${lockData.profile}`);
+      return lockData.port;
+    }
+    console.error(`[DEBUG] No lockfile found`);
   }
 
   console.error(`[DEBUG] Using default port: ${DEFAULT_DAEMON_PORT}`);
