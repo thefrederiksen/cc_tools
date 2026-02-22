@@ -53,6 +53,7 @@ desktop.ini
 *.exe
 *.dll
 *.dylib
+release/
 
 # Logs
 *.log
