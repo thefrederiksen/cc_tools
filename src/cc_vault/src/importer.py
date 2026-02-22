@@ -130,7 +130,7 @@ class VaultImporter:
         # Convert to markdown
         try:
             content, convert_meta = self._converters['convert'](source_path)
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError) as e:
             return {'success': False, 'error': f"Conversion failed: {e}"}
 
         # Generate filename
@@ -221,7 +221,7 @@ class VaultImporter:
                     )
                     update_document(doc_id, vector_id=vector_id)
                     result['vector_id'] = vector_id
-            except Exception as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 logger.warning(f"Vector indexing failed for doc {doc_id}: {e}")
                 result['vector_warning'] = str(e)
 

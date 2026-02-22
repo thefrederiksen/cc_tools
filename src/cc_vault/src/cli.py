@@ -3,10 +3,12 @@
 import json
 import logging
 import shutil
+import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List
+from types import ModuleType
+from typing import Any, Optional, List
 
 import typer
 from rich.console import Console
@@ -69,7 +71,7 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-def get_db():
+def get_db() -> ModuleType:
     """Get initialized database module."""
     try:
         from . import db
@@ -124,13 +126,13 @@ def init(
         console.print(f"[green]Vault initialized at:[/green] {vault_path}")
         console.print(f"  Database: {DB_PATH}")
         console.print(f"  Documents: {DOCUMENTS_PATH}")
-    except Exception as e:
+    except (OSError, sqlite3.Error) as e:
         console.print(f"[red]Error initializing vault:[/red] {e}")
         raise typer.Exit(1)
 
 
 @app.command()
-def stats():
+def stats() -> None:
     """Show vault statistics."""
     db = get_db()
 
@@ -152,7 +154,7 @@ def stats():
         console.print(table)
         console.print(f"\n[dim]Vault path: {VAULT_PATH}[/dim]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error getting stats:[/red] {e}")
         raise typer.Exit(1)
 
@@ -162,7 +164,7 @@ def ask(
     question: str = typer.Argument(..., help="Question to ask the vault"),
     model: str = typer.Option("gpt-4o", "-m", "--model", help="OpenAI model to use"),
     no_hybrid: bool = typer.Option(False, "--no-hybrid", help="Disable hybrid search"),
-):
+) -> None:
     """Ask a question using RAG (Retrieval Augmented Generation)."""
     try:
         try:
@@ -253,7 +255,7 @@ def backup(
     try:
         shutil.copy2(DB_PATH, backup_file)
         console.print(f"[green]Backup created:[/green] {backup_file}")
-    except Exception as e:
+    except OSError as e:
         console.print(f"[red]Error creating backup:[/red] {e}")
         raise typer.Exit(1)
 
@@ -314,7 +316,7 @@ def tasks_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing tasks:[/red] {e}")
         raise typer.Exit(1)
 
@@ -353,7 +355,7 @@ def tasks_add(
         )
         console.print(f"[green]Task added:[/green] #{task_id} - {title}")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error adding task:[/red] {e}")
         raise typer.Exit(1)
 
@@ -369,7 +371,7 @@ def tasks_done(
         db.complete_task(task_id)
         console.print(f"[green]Task #{task_id} marked as completed[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error completing task:[/red] {e}")
         raise typer.Exit(1)
 
@@ -385,7 +387,7 @@ def tasks_cancel(
         db.update_task(task_id, status='cancelled')
         console.print(f"[yellow]Task #{task_id} cancelled[/yellow]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error cancelling task:[/red] {e}")
         raise typer.Exit(1)
 
@@ -434,7 +436,7 @@ def goals_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing goals:[/red] {e}")
         raise typer.Exit(1)
 
@@ -458,7 +460,7 @@ def goals_add(
         )
         console.print(f"[green]Goal added:[/green] #{goal_id} - {title}")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error adding goal:[/red] {e}")
         raise typer.Exit(1)
 
@@ -474,7 +476,7 @@ def goals_achieve(
         db.achieve_goal(goal_id)
         console.print(f"[green]Goal #{goal_id} marked as achieved![/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error updating goal:[/red] {e}")
         raise typer.Exit(1)
 
@@ -490,7 +492,7 @@ def goals_pause(
         db.pause_goal(goal_id)
         console.print(f"[yellow]Goal #{goal_id} paused[/yellow]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error pausing goal:[/red] {e}")
         raise typer.Exit(1)
 
@@ -506,7 +508,7 @@ def goals_resume(
         db.resume_goal(goal_id)
         console.print(f"[green]Goal #{goal_id} resumed[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error resuming goal:[/red] {e}")
         raise typer.Exit(1)
 
@@ -532,7 +534,7 @@ def goals_update(
         )
         console.print(f"[green]Goal #{goal_id} updated[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error updating goal:[/red] {e}")
         raise typer.Exit(1)
 
@@ -578,7 +580,7 @@ def ideas_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing ideas:[/red] {e}")
         raise typer.Exit(1)
 
@@ -602,7 +604,7 @@ def ideas_add(
         )
         console.print(f"[green]Idea added:[/green] #{idea_id}")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error adding idea:[/red] {e}")
         raise typer.Exit(1)
 
@@ -618,7 +620,7 @@ def ideas_actionable(
         db.update_idea_status(idea_id, 'actionable')
         console.print(f"[green]Idea #{idea_id} marked as actionable[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error updating idea:[/red] {e}")
         raise typer.Exit(1)
 
@@ -634,7 +636,7 @@ def ideas_archive(
         db.update_idea_status(idea_id, 'archived')
         console.print(f"[yellow]Idea #{idea_id} archived[/yellow]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error archiving idea:[/red] {e}")
         raise typer.Exit(1)
 
@@ -677,7 +679,7 @@ def contacts_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing contacts:[/red] {e}")
         raise typer.Exit(1)
 
@@ -705,7 +707,7 @@ def contacts_add(
         )
         console.print(f"[green]Contact added:[/green] #{contact_id} - {name}")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error adding contact:[/red] {e}")
         raise typer.Exit(1)
 
@@ -756,7 +758,7 @@ def contacts_show(
                 for i in interactions:
                     console.print(f"  [{i.get('interaction_date', '')[:10]}] {i.get('type', '')} - {i.get('summary', '')[:50]}")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error showing contact:[/red] {e}")
         raise typer.Exit(1)
 
@@ -790,7 +792,7 @@ def contacts_memory(
         )
         console.print(f"[green]Memory added for {contact['name']}[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error adding memory:[/red] {e}")
         raise typer.Exit(1)
 
@@ -830,8 +832,91 @@ def contacts_update(
         )
         console.print(f"[green]Contact #{contact_id} updated[/green]")
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error updating contact:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@contacts_app.command("search")
+def contacts_search(
+    name: str = typer.Argument(..., help="Name to search for"),
+    threshold: int = typer.Option(50, "--threshold", "-t", help="Minimum match score (0-100)"),
+    n: int = typer.Option(10, "-n", help="Max results"),
+    exact: bool = typer.Option(False, "--exact", help="Use exact matching (LIKE) instead of fuzzy"),
+):
+    """Search contacts by name using fuzzy/phonetic matching."""
+    db = get_db()
+
+    try:
+        if exact:
+            # Use existing exact search
+            results = db.search_contacts(name)
+            if not results:
+                console.print(f"[yellow]No contacts matching:[/yellow] {name}")
+                return
+
+            table = Table(title=f"Search Results for '{name}' (exact)")
+            table.add_column("ID", style="dim")
+            table.add_column("Name", style="cyan")
+            table.add_column("Email")
+            table.add_column("Company")
+            table.add_column("Match", style="green")
+
+            for c in results[:n]:
+                table.add_row(
+                    str(c['id']),
+                    c['name'],
+                    c.get('email', '-') or '-',
+                    c.get('company', '-') or '-',
+                    "exact",
+                )
+
+            console.print(table)
+        else:
+            # Use fuzzy search
+            results = db.fuzzy_search_contacts(name, threshold=threshold, limit=n)
+
+            if not results:
+                console.print(f"[yellow]No contacts matching:[/yellow] {name} (threshold={threshold})")
+                console.print("[dim]Try lowering the threshold with --threshold 30[/dim]")
+                return
+
+            table = Table(title=f"Search Results for '{name}'")
+            table.add_column("ID", style="dim")
+            table.add_column("Name", style="cyan")
+            table.add_column("Email")
+            table.add_column("Company")
+            table.add_column("Score", justify="right")
+            table.add_column("Match", style="green")
+
+            for c in results:
+                score = c.get('match_score', 0)
+                match_type = c.get('match_type', 'fuzzy')
+
+                # Color score based on confidence
+                if score >= 80:
+                    score_style = "[green]"
+                    score_end = "[/green]"
+                elif score >= 60:
+                    score_style = "[yellow]"
+                    score_end = "[/yellow]"
+                else:
+                    score_style = "[dim]"
+                    score_end = "[/dim]"
+
+                table.add_row(
+                    str(c['id']),
+                    c['name'],
+                    c.get('email', '-') or '-',
+                    c.get('company', '-') or '-',
+                    f"{score_style}{score:.0f}{score_end}",
+                    match_type,
+                )
+
+            console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error searching contacts:[/red] {e}")
         raise typer.Exit(1)
 
 
@@ -872,7 +957,7 @@ def docs_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing documents:[/red] {e}")
         raise typer.Exit(1)
 
@@ -902,7 +987,7 @@ def docs_add(
             console.print(f"[red]Error:[/red] {result.get('error')}")
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (OSError, sqlite3.Error, ValueError) as e:
         console.print(f"[red]Error importing document:[/red] {e}")
         raise typer.Exit(1)
 
@@ -947,7 +1032,7 @@ def docs_show(
                 content = full_path.read_text(encoding='utf-8')[:500]
                 console.print(f"\n[cyan]Preview:[/cyan]\n{content}...")
 
-    except Exception as e:
+    except (OSError, sqlite3.Error) as e:
         console.print(f"[red]Error showing document:[/red] {e}")
         raise typer.Exit(1)
 
@@ -973,7 +1058,7 @@ def docs_search(
             console.print(f"    Type: {doc.get('doc_type', '-')} | Path: {doc.get('path', '-')[:50]}")
             console.print()
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error searching documents:[/red] {e}")
         raise typer.Exit(1)
 
@@ -1015,7 +1100,7 @@ def config_set(
     try:
         save_config(key, value)
         console.print(f"[green]Config updated:[/green] {key} = {value}")
-    except Exception as e:
+    except (OSError, ValueError) as e:
         console.print(f"[red]Error setting config:[/red] {e}")
         raise typer.Exit(1)
 
@@ -1055,7 +1140,7 @@ def health_list(
 
         console.print(table)
 
-    except Exception as e:
+    except sqlite3.Error as e:
         console.print(f"[red]Error listing health entries:[/red] {e}")
         raise typer.Exit(1)
 

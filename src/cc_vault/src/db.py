@@ -890,6 +890,35 @@ def search_contacts(query: str) -> List[dict]:
         conn.close()
 
 
+def fuzzy_search_contacts(
+    query: str,
+    threshold: int = 50,
+    limit: int = 10
+) -> List[dict]:
+    """
+    Search contacts using fuzzy and phonetic matching.
+
+    Args:
+        query: Search query (name to find)
+        threshold: Minimum score (0-100) to include in results (default 50)
+        limit: Maximum number of results to return (default 10)
+
+    Returns:
+        List of contacts with match scores, sorted by score descending.
+        Each contact dict has added 'match_score' and 'match_type' fields.
+    """
+    try:
+        from .fuzzy_search import fuzzy_search_contacts as _fuzzy_search
+    except ImportError:
+        from fuzzy_search import fuzzy_search_contacts as _fuzzy_search
+
+    # Get all contacts
+    contacts = list_contacts()
+
+    # Run fuzzy search
+    return _fuzzy_search(query, contacts, threshold=threshold, limit=limit)
+
+
 # ===========================================
 # TAG MANAGEMENT
 # ===========================================
