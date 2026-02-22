@@ -1144,7 +1144,7 @@ def label_stats(
         # Try as ID first, then by name
         try:
             data = client.get_label(label.upper())
-        except Exception:
+        except HttpError:
             found = client.get_label_by_name(label)
             if not found:
                 console.print(f"[red]Error:[/red] Label '{label}' not found")

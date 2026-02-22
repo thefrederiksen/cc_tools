@@ -1,6 +1,7 @@
 """CLI for cc_outlook - Outlook from the command line with multi-account support."""
 
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
@@ -14,23 +15,44 @@ from rich.text import Text
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
-from . import __version__
-from .auth import (
-    authenticate,
-    get_auth_status,
-    revoke_token,
-    list_accounts,
-    set_default_account,
-    get_default_account,
-    delete_account,
-    resolve_account,
-    get_config_dir,
-    get_readme_path,
-    save_profile,
-    get_profile,
-)
-from .outlook_api import OutlookClient
-from .utils import truncate, sanitize_text
+# Handle imports for both package mode and PyInstaller frozen mode
+try:
+    from . import __version__
+    from .auth import (
+        authenticate,
+        get_auth_status,
+        revoke_token,
+        list_accounts,
+        set_default_account,
+        get_default_account,
+        delete_account,
+        resolve_account,
+        get_config_dir,
+        get_readme_path,
+        save_profile,
+        get_profile,
+    )
+    from .outlook_api import OutlookClient
+    from .utils import truncate, sanitize_text
+except ImportError:
+    # Running as frozen executable or direct script
+    __version__ = "0.1.0"
+    from auth import (
+        authenticate,
+        get_auth_status,
+        revoke_token,
+        list_accounts,
+        set_default_account,
+        get_default_account,
+        delete_account,
+        resolve_account,
+        get_config_dir,
+        get_readme_path,
+        save_profile,
+        get_profile,
+    )
+    from outlook_api import OutlookClient
+    from utils import truncate, sanitize_text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")

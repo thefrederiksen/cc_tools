@@ -350,9 +350,15 @@ def download_transcript(
         raise NoSubtitlesError(
             f"No subtitles available for this video in language '{language}'."
         )
+    except TranslationLanguageNotAvailable:
+        raise NoSubtitlesError(
+            f"Translation not available for language '{language}'."
+        )
     except (NoSubtitlesError, VideoNotFoundError, InvalidURLError):
         raise
-    except Exception as e:
+    # youtube_transcript_api can raise: KeyError (missing data), ValueError (parsing),
+    # TypeError (type mismatches), OSError (network), RuntimeError (internal errors)
+    except (KeyError, ValueError, TypeError, OSError, RuntimeError) as e:
         logger.debug("Unexpected error downloading transcript: %s", e)
         raise YouTubeError(f"Failed to download transcript: {e}") from e
 
@@ -414,7 +420,9 @@ def list_languages(url: str) -> List[LanguageInfo]:
         raise VideoNotFoundError(f"Video not accessible: {url}")
     except (NoSubtitlesError, VideoNotFoundError, InvalidURLError):
         raise
-    except Exception as e:
+    # youtube_transcript_api can raise: KeyError (missing data), ValueError (parsing),
+    # TypeError (type mismatches), OSError (network), RuntimeError (internal errors)
+    except (KeyError, ValueError, TypeError, OSError, RuntimeError) as e:
         logger.debug("Unexpected error listing languages: %s", e)
         raise YouTubeError(f"Failed to list languages: {e}") from e
 
@@ -481,8 +489,14 @@ def download_transcript_formatted(
         raise NoSubtitlesError(
             f"No subtitles available for this video in language '{language}'."
         )
+    except TranslationLanguageNotAvailable:
+        raise NoSubtitlesError(
+            f"Translation not available for language '{language}'."
+        )
     except (NoSubtitlesError, VideoNotFoundError, InvalidURLError, YouTubeError):
         raise
-    except Exception as e:
+    # youtube_transcript_api can raise: KeyError (missing data), ValueError (parsing),
+    # TypeError (type mismatches), OSError (network), RuntimeError (internal errors)
+    except (KeyError, ValueError, TypeError, OSError, RuntimeError) as e:
         logger.debug("Unexpected error downloading formatted transcript: %s", e)
         raise YouTubeError(f"Failed to download transcript: {e}") from e
