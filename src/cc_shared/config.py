@@ -1,6 +1,9 @@
 """Shared configuration for cc_tools.
 
-Configuration is stored in ~/.cc_tools/config.json
+Configuration is stored in the cc_tools data directory:
+- C:\\cc-tools\\data\\ (if exists, for service access)
+- CC_TOOLS_DATA env var (if set)
+- ~/.cc_tools/ (fallback for user-only use)
 """
 
 import json
@@ -13,18 +16,40 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+def get_data_dir() -> Path:
+    """Get the cc-tools data directory.
+
+    Priority:
+    1. CC_TOOLS_DATA environment variable
+    2. C:\\cc-tools\\data (if exists - for Windows service access)
+    3. ~/.cc_tools (fallback for user-only use)
+
+    Returns:
+        Path to the data directory
+    """
+    # 1. Check environment variable
+    if env_path := os.environ.get("CC_TOOLS_DATA"):
+        return Path(env_path)
+
+    # 2. Check system-wide location (for Windows services)
+    system_path = Path(r"C:\cc-tools\data")
+    if system_path.exists():
+        return system_path
+
+    # 3. Fallback to user home directory
+    return Path.home() / ".cc_tools"
+
+
 def get_config_path() -> Path:
     """Get the path to the cc_tools config file."""
-    home = Path.home()
-    config_dir = home / ".cc_tools"
-    return config_dir / "config.json"
+    return get_data_dir() / "config.json"
 
 
 def ensure_config_dir() -> Path:
-    """Ensure the config directory exists."""
-    config_path = get_config_path()
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    return config_path
+    """Ensure the config directory exists and return the config path."""
+    data_dir = get_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return get_config_path()
 
 
 @dataclass
@@ -97,7 +122,7 @@ class VaultConfig:
 @dataclass
 class CommManagerConfig:
     """Communication Manager configuration."""
-    queue_path: str = "D:/ReposFred/cc_comunication_manager/content"
+    queue_path: str = "D:/ReposFred/cc_consult/tools/communication_manager/content"
     default_persona: str = "personal"
     default_created_by: str = "claude_code"
 
@@ -131,7 +156,7 @@ class CommManagerConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CommManagerConfig":
         return cls(
-            queue_path=data.get("queue_path", "D:/ReposFred/cc_comunication_manager/content"),
+            queue_path=data.get("queue_path", "D:/ReposFred/cc_consult/tools/communication_manager/content"),
             default_persona=data.get("default_persona", "personal"),
             default_created_by=data.get("default_created_by", "claude_code"),
         )

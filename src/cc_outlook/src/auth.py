@@ -21,7 +21,7 @@ KEY IMPLEMENTATION DETAILS:
 1. MSALTokenBackend class:
    - Custom token backend that bridges MSAL tokens to O365 library
    - Loads/saves tokens using MSAL's SerializableTokenCache format
-   - Token files stored at: ~/.cc_outlook/tokens/{email}_msal.json
+   - Token files stored at: {data_dir}/outlook/tokens/{email}_msal.json
 
 2. authenticate_device_code_with_cache():
    - Handles the device code flow interaction
@@ -57,10 +57,12 @@ import msal
 from O365 import Account
 from O365.utils import BaseTokenBackend
 
+from cc_shared.config import get_data_dir
+
 logger = logging.getLogger(__name__)
 
-# Configuration
-CONFIG_DIR = Path.home() / '.cc_outlook'
+# Configuration - uses shared data directory for service compatibility
+CONFIG_DIR = get_data_dir() / 'outlook'
 PROFILES_FILE = CONFIG_DIR / 'profiles.json'
 TOKENS_DIR = CONFIG_DIR / 'tokens'
 
@@ -89,7 +91,7 @@ class MSALTokenBackend(BaseTokenBackend):
 
     Token Storage:
     - Uses MSAL's SerializableTokenCache for persistence
-    - Tokens stored as JSON at: ~/.cc_outlook/tokens/{email}_msal.json
+    - Tokens stored as JSON at: {data_dir}/outlook/tokens/{email}_msal.json
     - Contains access tokens, refresh tokens, and account metadata
 
     Token Refresh:

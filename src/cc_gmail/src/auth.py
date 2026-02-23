@@ -10,6 +10,8 @@ from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from cc_shared.config import get_data_dir
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,8 +23,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
 ]
 
-# Default config directory
-CONFIG_DIR = Path.home() / ".cc_gmail"
+# Config directory - uses shared data directory for service compatibility
+CONFIG_DIR = get_data_dir() / "gmail"
 ACCOUNTS_DIR = CONFIG_DIR / "accounts"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 

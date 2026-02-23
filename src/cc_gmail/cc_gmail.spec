@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_all
+
+# Collect cc_shared module
+cc_shared_datas, cc_shared_binaries, cc_shared_hiddenimports = collect_all('cc_shared')
 
 a = Analysis(
     ['src\\cli.py'],
-    pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[
+    pathex=['D:/ReposFred/cc_tools/src/cc_shared'],
+    binaries=cc_shared_binaries,
+    datas=cc_shared_datas,
+    hiddenimports=cc_shared_hiddenimports + [
+        'cc_shared',
+        'cc_shared.config',
         'rich._unicode_data',
         'rich._unicode_data.unicode17-0-0',
         'rich._unicode_data.unicode16-0-0',
