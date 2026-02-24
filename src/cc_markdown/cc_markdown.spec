@@ -63,7 +63,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='cc_markdown',
+    name='cc-markdown',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

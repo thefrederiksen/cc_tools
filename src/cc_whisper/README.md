@@ -1,4 +1,4 @@
-# cc_whisper
+# cc-whisper
 
 Audio transcription using OpenAI Whisper.
 
@@ -13,7 +13,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases) or:
+Download from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases) or:
 
 ```bash
 pip install -e .
@@ -27,20 +27,20 @@ Set `OPENAI_API_KEY` environment variable.
 
 ```bash
 # Basic transcription (prints to console)
-cc_whisper audio.mp3
+cc-whisper audio.mp3
 
 # Save to file
-cc_whisper audio.mp3 -o transcript.txt
+cc-whisper audio.mp3 -o transcript.txt
 
 # With timestamps
-cc_whisper audio.mp3 -o transcript.txt --timestamps
+cc-whisper audio.mp3 -o transcript.txt --timestamps
 
 # Specify language
-cc_whisper audio.mp3 --language es
+cc-whisper audio.mp3 --language es
 
 # JSON output
-cc_whisper audio.mp3 --json
-cc_whisper audio.mp3 -o transcript.json --json --timestamps
+cc-whisper audio.mp3 --json
+cc-whisper audio.mp3 -o transcript.json --json --timestamps
 ```
 
 ## Options

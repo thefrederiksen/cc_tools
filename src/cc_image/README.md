@@ -1,4 +1,4 @@
-# cc_image
+# cc-image
 
 Unified image toolkit: generate, analyze, OCR, resize, and convert.
 
@@ -14,7 +14,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases) or:
+Download from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases) or:
 
 ```bash
 pip install -e .
@@ -29,25 +29,25 @@ pip install -e .
 
 ```bash
 # Get image info
-cc_image info photo.jpg
+cc-image info photo.jpg
 
 # Resize image
-cc_image resize photo.jpg -o thumb.jpg --width 800
-cc_image resize photo.jpg -o small.jpg --height 600
+cc-image resize photo.jpg -o thumb.jpg --width 800
+cc-image resize photo.jpg -o small.jpg --height 600
 
 # Convert format
-cc_image convert photo.png -o photo.webp
-cc_image convert photo.png -o photo.jpg --quality 85
+cc-image convert photo.png -o photo.webp
+cc-image convert photo.png -o photo.jpg --quality 85
 
 # AI describe image
-cc_image describe photo.jpg
+cc-image describe photo.jpg
 
 # OCR - extract text
-cc_image ocr screenshot.png
+cc-image ocr screenshot.png
 
 # Generate with DALL-E
-cc_image generate "A sunset over mountains" -o sunset.png
-cc_image generate "A cat wearing a hat" -o cat.png --size 1024x1792 --quality hd
+cc-image generate "A sunset over mountains" -o sunset.png
+cc-image generate "A cat wearing a hat" -o cat.png --size 1024x1792 --quality hd
 ```
 
 ## Commands

@@ -1,9 +1,9 @@
-# Build script for cc_markdown executable
+# Build script for cc-markdown executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_markdown executable..." -ForegroundColor Cyan
+Write-Host "Building cc-markdown executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_markdown.spec --clean --noconfirm
+pyinstaller cc-markdown.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_markdown.exe"
+$exePath = "dist\cc-markdown.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

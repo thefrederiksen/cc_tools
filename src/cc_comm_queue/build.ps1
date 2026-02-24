@@ -1,9 +1,9 @@
-# Build script for cc_comm_queue executable
+# Build script for cc-comm-queue executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_comm_queue executable..." -ForegroundColor Cyan
+Write-Host "Building cc-comm-queue executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,16 +28,16 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_comm_queue.spec --clean --noconfirm
+pyinstaller cc-comm-queue.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_comm_queue.exe"
+$exePath = "dist\cc-comm-queue.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green
 
     # Copy to C:\cc-tools
-    $targetPath = "C:\cc-tools\cc_comm_queue.exe"
+    $targetPath = "C:\cc-tools\cc-comm-queue.exe"
     Write-Host "Copying to $targetPath..." -ForegroundColor Yellow
     Copy-Item $exePath $targetPath -Force
     Write-Host "SUCCESS: Copied to $targetPath" -ForegroundColor Green

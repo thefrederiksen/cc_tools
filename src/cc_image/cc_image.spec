@@ -47,7 +47,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='cc_image',
+    name='cc-image',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

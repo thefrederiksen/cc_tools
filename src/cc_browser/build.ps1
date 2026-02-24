@@ -1,9 +1,9 @@
-# Build script for cc_browser (Node.js tool)
+# Build script for cc-browser (Node.js tool)
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_browser..." -ForegroundColor Cyan
+Write-Host "Building cc-browser..." -ForegroundColor Cyan
 
 # Check for Node.js
 $node = Get-Command node -ErrorAction SilentlyContinue
@@ -55,7 +55,7 @@ $launcherContent = '@echo off
 node "%~dp0src\cli.mjs" %*'
 Set-Content -Path "$distDir\cc-browser.cmd" -Value $launcherContent -NoNewline
 
-Write-Host "SUCCESS: cc_browser built to dist\" -ForegroundColor Green
+Write-Host "SUCCESS: cc-browser built to dist\" -ForegroundColor Green
 Write-Host "  - dist\cc-browser.cmd (launcher)" -ForegroundColor Green
 Write-Host "  - dist\src\ (source files)" -ForegroundColor Green
 Write-Host "  - dist\node_modules\ (dependencies)" -ForegroundColor Green

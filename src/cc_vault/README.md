@@ -1,4 +1,4 @@
-# cc_vault
+# cc-vault
 
 Personal Vault CLI - manage contacts, tasks, goals, ideas, documents, and health data from the command line with RAG-powered search.
 
@@ -17,7 +17,7 @@ Personal Vault CLI - manage contacts, tasks, goals, ideas, documents, and health
 ### From Source
 
 ```bash
-cd D:\ReposFred\cc_tools\src\cc_vault
+cd D:\ReposFred\cc-tools\src\cc-vault
 pip install -e ".[full]"
 ```
 
@@ -25,7 +25,7 @@ pip install -e ".[full]"
 
 ```powershell
 .\build.ps1
-copy dist\cc_vault.exe C:\cc-tools\
+copy dist\cc-vault.exe C:\cc-tools\
 ```
 
 ## Configuration
@@ -36,7 +36,7 @@ Set the vault path (optional, defaults to ~/Vault):
 # Environment variable
 set CC_VAULT_PATH=D:\Vault
 
-# Or config file: ~/.cc_vault/config.json
+# Or config file: ~/.cc-vault/config.json
 {
     "vault_path": "D:\\Vault"
 }
@@ -52,31 +52,31 @@ set OPENAI_API_KEY=sk-your-api-key
 
 ```bash
 # Initialize vault
-cc_vault init
+cc-vault init
 
 # Check vault stats
-cc_vault stats
+cc-vault stats
 
 # Add a contact
-cc_vault contacts add "John Doe" -e john@example.com -c "Acme Corp"
+cc-vault contacts add "John Doe" -e john@example.com -c "Acme Corp"
 
 # Add a task
-cc_vault tasks add "Follow up with John" -d 2026-02-25 -p high
+cc-vault tasks add "Follow up with John" -d 2026-02-25 -p high
 
 # Add a goal
-cc_vault goals add "Complete project" -t 2026-03-01
+cc-vault goals add "Complete project" -t 2026-03-01
 
 # Add an idea
-cc_vault ideas add "Build a new feature for the app" -c product
+cc-vault ideas add "Build a new feature for the app" -c product
 
 # Import a document
-cc_vault docs add document.pdf -t research
+cc-vault docs add document.pdf -t research
 
 # Ask a question (RAG)
-cc_vault ask "What tasks do I have this week?"
+cc-vault ask "What tasks do I have this week?"
 
 # Search documents
-cc_vault search "project requirements" --hybrid
+cc-vault search "project requirements" --hybrid
 ```
 
 ## Commands

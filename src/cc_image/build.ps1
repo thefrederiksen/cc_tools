@@ -1,9 +1,9 @@
-# Build script for cc_image executable
+# Build script for cc-image executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_image executable..." -ForegroundColor Cyan
+Write-Host "Building cc-image executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_image.spec --clean --noconfirm
+pyinstaller cc-image.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_image.exe"
+$exePath = "dist\cc-image.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

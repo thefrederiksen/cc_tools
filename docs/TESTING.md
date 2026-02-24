@@ -8,12 +8,12 @@ This document describes the testing infrastructure, test coverage, and validatio
 
 | Tool | Unit Tests | Integration Tests | Status |
 |------|------------|-------------------|--------|
-| cc_markdown | 13 | 12 | PASS |
-| cc_transcribe | 33 | - | PASS |
-| cc_image | 38 | - | PASS |
-| cc_voice | 21 | - | PASS |
-| cc_whisper | 9 | - | PASS |
-| cc_video | 24 | - | PASS |
+| cc-markdown | 13 | 12 | PASS |
+| cc-transcribe | 33 | - | PASS |
+| cc-image | 38 | - | PASS |
+| cc-voice | 21 | - | PASS |
+| cc-whisper | 9 | - | PASS |
+| cc-video | 24 | - | PASS |
 | **Total** | **138** | **12** | **ALL PASS** |
 
 **Last Tested:** February 16, 2026
@@ -28,35 +28,35 @@ This document describes the testing infrastructure, test coverage, and validatio
 Run all unit tests for a specific tool:
 
 ```bash
-# cc_markdown
-cd src/cc_markdown
+# cc-markdown
+cd src/cc-markdown
 python -m pytest tests/ -v
 
-# cc_transcribe
-cd src/cc_transcribe
+# cc-transcribe
+cd src/cc-transcribe
 python -m pytest tests/ -v
 
-# cc_image
-cd src/cc_image
+# cc-image
+cd src/cc-image
 python -m pytest tests/ -v
 
-# cc_voice
-cd src/cc_voice
+# cc-voice
+cd src/cc-voice
 python -m pytest tests/ -v
 
-# cc_whisper
-cd src/cc_whisper
+# cc-whisper
+cd src/cc-whisper
 python -m pytest tests/ -v
 
-# cc_video
-cd src/cc_video
+# cc-video
+cd src/cc-video
 python -m pytest tests/ -v
 ```
 
 ### Integration Tests
 
 ```bash
-cd cc_tools
+cd cc-tools
 python -m pytest tests/integration/ -v
 ```
 
@@ -64,14 +64,14 @@ python -m pytest tests/integration/ -v
 
 ```bash
 # Run all tests with minimal output
-python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
+python -m pytest src/cc-markdown/tests/ src/cc-transcribe/tests/ -q
 ```
 
 ---
 
 ## Test Coverage by Tool
 
-### cc_markdown (13 unit tests + 12 integration tests)
+### cc-markdown (13 unit tests + 12 integration tests)
 
 **Parser Tests (`test_parser.py`):**
 - Basic paragraph parsing
@@ -90,7 +90,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - Content wrapped in article element
 - Default title fallback
 
-**Integration Tests (`test_cc_markdown.py`):**
+**Integration Tests (`test_cc-markdown.py`):**
 - CLI version flag
 - CLI help flag
 - Theme listing
@@ -104,7 +104,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - Error handling: missing input file
 - Error handling: invalid theme
 
-### cc_transcribe (33 unit tests)
+### cc-transcribe (33 unit tests)
 
 **FFmpeg Tests (`test_ffmpeg.py`):**
 - FFmpeg detection in PATH
@@ -143,7 +143,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - Output file creation
 - Result object return
 
-### cc_image (38 unit tests)
+### cc-image (38 unit tests)
 
 **Vision Tests (`test_vision.py`):**
 - API key from environment
@@ -177,7 +177,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - Output directory creation
 - Format conversion (PNG to JPEG, JPEG to PNG, RGBA to JPEG, to WebP)
 
-### cc_voice (21 unit tests)
+### cc-voice (21 unit tests)
 
 **TTS Tests (`test_tts.py`):**
 - API key handling
@@ -201,7 +201,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - File saving
 - Output directory creation
 
-### cc_whisper (9 unit tests)
+### cc-whisper (9 unit tests)
 
 **Transcribe Tests (`test_transcribe.py`):**
 - API key handling
@@ -213,7 +213,7 @@ python -m pytest src/cc_markdown/tests/ src/cc_transcribe/tests/ -q
 - Timestamps file saving
 - Output directory creation
 
-### cc_video (24 unit tests)
+### cc-video (24 unit tests)
 
 **FFmpeg Tests (`test_ffmpeg.py`):**
 - Duration formatting (seconds, minutes, hours, zero, exact hour)
@@ -352,7 +352,7 @@ def test_cli_version():
 Ensure you're in the correct directory and dependencies are installed:
 
 ```bash
-cd src/cc_markdown
+cd src/cc-markdown
 pip install -r requirements.txt
 pip install pytest
 ```

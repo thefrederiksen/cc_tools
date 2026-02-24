@@ -1,4 +1,4 @@
-# cc_voice
+# cc-voice
 
 Text-to-speech using OpenAI TTS.
 
@@ -13,7 +13,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases) or:
+Download from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases) or:
 
 ```bash
 pip install -e .
@@ -27,20 +27,20 @@ Set `OPENAI_API_KEY` environment variable.
 
 ```bash
 # Convert text directly
-cc_voice "Hello, world!" -o hello.mp3
+cc-voice "Hello, world!" -o hello.mp3
 
 # Convert from file
-cc_voice document.txt -o narration.mp3
+cc-voice document.txt -o narration.mp3
 
 # Choose voice
-cc_voice "Welcome to the show" -o intro.mp3 --voice nova
+cc-voice "Welcome to the show" -o intro.mp3 --voice nova
 
 # HD quality
-cc_voice "Important announcement" -o announcement.mp3 --model tts-1-hd
+cc-voice "Important announcement" -o announcement.mp3 --model tts-1-hd
 
 # Adjust speed
-cc_voice "This is slow" -o slow.mp3 --speed 0.75
-cc_voice "This is fast" -o fast.mp3 --speed 1.5
+cc-voice "This is slow" -o slow.mp3 --speed 0.75
+cc-voice "This is fast" -o fast.mp3 --speed 1.5
 ```
 
 ## Voices

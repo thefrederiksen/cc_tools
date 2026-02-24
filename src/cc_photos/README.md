@@ -1,4 +1,4 @@
-# cc_photos
+# cc-photos
 
 Photo organization tool: scan, categorize, detect duplicates and screenshots, AI descriptions.
 
@@ -17,15 +17,15 @@ Photo organization tool: scan, categorize, detect duplicates and screenshots, AI
 pip install -e .
 ```
 
-Or use the pre-built executable from `C:\cc-tools\cc_photos.exe`.
+Or use the pre-built executable from `C:\cc-tools\cc-photos.exe`.
 
 ## Prerequisites
 
-cc_photos requires cc_vault to be installed. All photo data is stored in the central vault database.
+cc-photos requires cc-vault to be installed. All photo data is stored in the central vault database.
 
 ```bash
-# Ensure cc_vault is available
-pip install -e ../cc_vault
+# Ensure cc-vault is available
+pip install -e ../cc-vault
 ```
 
 ## Usage
@@ -36,12 +36,12 @@ The recommended workflow is to first discover where photos are located, then ini
 
 ```bash
 # Step 1: Discover where photos are on a drive (read-only, no database changes)
-cc_photos discover D:\
-cc_photos discover "C:\Users\me" --top 30 --min 10
+cc-photos discover D:\
+cc-photos discover "C:\Users\me" --top 30 --min 10
 
 # Step 2: Initialize directories you want to track
-cc_photos init "D:\Photos" --category private
-cc_photos init "D:\Work\Screenshots" --category work --label "Work Screenshots"
+cc-photos init "D:\Photos" --category private
+cc-photos init "D:\Work\Screenshots" --category work --label "Work Screenshots"
 ```
 
 The `discover` command shows you:
@@ -61,79 +61,79 @@ The `init` command:
 
 ```bash
 # Add a source (manual way, without scanning)
-cc_photos source add "D:\Photos" --category private --label "Family" --priority 1
+cc-photos source add "D:\Photos" --category private --label "Family" --priority 1
 
 # List sources
-cc_photos source list
+cc-photos source list
 
 # Remove a source
-cc_photos source remove "Family"
+cc-photos source remove "Family"
 ```
 
 ### Scanning
 
 ```bash
 # Scan all sources (re-scan for changes)
-cc_photos scan
+cc-photos scan
 
 # Scan specific source
-cc_photos scan --source "Family"
+cc-photos scan --source "Family"
 ```
 
 ### Duplicates
 
 ```bash
 # List duplicate groups
-cc_photos dupes
+cc-photos dupes
 
 # Auto-remove duplicates (keeps highest priority)
-cc_photos dupes --cleanup
+cc-photos dupes --cleanup
 
 # Interactive review
-cc_photos dupes --review
+cc-photos dupes --review
 
 # Dry run (show what would be deleted)
-cc_photos dupes --cleanup --dry-run
+cc-photos dupes --cleanup --dry-run
 ```
 
 ### Search & Filter
 
 ```bash
 # Search AI descriptions
-cc_photos search "beach vacation"
+cc-photos search "beach vacation"
 
 # List by category
-cc_photos list --category private
+cc-photos list --category private
 
 # List by source
-cc_photos list --source "Family"
+cc-photos list --source "Family"
 
 # List screenshots
-cc_photos list --screenshots
+cc-photos list --screenshots
 ```
 
 ### AI Analysis
 
 ```bash
 # Analyze unanalyzed images
-cc_photos analyze
+cc-photos analyze
 
 # Analyze with limit
-cc_photos analyze --limit 50
+cc-photos analyze --limit 50
 
 # Use specific provider
-cc_photos analyze --provider openai
+cc-photos analyze --provider openai
 ```
 
 ### Statistics
 
 ```bash
-cc_photos stats
+cc-photos stats
 ```
 
 ## Two Modes: Scanning vs AI Analysis
 
-cc_photos has two distinct modes of operation:
+cc-photos has two distinct modes of operation:
 
 ### Mode 1: Scanning (FREE, FAST)
 
@@ -162,8 +162,8 @@ Cost: ~$0.01-0.03 per photo (1000 photos = $10-30)
 **Recommendation:** Run scanning first to index everything, then analyze photos in batches:
 
 ```bash
-cc_photos analyze --limit 100   # Analyze 100 photos
-cc_photos analyze --limit 50    # Do another batch later
+cc-photos analyze --limit 100   # Analyze 100 photos
+cc-photos analyze --limit 50    # Do another batch later
 ```
 
 ## Categories

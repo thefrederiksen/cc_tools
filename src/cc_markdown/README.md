@@ -1,4 +1,4 @@
-# cc_markdown
+# cc-markdown
 
 Convert Markdown to beautifully styled PDF, Word, and HTML documents.
 
@@ -14,7 +14,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download the latest release from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases).
+Download the latest release from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases).
 
 Or install from source:
 
@@ -26,21 +26,21 @@ pip install -e .
 
 ```bash
 # Basic conversion (format detected from extension)
-cc_markdown input.md -o output.pdf
-cc_markdown input.md -o output.docx
-cc_markdown input.md -o output.html
+cc-markdown input.md -o output.pdf
+cc-markdown input.md -o output.docx
+cc-markdown input.md -o output.html
 
 # With theme
-cc_markdown input.md -o output.pdf --theme boardroom
+cc-markdown input.md -o output.pdf --theme boardroom
 
 # With custom CSS
-cc_markdown input.md -o output.pdf --css custom.css
+cc-markdown input.md -o output.pdf --css custom.css
 
 # List themes
-cc_markdown --themes
+cc-markdown --themes
 
 # Help
-cc_markdown --help
+cc-markdown --help
 ```
 
 ## Themes
@@ -81,7 +81,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 
 # Build executable
-pyinstaller cc_markdown.spec --clean --noconfirm
+pyinstaller cc-markdown.spec --clean --noconfirm
 ```
 
 ## License

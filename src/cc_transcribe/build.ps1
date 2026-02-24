@@ -1,9 +1,9 @@
-# Build script for cc_transcribe executable
+# Build script for cc-transcribe executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_transcribe executable..." -ForegroundColor Cyan
+Write-Host "Building cc-transcribe executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_transcribe.spec --clean --noconfirm
+pyinstaller cc-transcribe.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_transcribe.exe"
+$exePath = "dist\cc-transcribe.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

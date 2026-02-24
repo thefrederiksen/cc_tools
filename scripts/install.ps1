@@ -2,8 +2,8 @@
 
 $ErrorActionPreference = "Stop"
 
-$Repo = "CenterConsulting/cc_tools"
-$InstallDir = "$env:LOCALAPPDATA\cc_tools"
+$Repo = "CenterConsulting/cc-tools"
+$InstallDir = "$env:LOCALAPPDATA\cc-tools"
 
 Write-Host "CC Tools Installer" -ForegroundColor Cyan
 Write-Host "==================" -ForegroundColor Cyan
@@ -22,10 +22,10 @@ $LatestTag = $Release.tag_name
 
 Write-Host "Latest version: $LatestTag"
 
-# Download cc_markdown
-$AssetName = "cc_markdown-windows-x64.exe"
+# Download cc-markdown
+$AssetName = "cc-markdown-windows-x64.exe"
 $DownloadUrl = "https://github.com/$Repo/releases/download/$LatestTag/$AssetName"
-$DestPath = "$InstallDir\cc_markdown.exe"
+$DestPath = "$InstallDir\cc-markdown.exe"
 
 Write-Host "Downloading $AssetName..."
 Invoke-WebRequest -Uri $DownloadUrl -OutFile $DestPath
@@ -44,13 +44,13 @@ if ($UserPath -notlike "*$InstallDir*") {
 }
 
 # Install SKILL.md for Claude Code integration
-$ClaudeSkillsDir = "$env:USERPROFILE\.claude\skills\cc_markdown"
+$ClaudeSkillsDir = "$env:USERPROFILE\.claude\skills\cc-markdown"
 if (-not (Test-Path $ClaudeSkillsDir)) {
     New-Item -ItemType Directory -Path $ClaudeSkillsDir -Force | Out-Null
 }
 
 Write-Host "Installing SKILL.md for Claude Code..."
-$SkillUrl = "https://raw.githubusercontent.com/$Repo/main/skills/cc_markdown/SKILL.md"
+$SkillUrl = "https://raw.githubusercontent.com/$Repo/main/skills/cc-markdown/SKILL.md"
 try {
     Invoke-WebRequest -Uri $SkillUrl -OutFile "$ClaudeSkillsDir\SKILL.md" -ErrorAction Stop
     Write-Host "SKILL.md installed to: $ClaudeSkillsDir" -ForegroundColor Green
@@ -62,9 +62,9 @@ Write-Host ""
 Write-Host "Installation complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "What was installed:"
-Write-Host "  - cc_markdown.exe -> $InstallDir"
+Write-Host "  - cc-markdown.exe -> $InstallDir"
 Write-Host "  - SKILL.md -> $ClaudeSkillsDir"
 Write-Host ""
-Write-Host "Restart your terminal, then run 'cc_markdown --help' to get started."
+Write-Host "Restart your terminal, then run 'cc-markdown --help' to get started."
 Write-Host ""
 Write-Host "In Claude Code, just ask: 'Convert report.md to PDF with boardroom theme'"

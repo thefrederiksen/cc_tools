@@ -43,7 +43,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='cc_voice',
+    name='cc-voice',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

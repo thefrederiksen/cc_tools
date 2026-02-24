@@ -1,9 +1,9 @@
-# Build script for cc_linkedin
+# Build script for cc-linkedin
 # Creates standalone executable using PyInstaller
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_linkedin..." -ForegroundColor Cyan
+Write-Host "Building cc-linkedin..." -ForegroundColor Cyan
 
 # Ensure we're in the right directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -25,12 +25,12 @@ pip install pyinstaller
 
 # Build executable
 Write-Host "Building executable..." -ForegroundColor Yellow
-pyinstaller cc_linkedin.spec --clean
+pyinstaller cc-linkedin.spec --clean
 
 # Check result
-if (Test-Path "dist\cc_linkedin.exe") {
+if (Test-Path "dist\cc-linkedin.exe") {
     Write-Host "Build successful!" -ForegroundColor Green
-    Write-Host "Executable: dist\cc_linkedin.exe" -ForegroundColor Green
+    Write-Host "Executable: dist\cc-linkedin.exe" -ForegroundColor Green
 } else {
     Write-Host "Build failed!" -ForegroundColor Red
     exit 1

@@ -2,7 +2,7 @@
 
 > **Current language scope:** Python
 
-This document defines the coding standards for cc_tools. These are CLI tools and MCP servers that require robust error handling, comprehensive logging, and clear user feedback.
+This document defines the coding standards for cc-tools. These are CLI tools and MCP servers that require robust error handling, comprehensive logging, and clear user feedback.
 
 ---
 
@@ -89,7 +89,7 @@ except PermissionError as e:
 ```python
 # Define clear exception hierarchy for your tool
 class CcToolsError(Exception):
-    """Base exception for cc_tools."""
+    """Base exception for cc-tools."""
     pass
 
 class ConfigurationError(CcToolsError):

@@ -1,10 +1,10 @@
-# cc_reddit
+# cc-reddit
 
 A command-line tool for Reddit interactions via browser automation.
 
 ## Overview
 
-cc_reddit enables programmatic Reddit interactions through browser automation, acting exactly like a human user. No API keys required.
+cc-reddit enables programmatic Reddit interactions through browser automation, acting exactly like a human user. No API keys required.
 
 **Key Features:**
 - Browse subreddits and posts
@@ -16,36 +16,36 @@ cc_reddit enables programmatic Reddit interactions through browser automation, a
 
 ## Requirements
 
-- cc_browser daemon running (port 9280)
+- cc-browser daemon running (port 9280)
 - Chrome/Edge browser
 - Logged into Reddit in the browser
 
 ## Quick Start
 
 ```bash
-# Start cc_browser daemon
+# Start cc-browser daemon
 cc-browser start --profile reddit
 
 # Check Reddit login status
-cc_reddit status
+cc-reddit status
 
 # Show current user
-cc_reddit whoami
+cc-reddit whoami
 
 # View subreddit feed
-cc_reddit feed programming --limit 10
+cc-reddit feed programming --limit 10
 
 # View a post
-cc_reddit post "https://reddit.com/r/programming/comments/abc123/..."
+cc-reddit post "https://reddit.com/r/programming/comments/abc123/..."
 
 # Create a post
-cc_reddit post create learnpython --title "Question about loops" --body "How do I..."
+cc-reddit post create learnpython --title "Question about loops" --body "How do I..."
 
 # Comment on a post
-cc_reddit comment abc123 --text "Great explanation!"
+cc-reddit comment abc123 --text "Great explanation!"
 
 # Upvote
-cc_reddit upvote abc123
+cc-reddit upvote abc123
 ```
 
 ## Commands
@@ -109,29 +109,29 @@ cc_reddit upvote abc123
 
 ## Browser Setup
 
-1. Start cc_browser with a profile for Reddit:
+1. Start cc-browser with a profile for Reddit:
    ```bash
    cc-browser start --profile reddit
    ```
 
 2. Log into Reddit in the browser window that opens
 
-3. Your session persists - cc_reddit uses the same browser session
+3. Your session persists - cc-reddit uses the same browser session
 
 ## How It Works
 
 ```
-cc_reddit (Python CLI)
+cc-reddit (Python CLI)
     |
     | HTTP requests to localhost:9280
     v
-cc_browser daemon (Node.js)
+cc-browser daemon (Node.js)
     |
     | Chrome DevTools Protocol
     v
 Chrome browser (logged into Reddit)
 ```
 
-## Part of cc_tools
+## Part of cc-tools
 
-This tool is part of the [cc_tools](https://github.com/sfrederico/cc_tools) suite.
+This tool is part of the [cc-tools](https://github.com/sfrederico/cc-tools) suite.

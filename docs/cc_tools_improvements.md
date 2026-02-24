@@ -29,12 +29,12 @@ Before auditing a tool, know what API it wraps:
 
 ```
 Tool           -> API                    -> Documentation
-cc_gmail       -> Gmail API v1           -> developers.google.com/gmail/api
-cc_outlook     -> Microsoft Graph        -> learn.microsoft.com/graph/api
-cc_image       -> OpenAI Images + Vision -> platform.openai.com/docs/api-reference
-cc_voice       -> OpenAI TTS             -> platform.openai.com/docs/api-reference/audio
-cc_whisper     -> OpenAI Whisper         -> platform.openai.com/docs/api-reference/audio
-cc_youtube     -> yt-dlp (wrapper)       -> github.com/yt-dlp/yt-dlp
+cc-gmail       -> Gmail API v1           -> developers.google.com/gmail/api
+cc-outlook     -> Microsoft Graph        -> learn.microsoft.com/graph/api
+cc-image       -> OpenAI Images + Vision -> platform.openai.com/docs/api-reference
+cc-voice       -> OpenAI TTS             -> platform.openai.com/docs/api-reference/audio
+cc-whisper     -> OpenAI Whisper         -> platform.openai.com/docs/api-reference/audio
+cc-youtube     -> yt-dlp (wrapper)       -> github.com/yt-dlp/yt-dlp
 ```
 
 ### Step 2: Read Current Implementation
@@ -46,7 +46,7 @@ cc_youtube     -> yt-dlp (wrapper)       -> github.com/yt-dlp/yt-dlp
    - What fields are extracted from the response
    - What fields are IGNORED
 
-Example analysis from `cc_gmail/src/gmail_api.py`:
+Example analysis from `cc-gmail/src/gmail_api.py`:
 
 ```python
 # list_messages() calls messages.list()
@@ -63,7 +63,7 @@ For each endpoint used, check the official docs for:
 
 Use WebFetch or direct browser access:
 ```
-cc_gmail uses: users.messages.list
+cc-gmail uses: users.messages.list
 Docs: https://developers.google.com/gmail/api/reference/rest/v1/users.messages/list
 
 Response includes:
@@ -96,7 +96,7 @@ Start with trivial wins that provide clear user value.
 
 ---
 
-## Case Study: cc_gmail count Command
+## Case Study: cc-gmail count Command
 
 ### Discovery
 
@@ -154,17 +154,17 @@ def count(
 ### Result
 
 - ~20 lines of code added
-- New `cc_gmail count` command
+- New `cc-gmail count` command
 - Instant results (no pagination delay)
 - Works with any Gmail search query
 
 ### Usage
 
 ```bash
-cc_gmail count                           # Total inbox
-cc_gmail count -l INBOX                  # Inbox messages
-cc_gmail count "is:unread"               # Unread count
-cc_gmail count "from:boss@company.com"   # Messages from person
+cc-gmail count                           # Total inbox
+cc-gmail count -l INBOX                  # Inbox messages
+cc-gmail count "is:unread"               # Unread count
+cc-gmail count "from:boss@company.com"   # Messages from person
 ```
 
 ### Lessons Learned
@@ -181,29 +181,29 @@ cc_gmail count "from:boss@company.com"   # Messages from person
 
 | Tool | API | Documentation |
 |------|-----|---------------|
-| cc_gmail | Google Gmail API v1 | https://developers.google.com/gmail/api/reference/rest |
-| cc_outlook | Microsoft Graph | https://learn.microsoft.com/en-us/graph/api/overview |
-| cc_image | OpenAI DALL-E 3 + Vision | https://platform.openai.com/docs/api-reference/images |
-| cc_voice | OpenAI TTS | https://platform.openai.com/docs/api-reference/audio/createSpeech |
-| cc_whisper | OpenAI Whisper | https://platform.openai.com/docs/api-reference/audio/createTranscription |
-| cc_youtube | yt-dlp | https://github.com/yt-dlp/yt-dlp#options |
+| cc-gmail | Google Gmail API v1 | https://developers.google.com/gmail/api/reference/rest |
+| cc-outlook | Microsoft Graph | https://learn.microsoft.com/en-us/graph/api/overview |
+| cc-image | OpenAI DALL-E 3 + Vision | https://platform.openai.com/docs/api-reference/images |
+| cc-voice | OpenAI TTS | https://platform.openai.com/docs/api-reference/audio/createSpeech |
+| cc-whisper | OpenAI Whisper | https://platform.openai.com/docs/api-reference/audio/createTranscription |
+| cc-youtube | yt-dlp | https://github.com/yt-dlp/yt-dlp#options |
 
 ### Local Processing Tools (No External APIs)
 
 These tools don't wrap external APIs - improvements come from FFmpeg/library capabilities:
 
-- cc_markdown (Pandoc, html2pdf)
-- cc_video (FFmpeg)
-- cc_browser (Playwright/CDP)
-- cc_crawl4ai (local crawler)
-- cc_click (Windows automation)
-- cc_setup (installer)
+- cc-markdown (Pandoc, html2pdf)
+- cc-video (FFmpeg)
+- cc-browser (Playwright/CDP)
+- cc-crawl4ai (local crawler)
+- cc-click (Windows automation)
+- cc-setup (installer)
 
 ---
 
 ## Audit Checklist
 
-Use this checklist when auditing any cc_tool:
+Use this checklist when auditing any cc-tool:
 
 ### Preparation
 
@@ -298,7 +298,7 @@ When starting an audit session, use prompts like:
 
 **For exploration:**
 ```
-I want to audit cc_gmail for unexposed Gmail API features.
+I want to audit cc-gmail for unexposed Gmail API features.
 1. Read the current gmail_api.py implementation
 2. Fetch the Gmail API documentation for users.messages endpoints
 3. Create a gap analysis table showing what we use vs what's available
@@ -307,12 +307,12 @@ I want to audit cc_gmail for unexposed Gmail API features.
 **For specific features:**
 ```
 Check if the Gmail API's messages.list endpoint has parameters
-we're not using in cc_gmail. I want to know about pagination
+we're not using in cc-gmail. I want to know about pagination
 (nextPageToken), includeSpamTrash, and any useful response fields.
 ```
 
 **For implementation:**
 ```
 Based on the gap analysis, implement the highest-value trivial
-feature following the existing cc_gmail patterns.
+feature following the existing cc-gmail patterns.
 ```

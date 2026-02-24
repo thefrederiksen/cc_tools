@@ -1,9 +1,9 @@
-# Build script for cc_whisper executable
+# Build script for cc-whisper executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_whisper executable..." -ForegroundColor Cyan
+Write-Host "Building cc-whisper executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_whisper.spec --clean --noconfirm
+pyinstaller cc-whisper.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_whisper.exe"
+$exePath = "dist\cc-whisper.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

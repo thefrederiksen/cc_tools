@@ -1,4 +1,4 @@
-"""Wrapper for cc_click.exe subprocess calls.
+"""Wrapper for cc-click.exe subprocess calls.
 
 Usage:
     from cc_click import run
@@ -13,10 +13,10 @@ from config import get_cc_click_path
 
 def run(subcommand: str, args: dict[str, str | None] | None = None,
         timeout: int = 30) -> tuple[int, str, str, int]:
-    """Run a cc_click subcommand.
+    """Run a cc-click subcommand.
 
     Args:
-        subcommand: The cc_click subcommand to run (e.g., "click", "list-windows").
+        subcommand: The cc-click subcommand to run (e.g., "click", "list-windows").
         args: Optional dict of arguments to pass to the subcommand.
         timeout: Maximum seconds to wait for the command to complete.
 
@@ -44,7 +44,7 @@ def run(subcommand: str, args: dict[str, str | None] | None = None,
         return proc.returncode, proc.stdout.strip(), proc.stderr.strip(), elapsed
     except subprocess.TimeoutExpired:
         elapsed = int((time.perf_counter() - start) * 1000)
-        return 1, "", f"cc_click timed out after {timeout}s", elapsed
+        return 1, "", f"cc-click timed out after {timeout}s", elapsed
     except FileNotFoundError:
         elapsed = int((time.perf_counter() - start) * 1000)
-        return 1, "", f"cc_click.exe not found at: {cc_click}", elapsed
+        return 1, "", f"cc-click.exe not found at: {cc_click}", elapsed

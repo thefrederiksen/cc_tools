@@ -1,4 +1,4 @@
-# cc_transcribe
+# cc-transcribe
 
 Video and audio transcription with timestamps and automatic screenshot extraction.
 
@@ -13,7 +13,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases) or install from source:
+Download from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases) or install from source:
 
 ```bash
 pip install -e .
@@ -28,22 +28,22 @@ pip install -e .
 
 ```bash
 # Basic transcription
-cc_transcribe video.mp4
+cc-transcribe video.mp4
 
 # Specify output directory
-cc_transcribe video.mp4 -o ./output/
+cc-transcribe video.mp4 -o ./output/
 
 # Without screenshots
-cc_transcribe video.mp4 --no-screenshots
+cc-transcribe video.mp4 --no-screenshots
 
 # Adjust screenshot sensitivity
-cc_transcribe video.mp4 --threshold 0.85 --interval 2.0
+cc-transcribe video.mp4 --threshold 0.85 --interval 2.0
 
 # Force language
-cc_transcribe video.mp4 --language en
+cc-transcribe video.mp4 --language en
 
 # Show video info only
-cc_transcribe video.mp4 --info
+cc-transcribe video.mp4 --info
 ```
 
 ## Output

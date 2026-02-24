@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cc_vault"
+name = "cc-vault"
 version = "0.1.0"
 description = "Personal Vault CLI: manage contacts, tasks, goals, ideas, documents and more"
 readme = "README.md"
@@ -29,7 +29,7 @@ full = [
 dev = ["pytest>=7.0.0", "pyinstaller>=6.0.0"]
 
 [project.scripts]
-cc_vault = "src.cli:app"
+cc-vault = "src.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["."]

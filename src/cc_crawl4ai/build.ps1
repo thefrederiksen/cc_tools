@@ -1,4 +1,4 @@
-# Build script for cc_crawl4ai executable
+# Build script for cc-crawl4ai executable
 # Usage: .\build.ps1
 #
 # NOTE: crawl4ai uses Playwright for browser automation.
@@ -7,7 +7,7 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_crawl4ai executable..." -ForegroundColor Cyan
+Write-Host "Building cc-crawl4ai executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -36,10 +36,10 @@ playwright install chromium
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_crawl4ai.spec --clean --noconfirm
+pyinstaller cc-crawl4ai.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_crawl4ai.exe"
+$exePath = "dist\cc-crawl4ai.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

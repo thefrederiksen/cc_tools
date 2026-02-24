@@ -1,4 +1,4 @@
-# cc_hardware
+# cc-hardware
 
 System hardware information CLI tool.
 
@@ -14,29 +14,29 @@ System hardware information CLI tool.
 
 ## Installation
 
-Built executable is installed to `C:\cc-tools\cc_hardware.exe`
+Built executable is installed to `C:\cc-tools\cc-hardware.exe`
 
 ## Usage
 
 ```bash
 # Show all hardware info
-cc_hardware
+cc-hardware
 
 # Individual components
-cc_hardware ram
-cc_hardware cpu
-cc_hardware gpu
-cc_hardware disk
-cc_hardware os
-cc_hardware network
-cc_hardware battery
+cc-hardware ram
+cc-hardware cpu
+cc-hardware gpu
+cc-hardware disk
+cc-hardware os
+cc-hardware network
+cc-hardware battery
 
 # JSON output (for scripting)
-cc_hardware --json
-cc_hardware cpu --json
+cc-hardware --json
+cc-hardware cpu --json
 
 # Version
-cc_hardware --version
+cc-hardware --version
 ```
 
 ## Requirements
@@ -57,4 +57,4 @@ cc_hardware --version
 .\build.ps1
 ```
 
-Output: `dist\cc_hardware.exe`
+Output: `dist\cc-hardware.exe`

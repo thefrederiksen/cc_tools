@@ -42,8 +42,8 @@ Thank you for your interest in contributing to CC Tools!
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/cc_tools.git
-cd cc_tools
+git clone https://github.com/YOUR_USERNAME/cc-tools.git
+cd cc-tools
 
 # Create virtual environment
 python -m venv venv
@@ -51,7 +51,7 @@ source venv/bin/activate  # Unix
 # or: venv\Scripts\activate  # Windows
 
 # Install dependencies
-cd src/cc_markdown
+cd src/cc-markdown
 pip install -r requirements.txt
 pip install -e .
 
@@ -62,16 +62,16 @@ playwright install chromium
 ### Running Tests
 
 ```bash
-cd src/cc_markdown
+cd src/cc-markdown
 pytest tests/ -v
 ```
 
 ### Building Executables
 
 ```bash
-cd src/cc_markdown
+cd src/cc-markdown
 pip install pyinstaller
-pyinstaller --onefile --name cc_markdown src/__main__.py
+pyinstaller --onefile --name cc-markdown src/__main__.py
 ```
 
 ## Code Style

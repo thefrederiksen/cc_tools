@@ -1,4 +1,4 @@
-# cc_video
+# cc-video
 
 Video utilities: info, extract audio, screenshots.
 
@@ -12,7 +12,7 @@ Part of the [CC Tools](../../README.md) suite.
 
 ## Installation
 
-Download from [GitHub Releases](https://github.com/CenterConsulting/cc_tools/releases) or:
+Download from [GitHub Releases](https://github.com/CenterConsulting/cc-tools/releases) or:
 
 ```bash
 pip install -e .
@@ -26,20 +26,20 @@ pip install -e .
 
 ```bash
 # Video information
-cc_video info video.mp4
+cc-video info video.mp4
 
 # Extract audio
-cc_video audio video.mp4 -o audio.mp3
-cc_video audio video.mp4 -o audio.wav --format wav
-cc_video audio video.mp4 --bitrate 320k
+cc-video audio video.mp4 -o audio.mp3
+cc-video audio video.mp4 -o audio.wav --format wav
+cc-video audio video.mp4 --bitrate 320k
 
 # Extract screenshots at content changes
-cc_video screenshots video.mp4 -o ./frames/
-cc_video screenshots video.mp4 -o ./frames/ --threshold 0.85
-cc_video screenshots video.mp4 -o ./frames/ --max 20
+cc-video screenshots video.mp4 -o ./frames/
+cc-video screenshots video.mp4 -o ./frames/ --threshold 0.85
+cc-video screenshots video.mp4 -o ./frames/ --max 20
 
 # Extract single frame
-cc_video frame video.mp4 --time 30.5 -o frame.png
+cc-video frame video.mp4 --time 30.5 -o frame.png
 ```
 
 ## Commands

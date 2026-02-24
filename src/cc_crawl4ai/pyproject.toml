@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cc_crawl4ai"
+name = "cc-crawl4ai"
 version = "0.1.0"
 description = "AI-ready web crawler: crawl pages to clean markdown, batch processing, sessions, LLM extraction"
 readme = "README.md"
@@ -21,7 +21,7 @@ dependencies = [
 dev = ["pytest>=7.0.0", "pyinstaller>=6.0.0"]
 
 [project.scripts]
-cc_crawl4ai = "src.cli:app"
+cc-crawl4ai = "src.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["."]

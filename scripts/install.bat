@@ -1,13 +1,13 @@
 @echo off
-REM Add C:\cc_tools to user PATH (one-time setup)
+REM Add C:\cc-tools to user PATH (one-time setup)
 REM Usage: scripts\install.bat
 
 setlocal
 
-set "INSTALL_DIR=C:\cc_tools"
+set "INSTALL_DIR=C:\cc-tools"
 
 echo ============================================
-echo cc_tools PATH Installation
+echo cc-tools PATH Installation
 echo ============================================
 echo.
 
@@ -27,7 +27,7 @@ if %errorlevel% equ 0 (
 REM Add to user PATH using PowerShell
 echo Adding %INSTALL_DIR% to user PATH...
 
-powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*C:\cc_tools*'){[Environment]::SetEnvironmentVariable('Path',$p+';C:\cc_tools','User'); Write-Host '[OK] Added C:\cc_tools to user PATH'}else{Write-Host '[OK] C:\cc_tools already in PATH'}"
+powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*C:\cc-tools*'){[Environment]::SetEnvironmentVariable('Path',$p+';C:\cc-tools','User'); Write-Host '[OK] Added C:\cc-tools to user PATH'}else{Write-Host '[OK] C:\cc-tools already in PATH'}"
 
 if %errorlevel% neq 0 (
     echo [FAIL] Could not add to PATH
@@ -46,21 +46,29 @@ echo.
 echo Available tools:
 echo.
 echo Python tools (compiled executables):
-if exist "%INSTALL_DIR%\cc_crawl4ai.exe" echo   - cc_crawl4ai
-if exist "%INSTALL_DIR%\cc_gmail.exe" echo   - cc_gmail
-if exist "%INSTALL_DIR%\cc_image.exe" echo   - cc_image
-if exist "%INSTALL_DIR%\cc_linkedin.exe" echo   - cc_linkedin
-if exist "%INSTALL_DIR%\cc_markdown.exe" echo   - cc_markdown
-if exist "%INSTALL_DIR%\cc_outlook.exe" echo   - cc_outlook
-if exist "%INSTALL_DIR%\cc_reddit.exe" echo   - cc_reddit
+if exist "%INSTALL_DIR%\cc-crawl4ai.exe" echo   - cc-crawl4ai
+if exist "%INSTALL_DIR%\cc-gmail.exe" echo   - cc-gmail
+if exist "%INSTALL_DIR%\cc-image.exe" echo   - cc-image
+if exist "%INSTALL_DIR%\cc-linkedin.exe" echo   - cc-linkedin
+if exist "%INSTALL_DIR%\cc-markdown.exe" echo   - cc-markdown
+if exist "%INSTALL_DIR%\cc-outlook.exe" echo   - cc-outlook
+if exist "%INSTALL_DIR%\cc-reddit.exe" echo   - cc-reddit
 if exist "%INSTALL_DIR%\cc-tools-setup.exe" echo   - cc-tools-setup
-if exist "%INSTALL_DIR%\cc_transcribe.exe" echo   - cc_transcribe
-if exist "%INSTALL_DIR%\cc_video.exe" echo   - cc_video
-if exist "%INSTALL_DIR%\cc_voice.exe" echo   - cc_voice
-if exist "%INSTALL_DIR%\cc_whisper.exe" echo   - cc_whisper
-if exist "%INSTALL_DIR%\cc_youtube_info.exe" echo   - cc_youtube_info
+if exist "%INSTALL_DIR%\cc-transcribe.exe" echo   - cc-transcribe
+if exist "%INSTALL_DIR%\cc-vault.exe" echo   - cc-vault
+if exist "%INSTALL_DIR%\cc-video.exe" echo   - cc-video
+if exist "%INSTALL_DIR%\cc-voice.exe" echo   - cc-voice
+if exist "%INSTALL_DIR%\cc-whisper.exe" echo   - cc-whisper
+if exist "%INSTALL_DIR%\cc-youtube-info.exe" echo   - cc-youtube-info
+if exist "%INSTALL_DIR%\cc-hardware.exe" echo   - cc-hardware
+if exist "%INSTALL_DIR%\cc-photos.exe" echo   - cc-photos
+if exist "%INSTALL_DIR%\cc-comm-queue.exe" echo   - cc-comm-queue
 echo.
 echo Node.js tools:
 if exist "%INSTALL_DIR%\cc-browser.cmd" echo   - cc-browser
+echo.
+echo .NET tools:
+if exist "%INSTALL_DIR%\cc-click.cmd" echo   - cc-click
+if exist "%INSTALL_DIR%\cc-trisight.cmd" echo   - cc-trisight
 echo.
 echo Run any tool with --help for usage info.

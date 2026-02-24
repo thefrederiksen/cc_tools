@@ -1,4 +1,4 @@
-# cc_crawl4ai
+# cc-crawl4ai
 
 AI-ready web crawler that extracts clean markdown from websites. Built on [Crawl4AI](https://github.com/unclecode/crawl4ai).
 
@@ -18,7 +18,7 @@ AI-ready web crawler that extracts clean markdown from websites. Built on [Crawl
 
 ```bash
 # From source
-cd src/cc_crawl4ai
+cd src/cc-crawl4ai
 pip install -e .
 
 # Run Playwright setup (required once)
@@ -29,16 +29,16 @@ playwright install chromium
 
 ```bash
 # Crawl a single page to markdown
-cc_crawl4ai crawl https://example.com -o page.md
+cc-crawl4ai crawl https://example.com -o page.md
 
 # Crawl with noise filtering
-cc_crawl4ai crawl https://example.com --fit -o clean.md
+cc-crawl4ai crawl https://example.com --fit -o clean.md
 
 # Extract only relevant content
-cc_crawl4ai crawl https://docs.python.org --query "async await" -o async.md
+cc-crawl4ai crawl https://docs.python.org --query "async await" -o async.md
 
 # Batch crawl URLs in parallel
-cc_crawl4ai batch urls.txt -o ./results --parallel 10
+cc-crawl4ai batch urls.txt -o ./results --parallel 10
 ```
 
 ## Commands
@@ -48,7 +48,7 @@ cc_crawl4ai batch urls.txt -o ./results --parallel 10
 Crawl a single URL and extract content.
 
 ```bash
-cc_crawl4ai crawl <url> [options]
+cc-crawl4ai crawl <url> [options]
 ```
 
 **Output Options:**
@@ -115,7 +115,7 @@ cc_crawl4ai crawl <url> [options]
 Crawl multiple URLs in parallel.
 
 ```bash
-cc_crawl4ai batch <urls_file> -o <output_dir> [options]
+cc-crawl4ai batch <urls_file> -o <output_dir> [options]
 ```
 
 **Options:**
@@ -142,25 +142,25 @@ Manage browser sessions for authenticated crawling.
 
 ```bash
 # List sessions
-cc_crawl4ai session list
+cc-crawl4ai session list
 
 # Create session with interactive login
-cc_crawl4ai session create mysite -u https://example.com/login --interactive
+cc-crawl4ai session create mysite -u https://example.com/login --interactive
 
 # Create session without login
-cc_crawl4ai session create mysite -b firefox -d "My site session"
+cc-crawl4ai session create mysite -b firefox -d "My site session"
 
 # Use session for crawling
-cc_crawl4ai crawl https://example.com/dashboard --session mysite
+cc-crawl4ai crawl https://example.com/dashboard --session mysite
 
 # Delete session
-cc_crawl4ai session delete mysite
+cc-crawl4ai session delete mysite
 
 # Rename session
-cc_crawl4ai session rename oldname newname
+cc-crawl4ai session rename oldname newname
 
 # Show session info
-cc_crawl4ai session info mysite
+cc-crawl4ai session info mysite
 ```
 
 ## Examples
@@ -169,58 +169,58 @@ cc_crawl4ai session info mysite
 
 ```bash
 # Simple crawl
-cc_crawl4ai crawl https://example.com
+cc-crawl4ai crawl https://example.com
 
 # Save to file
-cc_crawl4ai crawl https://example.com -o page.md
+cc-crawl4ai crawl https://example.com -o page.md
 
 # Get JSON output
-cc_crawl4ai crawl https://example.com -f json -o page.json
+cc-crawl4ai crawl https://example.com -f json -o page.json
 
 # Get raw HTML
-cc_crawl4ai crawl https://example.com -f raw -o page.html
+cc-crawl4ai crawl https://example.com -f raw -o page.html
 ```
 
 ### Content Filtering
 
 ```bash
 # Filter for specific content using BM25
-cc_crawl4ai crawl https://docs.python.org/3/library/asyncio.html \
+cc-crawl4ai crawl https://docs.python.org/3/library/asyncio.html \
   --query "event loop create task" \
   -o asyncio.md
 
 # Use fit markdown to remove noise
-cc_crawl4ai crawl https://news.site.com/article --fit -o article.md
+cc-crawl4ai crawl https://news.site.com/article --fit -o article.md
 ```
 
 ### Dynamic Content
 
 ```bash
 # Wait for element to load
-cc_crawl4ai crawl https://spa-site.com --wait-for ".content-loaded"
+cc-crawl4ai crawl https://spa-site.com --wait-for ".content-loaded"
 
 # Scroll to load infinite scroll content
-cc_crawl4ai crawl https://infinite-scroll.com --scroll --scroll-delay 1000
+cc-crawl4ai crawl https://infinite-scroll.com --scroll --scroll-delay 1000
 
 # Execute JS before extraction
-cc_crawl4ai crawl https://site.com --js "document.querySelector('.expand').click()"
+cc-crawl4ai crawl https://site.com --js "document.querySelector('.expand').click()"
 ```
 
 ### Stealth Mode
 
 ```bash
 # Evade bot detection
-cc_crawl4ai crawl https://protected-site.com --stealth
+cc-crawl4ai crawl https://protected-site.com --stealth
 
 # With proxy
-cc_crawl4ai crawl https://site.com --stealth --proxy http://user:pass@proxy:8080
+cc-crawl4ai crawl https://site.com --stealth --proxy http://user:pass@proxy:8080
 ```
 
 ### LLM Extraction
 
 ```bash
 # Extract structured data using LLM
-cc_crawl4ai crawl https://store.com/product \
+cc-crawl4ai crawl https://store.com/product \
   --llm-extract \
   --llm-model gpt-4o \
   --llm-prompt "Extract product name, price, and description as JSON" \
@@ -241,18 +241,18 @@ cc_crawl4ai crawl https://store.com/product \
 #   ]
 # }
 
-cc_crawl4ai crawl https://store.com/products --schema product_schema.json -o products.json
+cc-crawl4ai crawl https://store.com/products --schema product_schema.json -o products.json
 ```
 
 ### Authenticated Crawling
 
 ```bash
 # Create session with interactive login
-cc_crawl4ai session create github -u https://github.com/login --interactive
+cc-crawl4ai session create github -u https://github.com/login --interactive
 # Browser opens, you log in manually, close browser when done
 
 # Now crawl authenticated pages
-cc_crawl4ai crawl https://github.com/settings/profile --session github -o profile.md
+cc-crawl4ai crawl https://github.com/settings/profile --session github -o profile.md
 ```
 
 ### Batch Processing
@@ -264,23 +264,23 @@ cc_crawl4ai crawl https://github.com/settings/profile --session github -o profil
 # https://example.com/page3
 
 # Crawl all URLs with 10 parallel workers
-cc_crawl4ai batch urls.txt -o ./results --parallel 10
+cc-crawl4ai batch urls.txt -o ./results --parallel 10
 
 # With screenshots
-cc_crawl4ai batch urls.txt -o ./results --parallel 5 --screenshot
+cc-crawl4ai batch urls.txt -o ./results --parallel 5 --screenshot
 
 # With stealth mode
-cc_crawl4ai batch urls.txt -o ./results --parallel 3 --stealth
+cc-crawl4ai batch urls.txt -o ./results --parallel 3 --stealth
 ```
 
 ### Screenshots
 
 ```bash
 # Capture screenshot
-cc_crawl4ai crawl https://example.com --screenshot --screenshot-path page.png
+cc-crawl4ai crawl https://example.com --screenshot --screenshot-path page.png
 
 # Batch with screenshots
-cc_crawl4ai batch urls.txt -o ./results --screenshot
+cc-crawl4ai batch urls.txt -o ./results --screenshot
 ```
 
 ## Output Directory Structure (Batch)
@@ -297,10 +297,10 @@ results/
 
 ## Session Storage
 
-Sessions are stored in `~/.cc_crawl4ai/sessions/`:
+Sessions are stored in `~/.cc-crawl4ai/sessions/`:
 
 ```
-~/.cc_crawl4ai/
+~/.cc-crawl4ai/
   sessions/
     mysite/
       session.json      # Session metadata
@@ -311,12 +311,12 @@ Sessions are stored in `~/.cc_crawl4ai/sessions/`:
 ## Building Executable
 
 ```bash
-cd src/cc_crawl4ai
+cd src/cc-crawl4ai
 pip install pyinstaller
-pyinstaller --onefile --name cc_crawl4ai main.py
+pyinstaller --onefile --name cc-crawl4ai main.py
 ```
 
-The executable will be in `dist/cc_crawl4ai.exe`.
+The executable will be in `dist/cc-crawl4ai.exe`.
 
 ## License
 

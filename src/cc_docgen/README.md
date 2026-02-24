@@ -1,4 +1,4 @@
-# cc_docgen
+# cc-docgen
 
 Architecture diagram generator for CenCon documentation. Converts `architecture_manifest.yaml` into C4 model diagrams.
 
@@ -16,11 +16,11 @@ choco install graphviz
 # Or download from https://graphviz.org/download/
 ```
 
-### Install cc_docgen
+### Install cc-docgen
 
 ```bash
 # From source
-cd cc_tools/src/cc_docgen
+cd cc-tools/src/cc_docgen
 pip install -e .
 
 # Or install dependencies directly
@@ -33,26 +33,26 @@ pip install click pyyaml diagrams
 
 ```bash
 # Generate with defaults (looks for ./docs/cencon/architecture_manifest.yaml)
-cc_docgen generate
+cc-docgen generate
 
 # Specify manifest and output directory
-cc_docgen generate --manifest ./docs/cencon/architecture_manifest.yaml --output ./docs/cencon/
+cc-docgen generate --manifest ./docs/cencon/architecture_manifest.yaml --output ./docs/cencon/
 
 # Generate SVG format
-cc_docgen generate --format svg
+cc-docgen generate --format svg
 
 # Verbose output
-cc_docgen generate --verbose
+cc-docgen generate --verbose
 ```
 
 ### Validate Manifest
 
 ```bash
 # Check manifest schema without generating diagrams
-cc_docgen validate
+cc-docgen validate
 
 # Specify manifest path
-cc_docgen validate --manifest ./custom/path/architecture_manifest.yaml
+cc-docgen validate --manifest ./custom/path/architecture_manifest.yaml
 ```
 
 ## Output Files
@@ -115,7 +115,7 @@ containers:
 ### With /cencon-generate skill
 
 1. Run `/cencon-generate` to analyze source code and create manifest
-2. Run `cc_docgen generate` to create diagrams from manifest
+2. Run `cc-docgen generate` to create diagrams from manifest
 
 ### In CI/CD
 
@@ -124,7 +124,7 @@ containers:
 - name: Generate architecture diagrams
   run: |
     pip install click pyyaml diagrams
-    python -m cc_docgen generate
+    python -m cc_docgen generate  # Module name keeps underscore
 
 - name: Verify diagrams exist
   run: |
@@ -142,5 +142,5 @@ pip install -e ".[dev]"
 pytest
 
 # Run with verbose output
-python -m cc_docgen generate --verbose
+python -m cc_docgen generate --verbose  # Module name keeps underscore
 ```

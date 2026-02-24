@@ -1,5 +1,5 @@
 [project]
-name = "cc_docgen"
+name = "cc-docgen"
 version = "1.0.0"
 description = "Architecture diagram generator for CenCon documentation"
 readme = "README.md"
@@ -35,7 +35,7 @@ dev = [
 ]
 
 [project.scripts]
-cc_docgen = "cc_docgen.cli:cli"
+cc-docgen = "cc_docgen.cli:cli"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

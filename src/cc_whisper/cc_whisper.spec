@@ -43,7 +43,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='cc_whisper',
+    name='cc-whisper',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

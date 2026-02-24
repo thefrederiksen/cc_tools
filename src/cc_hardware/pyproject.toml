@@ -1,5 +1,5 @@
 [project]
-name = "cc_hardware"
+name = "cc-hardware"
 version = "1.0.0"
 description = "System hardware information CLI"
 requires-python = ">=3.11"
@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cc_hardware = "src.cli:app"
+cc-hardware = "src.cli:app"
 
 [build-system]
 requires = ["hatchling"]

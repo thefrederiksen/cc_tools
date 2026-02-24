@@ -1,9 +1,9 @@
-# Build script for cc_outlook executable
+# Build script for cc-outlook executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_outlook executable..." -ForegroundColor Cyan
+Write-Host "Building cc-outlook executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -32,10 +32,10 @@ pip install -e "$PSScriptRoot\..\cc_shared"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_outlook.spec --clean --noconfirm
+pyinstaller cc-outlook.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_outlook.exe"
+$exePath = "dist\cc-outlook.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

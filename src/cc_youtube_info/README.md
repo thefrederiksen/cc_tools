@@ -1,4 +1,4 @@
-# cc_youtube_info
+# cc-youtube-info
 
 **Extract transcripts, metadata, and information from YouTube videos.**
 
@@ -23,7 +23,7 @@ Get everything you need to know about a YouTube video without downloading it.
 ## Installation
 
 ```bash
-cd src/cc_youtube_info
+cd src/cc-youtube-info
 pip install -e .
 ```
 
@@ -33,58 +33,58 @@ pip install -e .
 
 ```bash
 # Display video metadata with stats
-cc_youtube_info info "https://www.youtube.com/watch?v=VIDEO_ID"
+cc-youtube-info info "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Output as JSON (includes description, chapters, etc.)
-cc_youtube_info info "https://youtu.be/VIDEO_ID" --json
+cc-youtube-info info "https://youtu.be/VIDEO_ID" --json
 ```
 
 ### Download Transcript
 
 ```bash
 # Print transcript to stdout
-cc_youtube_info transcript "https://www.youtube.com/watch?v=VIDEO_ID"
+cc-youtube-info transcript "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Save to file
-cc_youtube_info transcript "URL" -o transcript.txt
+cc-youtube-info transcript "URL" -o transcript.txt
 
 # Export as SRT subtitles
-cc_youtube_info transcript "URL" --format srt -o captions.srt
+cc-youtube-info transcript "URL" --format srt -o captions.srt
 
 # Export as VTT subtitles
-cc_youtube_info transcript "URL" --format vtt -o captions.vtt
+cc-youtube-info transcript "URL" --format vtt -o captions.vtt
 
 # Format as paragraphs (removes timestamps)
-cc_youtube_info transcript "URL" -p -o transcript.txt
+cc-youtube-info transcript "URL" -p -o transcript.txt
 
 # Output as JSON with metadata
-cc_youtube_info transcript "URL" --json > output.json
+cc-youtube-info transcript "URL" --json > output.json
 
 # Specify language (default: en)
-cc_youtube_info transcript "URL" -l es -o spanish.txt
+cc-youtube-info transcript "URL" -l es -o spanish.txt
 
 # Force auto-generated captions only
-cc_youtube_info transcript "URL" --auto-only
+cc-youtube-info transcript "URL" --auto-only
 ```
 
 ### List Available Languages
 
 ```bash
 # See what languages are available for a video
-cc_youtube_info languages "https://www.youtube.com/watch?v=VIDEO_ID"
+cc-youtube-info languages "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Output as JSON
-cc_youtube_info languages "URL" --json
+cc-youtube-info languages "URL" --json
 ```
 
 ### List Chapters
 
 ```bash
 # Show video chapters with timestamps
-cc_youtube_info chapters "https://www.youtube.com/watch?v=VIDEO_ID"
+cc-youtube-info chapters "https://www.youtube.com/watch?v=VIDEO_ID"
 
 # Output as JSON
-cc_youtube_info chapters "URL" --json
+cc-youtube-info chapters "URL" --json
 ```
 
 ## Output Formats

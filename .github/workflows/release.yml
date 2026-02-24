@@ -14,17 +14,17 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: cc_markdown
-            asset_name: cc_markdown-linux-x64
+            artifact_name: cc-markdown
+            asset_name: cc-markdown-linux-x64
           - os: windows-latest
-            artifact_name: cc_markdown.exe
-            asset_name: cc_markdown-windows-x64.exe
+            artifact_name: cc-markdown.exe
+            asset_name: cc-markdown-windows-x64.exe
           - os: macos-latest
-            artifact_name: cc_markdown
-            asset_name: cc_markdown-macos-x64
+            artifact_name: cc-markdown
+            asset_name: cc-markdown-macos-x64
           - os: macos-14
-            artifact_name: cc_markdown
-            asset_name: cc_markdown-macos-arm64
+            artifact_name: cc-markdown
+            asset_name: cc-markdown-macos-arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r src/cc_markdown/requirements.txt
+          pip install -r src/cc-markdown/requirements.txt
           pip install pyinstaller
 
       - name: Install Playwright browsers
@@ -47,13 +47,13 @@ jobs:
 
       - name: Build executable
         run: |
-          cd src/cc_markdown
-          pyinstaller --onefile --name cc_markdown --add-data "src/themes:themes" src/__main__.py
+          cd src/cc-markdown
+          pyinstaller --onefile --name cc-markdown --add-data "src/themes:themes" src/__main__.py
 
       - name: Rename artifact
         shell: bash
         run: |
-          cd src/cc_markdown/dist
+          cd src/cc-markdown/dist
           if [ -f "${{ matrix.artifact_name }}" ]; then
             mv "${{ matrix.artifact_name }}" "${{ matrix.asset_name }}"
           fi
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: src/cc_markdown/dist/${{ matrix.asset_name }}
+          path: src/cc-markdown/dist/${{ matrix.asset_name }}
 
   release:
     needs: build

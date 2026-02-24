@@ -1,5 +1,5 @@
 @echo off
-REM Build all cc_tools and copy to C:\cc_tools
+REM Build all cc_tools and copy to C:\cc-tools
 REM Usage: scripts\build.bat
 
 setlocal enabledelayedexpansion
@@ -10,7 +10,7 @@ echo ============================================
 echo.
 
 set "REPO_DIR=%~dp0.."
-set "INSTALL_DIR=C:\cc_tools"
+set "INSTALL_DIR=C:\cc-tools"
 set "FAILED="
 set "SUCCESS_COUNT=0"
 set "FAIL_COUNT=0"
@@ -23,6 +23,7 @@ if not exist "%INSTALL_DIR%" (
 
 REM ============================================
 REM Python tools (built with PyInstaller)
+REM Directory names use underscores, exe names use dashes
 REM ============================================
 set "PYTHON_TOOLS=cc_comm_queue cc_crawl4ai cc_gmail cc_hardware cc_image cc_linkedin cc_markdown cc_outlook cc_photos cc_reddit cc_setup cc_transcribe cc_vault cc_video cc_voice cc_whisper cc_youtube_info"
 
@@ -33,6 +34,10 @@ for %%T in (%PYTHON_TOOLS%) do (
     echo --------------------------------------------
 
     set "TOOL_DIR=%REPO_DIR%\src\%%T"
+
+    REM Convert underscore to dash for exe name (cc_outlook -> cc-outlook)
+    set "EXE_NAME=%%T"
+    set "EXE_NAME=!EXE_NAME:_=-!"
 
     if exist "!TOOL_DIR!\build.ps1" (
         pushd "!TOOL_DIR!"
@@ -51,12 +56,12 @@ for %%T in (%PYTHON_TOOLS%) do (
                     set "FAILED=!FAILED! %%T"
                     set /a FAIL_COUNT+=1
                 )
-            ) else if exist "dist\%%T.exe" (
-                copy /Y "dist\%%T.exe" "%INSTALL_DIR%\" >nul
-                echo [OK] %%T.exe copied to %INSTALL_DIR%
+            ) else if exist "dist\!EXE_NAME!.exe" (
+                copy /Y "dist\!EXE_NAME!.exe" "%INSTALL_DIR%\" >nul
+                echo [OK] !EXE_NAME!.exe copied to %INSTALL_DIR%
                 set /a SUCCESS_COUNT+=1
             ) else (
-                echo [FAIL] %%T.exe not found after build
+                echo [FAIL] !EXE_NAME!.exe not found after build
                 set "FAILED=!FAILED! %%T"
                 set /a FAIL_COUNT+=1
             )
@@ -80,7 +85,7 @@ echo Building cc_browser (Node.js)...
 echo --------------------------------------------
 
 set "BROWSER_SRC=%REPO_DIR%\src\cc_browser"
-set "BROWSER_DEST=%INSTALL_DIR%\cc_browser"
+set "BROWSER_DEST=%INSTALL_DIR%\cc-browser"
 
 if exist "%BROWSER_SRC%\build.ps1" (
     pushd "%BROWSER_SRC%"
@@ -100,10 +105,10 @@ if exist "%BROWSER_SRC%\build.ps1" (
         if exist "%BROWSER_DEST%\node_modules" rmdir /S /Q "%BROWSER_DEST%\node_modules"
         xcopy /E /I /Q /Y "dist\node_modules" "%BROWSER_DEST%\node_modules" >nul
 
-        REM Create launcher script in C:\cc_tools
-        echo @node "%%~dp0cc_browser\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-browser.cmd"
+        REM Create launcher script in C:\cc-tools
+        echo @node "%%~dp0cc-browser\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-browser.cmd"
 
-        echo [OK] cc_browser installed to %BROWSER_DEST%
+        echo [OK] cc-browser installed to %BROWSER_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
         echo [FAIL] Build failed for cc_browser
@@ -124,16 +129,16 @@ echo Building cc_click (.NET)...
 echo --------------------------------------------
 
 set "CCCLICK_SRC=%REPO_DIR%\src\cc_click"
-set "CCCLICK_DEST=%INSTALL_DIR%\cc_click"
+set "CCCLICK_DEST=%INSTALL_DIR%\cc-click"
 
 if exist "%CCCLICK_SRC%\cc_click.slnx" (
     pushd "%CCCLICK_SRC%"
     dotnet publish -c Release -o "%CCCLICK_DEST%"
 
     if !errorlevel! equ 0 (
-        REM Create launcher script
-        echo @"%%~dp0cc_click\CcClick.exe" %%*> "%INSTALL_DIR%\cc_click.cmd"
-        echo [OK] cc_click installed to %CCCLICK_DEST%
+        REM Create launcher script (exe name is now cc-click.exe due to AssemblyName)
+        echo @"%%~dp0cc-click\cc-click.exe" %%*> "%INSTALL_DIR%\cc-click.cmd"
+        echo [OK] cc-click installed to %CCCLICK_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
         echo [FAIL] Build failed for cc_click
@@ -151,16 +156,16 @@ echo Building cc_trisight (.NET)...
 echo --------------------------------------------
 
 set "TRISIGHT_SRC=%REPO_DIR%\src\cc_trisight"
-set "TRISIGHT_DEST=%INSTALL_DIR%\cc_trisight"
+set "TRISIGHT_DEST=%INSTALL_DIR%\cc-trisight"
 
 if exist "%TRISIGHT_SRC%\cc_trisight.slnx" (
     pushd "%TRISIGHT_SRC%"
     dotnet publish -c Release -o "%TRISIGHT_DEST%"
 
     if !errorlevel! equ 0 (
-        REM Create launcher script
-        echo @"%%~dp0cc_trisight\TrisightCli.exe" %%*> "%INSTALL_DIR%\cc_trisight.cmd"
-        echo [OK] cc_trisight installed to %TRISIGHT_DEST%
+        REM Create launcher script (exe name is now cc-trisight.exe due to AssemblyName)
+        echo @"%%~dp0cc-trisight\cc-trisight.exe" %%*> "%INSTALL_DIR%\cc-trisight.cmd"
+        echo [OK] cc-trisight installed to %TRISIGHT_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
         echo [FAIL] Build failed for cc_trisight

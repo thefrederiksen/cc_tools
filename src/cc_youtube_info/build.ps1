@@ -1,9 +1,9 @@
-# Build script for cc_youtube_info executable
+# Build script for cc-youtube-info executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_youtube_info executable..." -ForegroundColor Cyan
+Write-Host "Building cc-youtube-info executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_youtube_info.spec --clean --noconfirm
+pyinstaller cc-youtube-info.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_youtube_info.exe"
+$exePath = "dist\cc-youtube-info.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

@@ -1,9 +1,9 @@
-# Build script for cc_gmail executable
+# Build script for cc-gmail executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_gmail executable..." -ForegroundColor Cyan
+Write-Host "Building cc-gmail executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -32,10 +32,10 @@ pip install -e "$PSScriptRoot\..\cc_shared"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_gmail.spec --clean --noconfirm
+pyinstaller cc-gmail.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_gmail.exe"
+$exePath = "dist\cc-gmail.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green

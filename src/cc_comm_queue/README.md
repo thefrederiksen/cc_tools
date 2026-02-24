@@ -1,4 +1,4 @@
-# cc_comm_queue
+# cc-comm-queue
 
 CLI tool for adding content to the Communication Manager approval queue.
 
@@ -6,7 +6,7 @@ CLI tool for adding content to the Communication Manager approval queue.
 
 ```bash
 # From source
-cd D:\ReposFred\cc_tools\src\cc_comm_queue
+cd D:\ReposFred\cc-tools\src\cc_comm_queue
 pip install -e .
 
 # Build executable
@@ -19,23 +19,23 @@ pip install -e .
 
 ```bash
 # LinkedIn post
-cc_comm_queue add linkedin post "Process mining trends for 2024..." \
+cc-comm-queue add linkedin post "Process mining trends for 2024..." \
     --persona mindzie \
     --tags "process mining,trends"
 
 # LinkedIn comment
-cc_comm_queue add linkedin comment "Great insights!" \
+cc-comm-queue add linkedin comment "Great insights!" \
     --persona personal \
     --context-url "https://linkedin.com/posts/..."
 
 # Email
-cc_comm_queue add email email "Hi Sarah, following up..." \
+cc-comm-queue add email email "Hi Sarah, following up..." \
     --persona mindzie \
     --email-to "sarah@techcorp.com" \
     --email-subject "Following up from Summit"
 
 # Reddit post
-cc_comm_queue add reddit post "How we reduced processing time..." \
+cc-comm-queue add reddit post "How we reduced processing time..." \
     --persona personal \
     --reddit-subreddit "r/processimprovement" \
     --reddit-title "Case Study: 70% reduction"
@@ -45,36 +45,36 @@ cc_comm_queue add reddit post "How we reduced processing time..." \
 
 ```bash
 # From file
-cc_comm_queue add-json content.json
+cc-comm-queue add-json content.json
 
 # From stdin
-cat content.json | cc_comm_queue add-json -
+cat content.json | cc-comm-queue add-json -
 ```
 
 ### Queue Management
 
 ```bash
 # List pending items
-cc_comm_queue list --status pending
+cc-comm-queue list --status pending
 
 # Show queue stats
-cc_comm_queue status
+cc-comm-queue status
 
 # Show specific item
-cc_comm_queue show abc123
+cc-comm-queue show abc123
 ```
 
 ### Configuration
 
 ```bash
 # Show config
-cc_comm_queue config show
+cc-comm-queue config show
 
 # Set queue path
-cc_comm_queue config set queue_path "D:/path/to/content"
+cc-comm-queue config set queue_path "D:/path/to/content"
 
 # Set default persona
-cc_comm_queue config set default_persona mindzie
+cc-comm-queue config set default_persona mindzie
 ```
 
 ## JSON Output (for Agents)
@@ -82,7 +82,7 @@ cc_comm_queue config set default_persona mindzie
 Use `--json` flag for machine-readable output:
 
 ```bash
-cc_comm_queue add linkedin post "Hello" --json
+cc-comm-queue add linkedin post "Hello" --json
 # {"success": true, "id": "abc123...", "file": "path/to/file.json"}
 ```
 
@@ -92,7 +92,7 @@ cc_comm_queue add linkedin post "Hello" --json
 - `twitter` - Tweets, replies, threads
 - `reddit` - Posts and comments
 - `youtube` - Comments
-- `email` - Emails via cc_outlook
+- `email` - Emails via cc-outlook
 - `blog` - Long-form articles
 
 ## Personas

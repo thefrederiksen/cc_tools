@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the complete implementation plan for the cc_tools open source project, starting with repository structure and the first tool (cc_markdown).
+This document outlines the complete implementation plan for the cc-tools open source project, starting with repository structure and the first tool (cc-markdown).
 
 ---
 
@@ -11,7 +11,7 @@ This document outlines the complete implementation plan for the cc_tools open so
 ### 1.1 Directory Structure
 
 ```
-cc_tools/
+cc-tools/
 ├── .github/
 │   ├── workflows/
 │   │   ├── build.yml              # CI for every push
@@ -22,7 +22,7 @@ cc_tools/
 │   │   └── feature_request.md
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── src/
-│   ├── cc_markdown/               # First tool
+│   ├── cc-markdown/               # First tool
 │   │   ├── README.md              # Tool-specific docs
 │   │   ├── src/                   # Source code
 │   │   ├── themes/                # CSS theme files
@@ -37,14 +37,14 @@ cc_tools/
 │   └── install.ps1                # Windows installer
 ├── docs/
 │   ├── CC_Tools_Strategy.md
-│   ├── cc_markdown_PRD.md
+│   ├── cc-markdown_PRD.md
 │   ├── HANDOVER.md
 │   └── IMPLEMENTATION_PLAN.md     # This document
 ├── .claude-plugin/                # Claude Code plugin support
 │   ├── plugin.json
 │   └── marketplace.json
 ├── skills/                        # Claude Code skills
-│   └── cc_markdown/
+│   └── cc-markdown/
 │       └── SKILL.md
 ├── README.md                      # Main project README
 ├── LICENSE                        # MIT License (exists)
@@ -121,18 +121,18 @@ Built by CenterConsulting Inc.
 ```json
 // .claude-plugin/plugin.json
 {
-  "name": "cc_tools",
+  "name": "cc-tools",
   "version": "0.1.0",
   "description": "CLI tools for agentic coding workflows",
   "author": "CenterConsulting Inc.",
-  "skills": ["cc_markdown"],
+  "skills": ["cc-markdown"],
   "mcp_servers": []
 }
 ```
 
 ---
 
-## Phase 2: cc_markdown Implementation
+## Phase 2: cc-markdown Implementation
 
 ### 2.1 Technology Decision
 
@@ -207,7 +207,7 @@ pyinstaller>=6.0.0         # Executable packaging
 ### 2.4 File Structure
 
 ```
-src/cc_markdown/
+src/cc-markdown/
 ├── README.md                    # Tool documentation
 ├── pyproject.toml               # Python project config
 ├── requirements.txt             # Dependencies
@@ -245,31 +245,31 @@ src/cc_markdown/
 
 ```bash
 # Basic usage
-cc_markdown input.md -o output.pdf
-cc_markdown input.md -o output.docx
-cc_markdown input.md -o output.html
+cc-markdown input.md -o output.pdf
+cc-markdown input.md -o output.docx
+cc-markdown input.md -o output.html
 
 # With theme
-cc_markdown input.md -o output.pdf --theme boardroom
-cc_markdown input.md -o output.pdf --theme terminal
+cc-markdown input.md -o output.pdf --theme boardroom
+cc-markdown input.md -o output.pdf --theme terminal
 
 # With custom CSS
-cc_markdown input.md -o output.pdf --css custom.css
+cc-markdown input.md -o output.pdf --css custom.css
 
 # Options
-cc_markdown input.md -o output.pdf --page-size letter  # Default: a4
-cc_markdown input.md -o output.pdf --margin 1in        # Default: 1in
+cc-markdown input.md -o output.pdf --page-size letter  # Default: a4
+cc-markdown input.md -o output.pdf --margin 1in        # Default: 1in
 
 # Utility commands
-cc_markdown --themes          # List available themes
-cc_markdown --version         # Show version
-cc_markdown --help            # Show help
+cc-markdown --themes          # List available themes
+cc-markdown --version         # Show version
+cc-markdown --help            # Show help
 ```
 
 ### 2.6 Implementation Steps
 
 #### Step 1: Project Setup
-- [ ] Create `src/cc_markdown/` directory structure
+- [ ] Create `src/cc-markdown/` directory structure
 - [ ] Create `pyproject.toml` with dependencies
 - [ ] Create `requirements.txt`
 - [ ] Set up virtual environment
@@ -354,12 +354,12 @@ cc_markdown --help            # Show help
 
 ### 2.8 Success Criteria
 
-cc_markdown v1.0 is complete when:
+cc-markdown v1.0 is complete when:
 
 1. [ ] User can download single executable from GitHub Releases
-2. [ ] `cc_markdown doc.md -o doc.pdf` produces valid PDF
-3. [ ] `cc_markdown doc.md -o doc.docx` produces valid Word doc
-4. [ ] `cc_markdown doc.md -o doc.html` produces valid HTML
+2. [ ] `cc-markdown doc.md -o doc.pdf` produces valid PDF
+3. [ ] `cc-markdown doc.md -o doc.docx` produces valid Word doc
+4. [ ] `cc-markdown doc.md -o doc.html` produces valid HTML
 5. [ ] All 7 themes work correctly
 6. [ ] `--css` flag works for custom styles
 7. [ ] Works on Windows, Linux, macOS (x64 and ARM64)
@@ -406,7 +406,7 @@ Each will follow the same pattern established in Phase 2.
 
 1. **Approve this plan** - Review and confirm approach
 2. **Phase 1** - Create repository structure and foundation files
-3. **Phase 2** - Implement cc_markdown step by step
+3. **Phase 2** - Implement cc-markdown step by step
 
 ---
 

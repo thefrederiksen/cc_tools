@@ -1,9 +1,9 @@
-# Build script for cc_reddit
+# Build script for cc-reddit
 # Creates standalone executable using PyInstaller
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_reddit..." -ForegroundColor Cyan
+Write-Host "Building cc-reddit..." -ForegroundColor Cyan
 
 # Ensure we're in the right directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -25,12 +25,12 @@ pip install pyinstaller
 
 # Build executable
 Write-Host "Building executable..." -ForegroundColor Yellow
-pyinstaller cc_reddit.spec --clean
+pyinstaller cc-reddit.spec --clean
 
 # Check result
-if (Test-Path "dist\cc_reddit.exe") {
+if (Test-Path "dist\cc-reddit.exe") {
     Write-Host "Build successful!" -ForegroundColor Green
-    Write-Host "Executable: dist\cc_reddit.exe" -ForegroundColor Green
+    Write-Host "Executable: dist\cc-reddit.exe" -ForegroundColor Green
 } else {
     Write-Host "Build failed!" -ForegroundColor Red
     exit 1

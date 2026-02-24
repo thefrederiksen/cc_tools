@@ -6,7 +6,7 @@ CenterConsulting Inc. (CC) is launching a suite of open source CLI tools for age
 
 **Goal:** Build notoriety and brand recognition for CenterConsulting through valuable open source contributions to the AI/developer community.
 
-**Repository:** github.com/CenterConsulting/cc_tools
+**Repository:** github.com/CenterConsulting/cc-tools
 
 ---
 
@@ -15,7 +15,7 @@ CenterConsulting Inc. (CC) is launching a suite of open source CLI tools for age
 ### What We're Doing
 
 1. **Take existing fred_tools** - Working, battle-tested code from internal pipelines
-2. **Rebrand with CC naming** - Consistent `cc_[function]` naming for brand recognition
+2. **Rebrand with CC naming** - Consistent `cc-[function]` naming for brand recognition
 3. **Package as standalone CLI executables** - Download and run, no installation
 4. **Release open source on GitHub** - MIT license, free for everyone
 5. **Create Claude Code skills** - Downloadable skills and plugins
@@ -29,7 +29,7 @@ CenterConsulting Inc. (CC) is launching a suite of open source CLI tools for age
 | **CLI for Agentic Coding** | Growing market with Claude Code, Cursor, Windsurf, etc. |
 | **Open Source** | Builds trust, community, and visibility |
 | **Multiple Tools** | Each release is content for social campaigns |
-| **Tools Reinforce Each Other** | Users of cc_markdown discover cc_transcribe |
+| **Tools Reinforce Each Other** | Users of cc-markdown discover cc-transcribe |
 | **MIT License** | Maximum adoption - no GPL restrictions |
 
 ### Target Audience
@@ -91,7 +91,7 @@ Supporting utilities or very specific use cases.
 
 ### Naming Pattern
 
-All tools follow the pattern: `cc_[function]`
+All tools follow the pattern: `cc-[function]`
 
 - **cc** = CenterConsulting brand prefix
 - **[function]** = Clear, single-word descriptor of what the tool does
@@ -100,38 +100,38 @@ All tools follow the pattern: `cc_[function]`
 
 | Current Function | CC Tool Name | CLI Command | Description |
 |------------------|--------------|-------------|-------------|
-| markdown_to_pdf/word | **cc_markdown** | `cc_markdown` | Markdown to PDF/Word/HTML with themes |
-| transcribe_video | **cc_transcribe** | `cc_transcribe` | Video/audio transcription with timestamps |
-| vision + image_gen + image manipulation | **cc_image** | `cc_image` | Image toolkit: generate, analyze, OCR, resize, convert |
-| tts | **cc_voice** | `cc_voice` | Text-to-speech |
-| whisper | **cc_whisper** | `cc_whisper` | Audio transcription |
-| video utilities | **cc_video** | `cc_video` | Video info, extract audio, screenshots |
+| markdown_to_pdf/word | **cc-markdown** | `cc-markdown` | Markdown to PDF/Word/HTML with themes |
+| transcribe_video | **cc-transcribe** | `cc-transcribe` | Video/audio transcription with timestamps |
+| vision + image_gen + image manipulation | **cc-image** | `cc-image` | Image toolkit: generate, analyze, OCR, resize, convert |
+| tts | **cc-voice** | `cc-voice` | Text-to-speech |
+| whisper | **cc-whisper** | `cc-whisper` | Audio transcription |
+| video utilities | **cc-video** | `cc-video` | Video info, extract audio, screenshots |
 
 ### Example CLI Usage
 
 ```bash
 # Convert markdown to PDF with corporate theme
-cc_markdown report.md -o report.pdf --theme Boardroom
+cc-markdown report.md -o report.pdf --theme Boardroom
 
 # Transcribe a video with screenshots
-cc_transcribe meeting.mp4 -o ./output/
+cc-transcribe meeting.mp4 -o ./output/
 
 # Image toolkit (unified)
-cc_image describe photo.jpg                       # AI analysis
-cc_image extract-text screenshot.png              # OCR
-cc_image generate "A sunset over mountains" -o sunset.png  # DALL-E
-cc_image resize photo.png -o thumb.jpg --width 800         # Resize (no API)
-cc_image convert photo.png -o photo.webp          # Convert format (no API)
-cc_image info photo.png                           # Get metadata (no API)
+cc-image describe photo.jpg                       # AI analysis
+cc-image extract-text screenshot.png              # OCR
+cc-image generate "A sunset over mountains" -o sunset.png  # DALL-E
+cc-image resize photo.png -o thumb.jpg --width 800         # Resize (no API)
+cc-image convert photo.png -o photo.webp          # Convert format (no API)
+cc-image info photo.png                           # Get metadata (no API)
 
 # Generate speech from text
-cc_voice "Hello world" -o greeting.mp3
+cc-voice "Hello world" -o greeting.mp3
 
 # Transcribe audio
-cc_whisper interview.mp3 -o transcript.txt
+cc-whisper interview.mp3 -o transcript.txt
 
 # Get video info
-cc_video info presentation.mp4
+cc-video info presentation.mp4
 ```
 
 ---
@@ -142,31 +142,31 @@ cc_video info presentation.mp4
 
 | Order | Tool | Why First |
 |-------|------|-----------|
-| 1 | **cc_markdown** | Strongest differentiator, clear Pandoc alternative |
-| 2 | **cc_transcribe** | Unique value, combines transcription + visual |
-| 3 | **cc_image** | Unified image toolkit, broad utility |
+| 1 | **cc-markdown** | Strongest differentiator, clear Pandoc alternative |
+| 2 | **cc-transcribe** | Unique value, combines transcription + visual |
+| 3 | **cc-image** | Unified image toolkit, broad utility |
 
 ### Phase 2: Audio Tools
 
 | Order | Tool | Why |
 |-------|------|-----|
-| 4 | **cc_voice** | Content creators, accessibility |
-| 5 | **cc_whisper** | Complements cc_transcribe |
+| 4 | **cc-voice** | Content creators, accessibility |
+| 5 | **cc-whisper** | Complements cc-transcribe |
 
 ### Phase 3: Utility Tools
 
 | Order | Tool | Why |
 |-------|------|-----|
-| 6 | **cc_video** | Supporting utilities |
+| 6 | **cc-video** | Supporting utilities |
 
 ### Social Media Campaign
 
 Each tool release is a content opportunity:
 
-1. **Announcement post** - "Introducing cc_markdown: MIT-licensed Pandoc alternative"
+1. **Announcement post** - "Introducing cc-markdown: MIT-licensed Pandoc alternative"
 2. **Demo video** - 60-second showing the tool in action
-3. **Use case thread** - "5 ways to use cc_markdown with Claude Code"
-4. **Comparison post** - "cc_markdown vs Pandoc: Why we built this"
+3. **Use case thread** - "5 ways to use cc-markdown with Claude Code"
+4. **Comparison post** - "cc-markdown vs Pandoc: Why we built this"
 
 Platforms: LinkedIn (primary for B2B/consulting), Twitter/X (developer community), GitHub (releases)
 
@@ -187,19 +187,19 @@ Platforms: LinkedIn (primary for B2B/consulting), Twitter/X (developer community
 
 ### Repository Structure
 
-**Monorepo:** `github.com/CenterConsulting/cc_tools`
+**Monorepo:** `github.com/CenterConsulting/cc-tools`
 
 ```
-cc_tools/
+cc-tools/
     README.md                    # Overview of all tools
     LICENSE                      # MIT
     src/
-        cc_markdown/             # Best language for the job
-        cc_transcribe/
-        cc_image/                # Unified image toolkit
-        cc_voice/
-        cc_whisper/
-        cc_video/
+        cc-markdown/             # Best language for the job
+        cc-transcribe/
+        cc-image/                # Unified image toolkit
+        cc-voice/
+        cc-whisper/
+        cc-video/
     releases/                    # Compiled executables
     skills/                      # Claude Code skill definitions
     docs/
@@ -239,8 +239,8 @@ cc_tools/
 
 ## Decisions Made
 
-1. **Repository name:** cc_tools
-2. **Naming pattern:** cc_[function]
+1. **Repository name:** cc-tools
+2. **Naming pattern:** cc-[function]
 3. **Monorepo:** Yes, single repo for all tools
 4. **Language policy:** Best fit per tool (not restricted to one language)
 5. **License:** MIT
@@ -250,19 +250,19 @@ cc_tools/
 
 1. **API keys** - Tools currently have keys baked in. For open source, users provide their own keys via environment variables or config file?
 2. **Branding assets** - Do we need logos for each tool or just the CC brand?
-3. **Documentation site** - Single site for all tools (cc_tools.centerconsulting.com) or per-tool READMEs?
+3. **Documentation site** - Single site for all tools (cc-tools.centerconsulting.com) or per-tool READMEs?
 4. **Community** - Discord/Slack for users? Or just GitHub issues?
 
 ---
 
 ## Next Steps
 
-1. [x] Finalize tool naming (cc_[function] pattern) - DONE
+1. [x] Finalize tool naming (cc-[function] pattern) - DONE
 2. [x] Decide monorepo vs separate repos - DONE (monorepo)
-3. [x] Choose repository name - DONE (cc_tools)
+3. [x] Choose repository name - DONE (cc-tools)
 4. [x] Create GitHub repository - DONE
 5. [ ] Set up repository structure
-6. [ ] Create cc_markdown as first release
+6. [ ] Create cc-markdown as first release
 7. [ ] Create release pipeline (GitHub Actions)
 8. [ ] Plan social media campaign for first release
 

@@ -1,9 +1,9 @@
-# Build script for cc_vault executable
+# Build script for cc-vault executable
 # Usage: .\build.ps1
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Building cc_vault executable..." -ForegroundColor Cyan
+Write-Host "Building cc-vault executable..." -ForegroundColor Cyan
 
 # Check for Python
 $python = Get-Command python -ErrorAction SilentlyContinue
@@ -28,10 +28,10 @@ pip install -e ".[dev,full]"
 
 # Build with PyInstaller
 Write-Host "Building executable with PyInstaller..." -ForegroundColor Yellow
-pyinstaller cc_vault.spec --clean --noconfirm
+pyinstaller cc-vault.spec --clean --noconfirm
 
 # Check result
-$exePath = "dist\cc_vault.exe"
+$exePath = "dist\cc-vault.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
     Write-Host "SUCCESS: Built $exePath ($size MB)" -ForegroundColor Green
