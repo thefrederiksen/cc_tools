@@ -494,8 +494,11 @@ def create(
         client = get_client()
         port = client.port
 
-        note("Creating post via JS evaluation...")
-        result = create_post_via_js(port, content)
+        if image:
+            note(f"Creating post with image: {image}")
+        else:
+            note("Creating post via JS evaluation...")
+        result = create_post_via_js(port, content, image)
 
         if result.get("success"):
             success("Post created successfully")
