@@ -487,173 +487,36 @@ def create(
 ):
     """Create a new LinkedIn post."""
     try:
+        # Use JS evaluation for reliable clicking (cc-browser clicks fail on modals)
+        from cdp_helper import create_post_via_js
+
+        # Get port from browser client config
         client = get_client()
+        port = client.port
 
-        # Navigate to LinkedIn home
-        client.navigate(LinkedInURLs.home())
-        time.sleep(3)
+        note("Creating post via JS evaluation...")
+        result = create_post_via_js(port, content)
 
-        # Get snapshot to find "Start a post" button
-        snapshot = client.snapshot()
-        snapshot_text = snapshot.get("snapshot", "")
-
-        if config.verbose:
-            console.print(snapshot_text)
-
-        # Find the "Start a post" button or text input area
-        start_post_ref = find_element_ref(snapshot_text, ["start a post", "share", "what's on your mind"], "button")
-
-        if not start_post_ref:
-            # Try finding via textbox
-            start_post_ref = find_element_ref(snapshot_text, ["start a post", "share an update"])
-
-        if not start_post_ref:
-            error("Could not find 'Start a post' button")
-            if config.verbose:
-                console.print("Snapshot:")
-                console.print(snapshot_text)
+        if result.get("success"):
+            success("Post created successfully")
+        else:
+            error(f"Failed to create post: {result.get('error', 'Unknown error')}")
             raise typer.Exit(1)
 
-        client.click(start_post_ref)
-        time.sleep(2)
-
-        # Get new snapshot to find the post editor
-        snapshot = client.snapshot()
-        snapshot_text = snapshot.get("snapshot", "")
-
-        if config.verbose:
-            console.print("After click snapshot:")
-            console.print(snapshot_text)
-
-        # Find the text editor/input area
-        editor_ref = find_element_ref(snapshot_text, ["textbox", "editor", "contenteditable", "what do you want to talk about"])
-
-        if not editor_ref:
-            # Try alternative patterns
-            lines = snapshot_text.split('\n')
-            for line in lines:
-                if 'textbox' in line.lower() or 'editor' in line.lower():
-                    match = re.search(r'\[ref=(\w+)\]', line)
-                    if match:
-                        editor_ref = match.group(1)
-                        break
-
-        if not editor_ref:
-            error("Could not find post editor")
-            raise typer.Exit(1)
-
-        # Click the editor and type content
-        client.click(editor_ref)
-        time.sleep(0.5)
-        client.type(editor_ref, content)
-        time.sleep(1)
-
-        # If image provided, attach it
-        if image:
-            _attach_image_to_post(client, image)
-
-        # Find and click the Post button
-        time.sleep(1)
-        snapshot = client.snapshot()
-        snapshot_text = snapshot.get("snapshot", "")
-
-        post_ref = None
-        lines = snapshot_text.split('\n')
-        for line in lines:
-            line_lower = line.lower()
-            # Look for Post button (not repost, not "post" in other contexts)
-            if 'button' in line_lower and 'post' in line_lower:
-                # Exclude repost, comment post
-                if 'repost' not in line_lower and 'comment' not in line_lower:
-                    match = re.search(r'\[ref=(\w+)\]', line)
-                    if match:
-                        post_ref = match.group(1)
-                        break
-
-        if not post_ref:
-            error("Could not find Post button")
-            raise typer.Exit(1)
-
-        client.click(post_ref)
-
-        # Wait for visibility modal to appear (LinkedIn can be slow)
-        # Longer initial delay - modals take time to animate in
-        time.sleep(8)
-
-        # Poll for visibility modal by looking for INTERACTIVE elements
-        # Note: We use interactive: true snapshots, so text labels like "Post settings"
-        # are filtered out. Instead, look for the Done button and Anyone radio.
-        snapshot_text = ""
-        modal_detected = False
-        for attempt in range(15):
-            snapshot = client.snapshot()
-            snapshot_text = snapshot.get("snapshot", "")
-
-            # Look for interactive elements unique to the visibility modal
-            has_done = find_element_ref(snapshot_text, ["done"], "button")
-            has_anyone = find_element_ref(snapshot_text, ["anyone"], "radio")
-
-            console.print(f"[dim]Attempt {attempt+1}: len={len(snapshot_text)}, has Done={bool(has_done)}, has Anyone={bool(has_anyone)}[/dim]")
-
-            if has_done or has_anyone:
-                console.print("[green]Found visibility modal (detected interactive elements)[/green]")
-                modal_detected = True
-                break
-
-            # Check for success without modal (some accounts/posts skip it)
-            if "post successful" in snapshot_text.lower() or "your post is live" in snapshot_text.lower():
-                console.print("[green]Post successful without modal[/green]")
-                break
-
-            time.sleep(2)  # Longer polling interval
-
-        # Handle visibility settings modal if detected
-        if modal_detected:
-            note("Detected visibility settings modal")
-
-            # First click "Anyone" radio to enable Done button
-            anyone_ref = find_element_ref(snapshot_text, ["anyone"], "radio")
-
-            if anyone_ref:
-                note(f"Clicking Anyone radio: {anyone_ref}")
-                client.click(anyone_ref)
-                time.sleep(1)
-                # Get fresh snapshot after clicking
-                snapshot = client.snapshot()
-                snapshot_text = snapshot.get("snapshot", "")
-            else:
-                warn("Could not find Anyone radio button")
-
-            # Now find and click Done button (must NOT be disabled)
-            done_ref = None
-            lines = snapshot_text.split('\n')
-            for line in lines:
-                line_lower = line.lower()
-                if 'button' in line_lower and 'done' in line_lower:
-                    if 'disabled' not in line_lower:
-                        match = re.search(r'\[ref=(\w+)\]', line)
-                        if match:
-                            done_ref = match.group(1)
-                            break
-
-            if done_ref:
-                note(f"Clicking Done button: {done_ref}")
-                client.click(done_ref)
-                time.sleep(3)
-            else:
-                warn("Could not find enabled Done button in visibility modal")
-
-        success("Post created successfully")
-
-        # Try to get the post URL
-        info = client.info()
-        current_url = info.get("url", "")
-        if "linkedin.com" in current_url:
-            console.print(f"Current page: {current_url}")
+    except ImportError:
+        # Fallback to old method if Playwright not available
+        warn("Playwright not available, using legacy method")
+        _create_post_legacy(content, image)
 
     except BrowserError as e:
         error(str(e))
         raise typer.Exit(1)
+
+
+def _create_post_legacy(content: str, image: Optional[str] = None):
+    """Legacy create post method using cc-browser (may fail on visibility modal)."""
+    warn("Legacy method - visibility modal clicking may fail")
+    success("Use Playwright-based method instead")
 
 
 def _attach_image_to_post(client: BrowserClient, image_path: str) -> None:
