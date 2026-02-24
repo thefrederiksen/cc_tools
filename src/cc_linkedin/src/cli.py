@@ -13,8 +13,12 @@ from pathlib import Path
 
 from urllib.parse import quote
 
-from .browser_client import BrowserClient, BrowserError, ProfileError
-from .selectors import LinkedInURLs, LinkedIn
+try:
+    from .browser_client import BrowserClient, BrowserError, ProfileError
+    from .linkedin_selectors import LinkedInURLs, LinkedIn
+except ImportError:
+    from browser_client import BrowserClient, BrowserError, ProfileError
+    from linkedin_selectors import LinkedInURLs, LinkedIn
 
 app = typer.Typer(
     name="cc_linkedin",
@@ -109,6 +113,11 @@ def success(msg: str) -> None:
 def warn(msg: str) -> None:
     """Print warning message."""
     console.print(f"[yellow]WARNING:[/yellow] {msg}")
+
+
+def note(msg: str) -> None:
+    """Print info message."""
+    console.print(f"[blue]INFO:[/blue] {msg}")
 
 
 def find_element_ref(snapshot_text: str, keywords: list[str], element_type: str = "button") -> Optional[str]:
@@ -566,7 +575,73 @@ def create(
             raise typer.Exit(1)
 
         client.click(post_ref)
-        time.sleep(3)
+
+        # Wait for visibility modal to appear (LinkedIn can be slow)
+        # Longer initial delay - modals take time to animate in
+        time.sleep(8)
+
+        # Poll for visibility modal by looking for INTERACTIVE elements
+        # Note: We use interactive: true snapshots, so text labels like "Post settings"
+        # are filtered out. Instead, look for the Done button and Anyone radio.
+        snapshot_text = ""
+        modal_detected = False
+        for attempt in range(15):
+            snapshot = client.snapshot()
+            snapshot_text = snapshot.get("snapshot", "")
+
+            # Look for interactive elements unique to the visibility modal
+            has_done = find_element_ref(snapshot_text, ["done"], "button")
+            has_anyone = find_element_ref(snapshot_text, ["anyone"], "radio")
+
+            console.print(f"[dim]Attempt {attempt+1}: len={len(snapshot_text)}, has Done={bool(has_done)}, has Anyone={bool(has_anyone)}[/dim]")
+
+            if has_done or has_anyone:
+                console.print("[green]Found visibility modal (detected interactive elements)[/green]")
+                modal_detected = True
+                break
+
+            # Check for success without modal (some accounts/posts skip it)
+            if "post successful" in snapshot_text.lower() or "your post is live" in snapshot_text.lower():
+                console.print("[green]Post successful without modal[/green]")
+                break
+
+            time.sleep(2)  # Longer polling interval
+
+        # Handle visibility settings modal if detected
+        if modal_detected:
+            note("Detected visibility settings modal")
+
+            # First click "Anyone" radio to enable Done button
+            anyone_ref = find_element_ref(snapshot_text, ["anyone"], "radio")
+
+            if anyone_ref:
+                note(f"Clicking Anyone radio: {anyone_ref}")
+                client.click(anyone_ref)
+                time.sleep(1)
+                # Get fresh snapshot after clicking
+                snapshot = client.snapshot()
+                snapshot_text = snapshot.get("snapshot", "")
+            else:
+                warn("Could not find Anyone radio button")
+
+            # Now find and click Done button (must NOT be disabled)
+            done_ref = None
+            lines = snapshot_text.split('\n')
+            for line in lines:
+                line_lower = line.lower()
+                if 'button' in line_lower and 'done' in line_lower:
+                    if 'disabled' not in line_lower:
+                        match = re.search(r'\[ref=(\w+)\]', line)
+                        if match:
+                            done_ref = match.group(1)
+                            break
+
+            if done_ref:
+                note(f"Clicking Done button: {done_ref}")
+                client.click(done_ref)
+                time.sleep(3)
+            else:
+                warn("Could not find enabled Done button in visibility modal")
 
         success("Post created successfully")
 
