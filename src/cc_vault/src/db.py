@@ -3287,6 +3287,178 @@ def remove_entity_link(
     return removed
 
 
+def get_graph_stats() -> dict:
+    """
+    Get graph statistics - entity counts and total links.
+
+    Returns:
+        Dict with entities by type, total links, and most connected entities
+    """
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    stats = {
+        "entities": {},
+        "total_links": 0,
+        "most_connected": []
+    }
+
+    # Count entities by type
+    entity_tables = {
+        "contact": "contacts",
+        "task": "tasks",
+        "goal": "goals",
+        "idea": "ideas",
+        "document": "documents",
+    }
+
+    for entity_type, table_name in entity_tables.items():
+        try:
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            stats["entities"][entity_type] = cursor.fetchone()[0]
+        except sqlite3.Error:
+            stats["entities"][entity_type] = 0
+
+    # Total links
+    try:
+        cursor.execute("SELECT COUNT(*) FROM entity_links")
+        stats["total_links"] = cursor.fetchone()[0]
+    except sqlite3.Error:
+        stats["total_links"] = 0
+
+    # Most connected entities (by link count)
+    try:
+        cursor.execute("""
+            SELECT entity_type, entity_id, link_count FROM (
+                SELECT source_type as entity_type, source_id as entity_id, COUNT(*) as link_count
+                FROM entity_links
+                GROUP BY source_type, source_id
+                UNION ALL
+                SELECT target_type, target_id, COUNT(*)
+                FROM entity_links
+                GROUP BY target_type, target_id
+            )
+            GROUP BY entity_type, entity_id
+            ORDER BY SUM(link_count) DESC
+            LIMIT 10
+        """)
+
+        most_connected = []
+        for row in cursor.fetchall():
+            entity_type, entity_id, link_count = row
+            # Try to get entity name
+            name = None
+            if entity_type == "contact":
+                cursor.execute("SELECT name FROM contacts WHERE id = ?", (entity_id,))
+                result = cursor.fetchone()
+                if result:
+                    name = result[0]
+            elif entity_type == "task":
+                cursor.execute("SELECT title FROM tasks WHERE id = ?", (entity_id,))
+                result = cursor.fetchone()
+                if result:
+                    name = result[0]
+            elif entity_type == "goal":
+                cursor.execute("SELECT title FROM goals WHERE id = ?", (entity_id,))
+                result = cursor.fetchone()
+                if result:
+                    name = result[0]
+
+            most_connected.append({
+                "type": entity_type,
+                "id": entity_id,
+                "name": name or f"#{entity_id}",
+                "links": link_count
+            })
+
+        stats["most_connected"] = most_connected
+    except sqlite3.Error:
+        pass
+
+    conn.close()
+    return stats
+
+
+def populate_links_from_fk(dry_run: bool = False) -> Dict[str, Any]:
+    """
+    Populate entity_links from foreign key relationships in the schema.
+
+    Discovers implicit relationships from FK columns and creates explicit
+    links in the entity_links table.
+
+    Args:
+        dry_run: If True, only report what would be created without making changes
+
+    Returns:
+        Dict with statistics: created counts by relationship type, total, errors
+    """
+    # FK mappings: (source_table, fk_column, source_type, target_type, relationship, strength)
+    fk_mappings = [
+        ("tasks", "contact_id", "task", "contact", "assigned_to", 3),
+        ("tasks", "goal_id", "task", "goal", "supports", 3),
+        ("ideas", "goal_id", "idea", "goal", "supports", 2),
+        ("documents", "contact_id", "document", "contact", "about", 2),
+        ("documents", "goal_id", "document", "goal", "supports", 2),
+        ("photos", "contact_id", "photo", "contact", "features", 2),
+        ("photos", "goal_id", "photo", "goal", "documents", 2),
+        ("contacts", "referred_by", "contact", "contact", "referred_by", 3),
+    ]
+
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    stats = {
+        "dry_run": dry_run,
+        "relationships": {},
+        "total_created": 0,
+        "total_skipped": 0,
+        "errors": []
+    }
+
+    for table, fk_col, source_type, target_type, relationship, strength in fk_mappings:
+        rel_stats = {"found": 0, "created": 0, "skipped": 0}
+
+        try:
+            # Query rows where FK is not null
+            cursor.execute(f"""
+                SELECT id, {fk_col} FROM {table}
+                WHERE {fk_col} IS NOT NULL
+            """)
+            rows = cursor.fetchall()
+            rel_stats["found"] = len(rows)
+
+            for source_id, target_id in rows:
+                if dry_run:
+                    # In dry-run, count what would be created
+                    rel_stats["created"] += 1
+                else:
+                    try:
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO entity_links
+                            (source_type, source_id, target_type, target_id, relationship, strength)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (source_type, source_id, target_type, target_id, relationship, strength))
+                        rel_stats["created"] += 1
+                    except sqlite3.Error as e:
+                        rel_stats["skipped"] += 1
+                        stats["errors"].append(f"{source_type}:{source_id}->{target_type}:{target_id}: {str(e)}")
+
+        except sqlite3.Error as e:
+            stats["errors"].append(f"{table}.{fk_col}: {str(e)}")
+
+        stats["relationships"][f"{source_type}->{target_type} ({relationship})"] = rel_stats
+        stats["total_created"] += rel_stats["created"]
+        stats["total_skipped"] += rel_stats["skipped"]
+
+    if not dry_run:
+        conn.commit()
+
+    conn.close()
+    return stats
+
+
 # ===========================================
 # SEARCH LOG (Vault 2.0)
 # ===========================================

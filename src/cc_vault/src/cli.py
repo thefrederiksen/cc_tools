@@ -1173,5 +1173,371 @@ def health_insights(
         raise typer.Exit(1)
 
 
+# =============================================================================
+# Graph Commands (Entity Links)
+# =============================================================================
+
+graph_app = typer.Typer(help="Graph statistics and traversal")
+app.add_typer(graph_app, name="graph")
+
+
+def _get_valid_entity_types() -> List[str]:
+    """Get valid entity types from config."""
+    try:
+        from .config import ENTITY_TYPES
+    except ImportError:
+        from config import ENTITY_TYPES
+    return ENTITY_TYPES
+
+
+@app.command("link")
+def create_link(
+    source_type: str = typer.Argument(..., help="Source entity type (contact, task, goal, idea, document)"),
+    source_id: int = typer.Argument(..., help="Source entity ID"),
+    target_type: str = typer.Argument(..., help="Target entity type"),
+    target_id: int = typer.Argument(..., help="Target entity ID"),
+    rel: str = typer.Option(..., "--rel", "-r", help="Relationship type (e.g., works_on, mentions, supports)"),
+    strength: int = typer.Option(3, "--strength", "-s", help="Relationship strength (1-5)"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Create a link between two entities."""
+    db = get_db()
+
+    valid_types = _get_valid_entity_types()
+    if source_type not in valid_types:
+        console.print(f"[red]Error:[/red] Invalid source_type '{source_type}'. Must be: {', '.join(valid_types)}")
+        raise typer.Exit(1)
+    if target_type not in valid_types:
+        console.print(f"[red]Error:[/red] Invalid target_type '{target_type}'. Must be: {', '.join(valid_types)}")
+        raise typer.Exit(1)
+    if strength < 1 or strength > 5:
+        console.print(f"[red]Error:[/red] Strength must be between 1 and 5")
+        raise typer.Exit(1)
+
+    try:
+        link_id = db.add_entity_link(
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            relationship=rel,
+            strength=strength,
+        )
+
+        if json_output:
+            result = {
+                "success": True,
+                "link_id": link_id,
+                "source": {"type": source_type, "id": source_id},
+                "target": {"type": target_type, "id": target_id},
+                "relationship": rel,
+                "strength": strength,
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            console.print(f"[green]Linked[/green] {source_type}:{source_id} -> {target_type}:{target_id} ({rel}, strength={strength})")
+
+    except (sqlite3.Error, ValueError) as e:
+        console.print(f"[red]Error creating link:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("unlink")
+def remove_link(
+    source_type: str = typer.Argument(..., help="Source entity type"),
+    source_id: int = typer.Argument(..., help="Source entity ID"),
+    target_type: str = typer.Argument(..., help="Target entity type"),
+    target_id: int = typer.Argument(..., help="Target entity ID"),
+    rel: Optional[str] = typer.Option(None, "--rel", "-r", help="Specific relationship to remove (optional)"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Remove a link between two entities."""
+    db = get_db()
+
+    try:
+        removed = db.remove_entity_link(
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            relationship=rel,
+        )
+
+        if json_output:
+            result = {
+                "success": removed,
+                "source": {"type": source_type, "id": source_id},
+                "target": {"type": target_type, "id": target_id},
+                "relationship": rel,
+            }
+            console.print(json.dumps(result, indent=2))
+        else:
+            if removed:
+                console.print(f"[green]Unlinked[/green] {source_type}:{source_id} -> {target_type}:{target_id}")
+            else:
+                console.print(f"[yellow]No link found[/yellow] {source_type}:{source_id} -> {target_type}:{target_id}")
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error removing link:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("links")
+def get_links(
+    entity_type: str = typer.Argument(..., help="Entity type (contact, task, goal, idea, document)"),
+    entity_id: int = typer.Argument(..., help="Entity ID"),
+    depth: int = typer.Option(1, "--depth", "-d", help="Depth of traversal (1=direct only)"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Get all links for an entity."""
+    try:
+        try:
+            from .graph import get_vault_graph
+        except ImportError:
+            from graph import get_vault_graph
+
+        graph = get_vault_graph()
+        result = graph.get_links(entity_type, entity_id, depth=depth)
+
+        if 'error' in result:
+            console.print(f"[red]Error:[/red] {result['error']}")
+            raise typer.Exit(1)
+
+        if json_output:
+            console.print(json.dumps(result, indent=2))
+        else:
+            entity = result.get('entity', {})
+            console.print(f"\n[bold cyan]{entity.get('type', '')}:{entity.get('id', '')}[/bold cyan] - {entity.get('label', '')}")
+
+            links = result.get('links', [])
+            if not links:
+                console.print("[dim]No links found[/dim]")
+            else:
+                table = Table(title=f"Links ({len(links)} total)")
+                table.add_column("Type", style="cyan")
+                table.add_column("ID", style="dim")
+                table.add_column("Label")
+                table.add_column("Relationship")
+                table.add_column("Dir")
+                table.add_column("Strength", justify="right")
+
+                for link in links:
+                    direction = "<-" if link.get('direction') == 'incoming' else "->"
+                    via = f" (via {link.get('via')})" if link.get('via') else ""
+                    table.add_row(
+                        link.get('type', ''),
+                        str(link.get('id', '')),
+                        (link.get('label', '')[:40] + via),
+                        link.get('relationship', '-') or '-',
+                        direction,
+                        str(link.get('strength', '')),
+                    )
+
+                console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error getting links:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("context")
+def get_context(
+    entity_type: str = typer.Argument(..., help="Entity type (contact, task, goal, idea, document)"),
+    entity_id: int = typer.Argument(..., help="Entity ID"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Get entity with full linked context (for agents)."""
+    try:
+        try:
+            from .graph import get_vault_graph
+        except ImportError:
+            from graph import get_vault_graph
+
+        graph = get_vault_graph()
+        result = graph.get_context(entity_type, entity_id)
+
+        if 'error' in result:
+            console.print(f"[red]Error:[/red] {result['error']}")
+            raise typer.Exit(1)
+
+        if json_output:
+            console.print(json.dumps(result, indent=2))
+        else:
+            entity = result.get('entity', {})
+            details = entity.get('details', {})
+
+            # Header
+            console.print(f"\n[bold cyan]{entity.get('type', '')}:{entity.get('id', '')}[/bold cyan]")
+
+            # Entity details
+            table = Table(show_header=False, box=None)
+            table.add_column("Property", style="cyan", width=15)
+            table.add_column("Value")
+
+            for key, value in details.items():
+                if value and key != 'label':
+                    table.add_row(key, str(value)[:60])
+
+            console.print(table)
+
+            # Linked items
+            linked = result.get('linked', [])
+            if linked:
+                console.print(f"\n[cyan]Linked Items ({len(linked)}):[/cyan]")
+
+                for item in linked:
+                    direction = "<-" if item.get('direction') == 'incoming' else "->"
+                    rel = item.get('relationship') or ''
+                    item_details = item.get('details', {})
+                    label = item_details.get('label', '') or item_details.get('name', '') or item_details.get('title', '')
+
+                    console.print(f"  {direction} [{item.get('type')}:{item.get('id')}] {label[:50]}")
+                    if rel:
+                        console.print(f"     [dim]relationship: {rel}, strength: {item.get('strength', 1)}[/dim]")
+            else:
+                console.print("\n[dim]No linked items[/dim]")
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error getting context:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@graph_app.command("stats")
+def graph_stats(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Show graph statistics."""
+    db = get_db()
+
+    try:
+        stats = db.get_graph_stats()
+
+        if json_output:
+            console.print(json.dumps(stats, indent=2))
+        else:
+            # Entity counts
+            table = Table(title="Graph Statistics")
+            table.add_column("Entity Type", style="cyan")
+            table.add_column("Count", justify="right")
+
+            entities = stats.get('entities', {})
+            for entity_type, count in entities.items():
+                table.add_row(entity_type, str(count))
+
+            table.add_row("", "")
+            table.add_row("[bold]Total Links[/bold]", f"[bold]{stats.get('total_links', 0)}[/bold]")
+
+            console.print(table)
+
+            # Most connected
+            most_connected = stats.get('most_connected', [])
+            if most_connected:
+                console.print("\n[cyan]Most Connected Entities:[/cyan]")
+                for item in most_connected[:5]:
+                    console.print(f"  {item.get('type')}:{item.get('id')} - {item.get('name', '')} ({item.get('links', 0)} links)")
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error getting stats:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@graph_app.command("path")
+def graph_path(
+    from_type: str = typer.Argument(..., help="Source entity type"),
+    from_id: int = typer.Argument(..., help="Source entity ID"),
+    to_type: str = typer.Argument(..., help="Target entity type"),
+    to_id: int = typer.Argument(..., help="Target entity ID"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Find path between two entities."""
+    try:
+        try:
+            from .graph import get_vault_graph
+        except ImportError:
+            from graph import get_vault_graph
+
+        graph = get_vault_graph()
+        path = graph.find_path(from_type, from_id, to_type, to_id)
+
+        if path is None:
+            result = {"found": False, "path": None}
+            if json_output:
+                console.print(json.dumps(result, indent=2))
+            else:
+                console.print(f"[yellow]No path found[/yellow] between {from_type}:{from_id} and {to_type}:{to_id}")
+            return
+
+        if json_output:
+            result = {"found": True, "path": path, "length": len(path)}
+            console.print(json.dumps(result, indent=2))
+        else:
+            console.print(f"\n[cyan]Path ({len(path)} steps):[/cyan]\n")
+
+            for i, node in enumerate(path):
+                prefix = "  " if i == 0 else "  -> "
+                rel = f" ({node.get('relationship')})" if node.get('relationship') else ""
+                console.print(f"{prefix}[{node.get('type')}:{node.get('id')}] {node.get('label', '')}{rel}")
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error finding path:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@graph_app.command("sync-fk")
+def graph_sync_fk(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without making changes"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Populate entity_links from FK relationships in the schema."""
+    db = get_db()
+
+    try:
+        stats = db.populate_links_from_fk(dry_run=dry_run)
+
+        if json_output:
+            console.print(json.dumps(stats, indent=2))
+        else:
+            mode = "[yellow]DRY RUN[/yellow] - " if dry_run else ""
+            console.print(f"\n{mode}[cyan]FK Relationship Sync[/cyan]\n")
+
+            # Show per-relationship stats
+            table = Table(title="Relationships Processed")
+            table.add_column("Relationship", style="cyan")
+            table.add_column("Found", justify="right")
+            table.add_column("Created", justify="right", style="green")
+            table.add_column("Skipped", justify="right", style="yellow")
+
+            for rel_name, rel_stats in stats.get("relationships", {}).items():
+                table.add_row(
+                    rel_name,
+                    str(rel_stats.get("found", 0)),
+                    str(rel_stats.get("created", 0)),
+                    str(rel_stats.get("skipped", 0))
+                )
+
+            console.print(table)
+
+            # Summary
+            console.print(f"\n[bold]Total links created:[/bold] {stats.get('total_created', 0)}")
+            if stats.get("total_skipped", 0) > 0:
+                console.print(f"[yellow]Total skipped:[/yellow] {stats.get('total_skipped', 0)}")
+
+            # Errors
+            errors = stats.get("errors", [])
+            if errors:
+                console.print(f"\n[red]Errors ({len(errors)}):[/red]")
+                for err in errors[:10]:
+                    console.print(f"  - {err}")
+                if len(errors) > 10:
+                    console.print(f"  ... and {len(errors) - 10} more")
+
+            if dry_run:
+                console.print("\n[yellow]Run without --dry-run to create links[/yellow]")
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error syncing FK relationships:[/red] {e}")
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()
