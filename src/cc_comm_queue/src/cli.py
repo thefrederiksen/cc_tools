@@ -61,7 +61,7 @@ def get_config():
             class CommManager:
                 def __init__(self, d):
                     cm = d.get("comm_manager", {})
-                    self.queue_path = cm.get("queue_path", "D:/ReposFred/cc_comunication_manager/content")
+                    self.queue_path = cm.get("queue_path", "D:/ReposFred/cc_consult/tools/communication_manager/content")
                     self.default_persona = cm.get("default_persona", "personal")
                     self.default_created_by = cm.get("default_created_by", "claude_code")
                 def get_queue_path(self):
@@ -74,7 +74,7 @@ def get_config():
             class SimpleConfig:
                 pass
             class CommManager:
-                queue_path = "D:/ReposFred/cc_comunication_manager/content"
+                queue_path = "D:/ReposFred/cc_consult/tools/communication_manager/content"
                 default_persona = "personal"
                 default_created_by = "claude_code"
                 def get_queue_path(self):
