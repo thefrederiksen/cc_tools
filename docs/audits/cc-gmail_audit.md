@@ -1,8 +1,8 @@
-# cc_tool_audit: cc_gmail
+# cc_tool_audit: cc-gmail
 
 ## Summary
 
-- **Tool**: cc_gmail
+- **Tool**: cc-gmail
 - **API**: Google Gmail API v1
 - **Current Commands**: `auth`, `list`, `read`, `send`, `draft`, `drafts`, `reply`, `search`, `count`, `labels`, `delete`, `untrash`, `archive`, `archive-before`, `profile`, `stats`, `label-stats`, `label-create`, `move`, `accounts` (list/add/default/remove/status)
 - **API Coverage**: ~70% of common operations
@@ -12,7 +12,7 @@
 
 ## Implementation Status
 
-The cc_gmail tool is well-implemented with comprehensive coverage of common email operations. Key strengths:
+The cc-gmail tool is well-implemented with comprehensive coverage of common email operations. Key strengths:
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -380,22 +380,22 @@ def thread(
 |----------|--------|-------|
 | Clear purpose | OK | "Gmail CLI: read, send, search, and manage emails from the command line" |
 | What it does NOT do | Missing | Should clarify: no calendar, no contacts, no Google Workspace admin |
-| Descriptive name | OK | `cc_gmail` is unambiguous |
+| Descriptive name | OK | `cc-gmail` is unambiguous |
 | LLM use cases | Missing | Should document common LLM tasks |
 
 ### Recommendations
 
 1. Add "What It Does NOT Do" section to README:
-   - Does not manage Google Calendar (use `cc_gcal` if it existed)
+   - Does not manage Google Calendar (use `cc-gcal` if it existed)
    - Does not manage Google Contacts
    - Does not access Google Drive attachments directly
    - Does not provide admin/workspace management
 
 2. Add "LLM Use Cases" section:
-   - "How many unread emails?" -> `cc_gmail count -l INBOX --unread`
-   - "Archive all newsletters" -> `cc_gmail archive-before DATE --category promotions`
-   - "What's my inbox status?" -> `cc_gmail stats`
-   - "Send email to X about Y" -> `cc_gmail send -t X -s "Y" -b "..."`
+   - "How many unread emails?" -> `cc-gmail count -l INBOX --unread`
+   - "Archive all newsletters" -> `cc-gmail archive-before DATE --category promotions`
+   - "What's my inbox status?" -> `cc-gmail stats`
+   - "Send email to X about Y" -> `cc-gmail send -t X -s "Y" -b "..."`
 
 ---
 

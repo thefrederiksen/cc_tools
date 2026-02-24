@@ -1,8 +1,8 @@
-# cc_tool_audit: cc_youtube_info
+# cc_tool_audit: cc-youtube-info
 
 ## Summary
 
-- **Tool**: cc_youtube_info
+- **Tool**: cc-youtube-info
 - **APIs**: yt-dlp (video metadata) + youtube-transcript-api (transcripts)
 - **Current Commands**: `info`, `transcript`, `languages`, `chapters`
 - **API Coverage**: ~55% of available capabilities
@@ -172,8 +172,8 @@ This requires significant work:
 Consider implementing as a separate `batch` subcommand:
 
 ```bash
-cc_youtube_info batch transcript "PLAYLIST_URL" -o transcripts/
-cc_youtube_info batch info "PLAYLIST_URL" --json > playlist_info.json
+cc-youtube-info batch transcript "PLAYLIST_URL" -o transcripts/
+cc-youtube-info batch info "PLAYLIST_URL" --json > playlist_info.json
 ```
 
 ---
@@ -196,10 +196,10 @@ cc_youtube_info batch info "PLAYLIST_URL" --json > playlist_info.json
 |----------|--------|-------|
 | Clear purpose | OK | "Extract transcripts, metadata, and information from YouTube videos" |
 | What it does NOT do | OK | Explicitly lists: no uploads, no video downloads, no modifications |
-| Descriptive name | OK | `cc_youtube_info` - clearly indicates information extraction |
+| Descriptive name | OK | `cc-youtube-info` - clearly indicates information extraction |
 | LLM use cases | OK | Documented in README with specific examples |
 
-The documentation is comprehensive and well-structured after the recent rename from `cc_youtube`.
+The documentation is comprehensive and well-structured after the recent rename from `cc-youtube`.
 
 ---
 
@@ -209,7 +209,7 @@ The documentation is comprehensive and well-structured after the recent rename f
 
 2. **Transcript API is reliable** - The youtube-transcript-api handles most edge cases well. The formatters work correctly for SRT/VTT export.
 
-3. **Playlist support is valuable but complex** - Consider implementing as a separate command with progress indication, or a separate `cc_youtube_batch` tool.
+3. **Playlist support is valuable but complex** - Consider implementing as a separate command with progress indication, or a separate `cc-youtube_batch` tool.
 
 4. **Description often contains timestamps** - Many videos have manual chapter markers in the description. Could potentially parse these as fallback when `chapters` is empty.
 

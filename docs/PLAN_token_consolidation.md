@@ -129,8 +129,8 @@ Update `deploy.bat` to:
 1. Run migration script
 2. Verify tools work from command line:
    ```
-   cc_outlook profile
-   cc_gmail -a personal send -t test@test.com -s "Test" -b "Test"
+   cc-outlook profile
+   cc-gmail -a personal send -t test@test.com -s "Test" -b "Test"
    ```
 3. Restart cc_director service
 4. Approve an email in Communication Manager
@@ -200,8 +200,8 @@ Keep original locations as fallback in code:
 
 5. Test:
    ```cmd
-   cc_gmail list
-   cc_outlook list
+   cc-gmail list
+   cc-outlook list
    ```
 
 6. Test email dispatch:

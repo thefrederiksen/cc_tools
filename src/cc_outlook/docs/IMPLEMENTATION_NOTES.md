@@ -1,8 +1,8 @@
-# cc_outlook MSAL Device Code Flow Implementation
+# cc-outlook MSAL Device Code Flow Implementation
 
 ## Overview
 
-This document describes the authentication implementation for cc_outlook using MSAL (Microsoft Authentication Library) with Device Code Flow.
+This document describes the authentication implementation for cc-outlook using MSAL (Microsoft Authentication Library) with Device Code Flow.
 
 ---
 
@@ -206,13 +206,13 @@ Including them causes: `Configuration error: You cannot use any scope value that
 
 **Cause:** Code is valid ~15 minutes.
 
-**Fix:** Run `cc_outlook auth` again for fresh code.
+**Fix:** Run `cc-outlook auth` again for fresh code.
 
 ### Token expired after ~90 days
 
 **Cause:** Refresh token expired due to inactivity.
 
-**Fix:** `cc_outlook auth --force`
+**Fix:** `cc-outlook auth --force`
 
 ### "string indices must be integers" error
 

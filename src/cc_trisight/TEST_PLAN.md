@@ -1,4 +1,4 @@
-# TriSight & cc_click Test Plan
+# TriSight & cc-click Test Plan
 
 Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 
@@ -19,7 +19,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 
 ---
 
-## Part 1: cc_click Tests
+## Part 1: cc-click Tests
 
 ### Test 1.1: List Windows
 **Command:**

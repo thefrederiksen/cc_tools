@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug in cc_tools
+about: Report a bug in cc-tools
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -11,12 +11,12 @@ A clear description of what the bug is.
 
 ## Tool
 Which tool is affected?
-- [ ] cc_markdown
-- [ ] cc_transcribe
-- [ ] cc_image
-- [ ] cc_voice
-- [ ] cc_whisper
-- [ ] cc_video
+- [ ] cc-markdown
+- [ ] cc-transcribe
+- [ ] cc-image
+- [ ] cc-voice
+- [ ] cc-whisper
+- [ ] cc-video
 
 ## Steps to Reproduce
 1. Run command '...'

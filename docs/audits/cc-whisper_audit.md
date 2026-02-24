@@ -1,8 +1,8 @@
-# cc_tool_audit: cc_whisper
+# cc_tool_audit: cc-whisper
 
 ## Summary
 
-- **Tool**: cc_whisper
+- **Tool**: cc-whisper
 - **API**: OpenAI Whisper API (audio/transcriptions, audio/translations)
 - **Current Commands**: `transcribe`, `translate`
 - **API Coverage**: ~80% of audio transcription capabilities
@@ -12,7 +12,7 @@
 
 ## Implementation Status
 
-The cc_whisper tool provides basic transcription functionality but misses several valuable API features.
+The cc-whisper tool provides basic transcription functionality but misses several valuable API features.
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -319,9 +319,9 @@ Requires chunking_strategy parameter for audio > 30 seconds.
    - 25MB file size limit from OpenAI API
 
 2. Add "LLM Use Cases" section:
-   - "Transcribe this audio file" -> `cc_whisper audio.mp3`
-   - "Transcribe with timestamps" -> `cc_whisper audio.mp3 --timestamps`
-   - "Transcribe this Spanish audio" -> `cc_whisper audio.mp3 --lang es`
+   - "Transcribe this audio file" -> `cc-whisper audio.mp3`
+   - "Transcribe with timestamps" -> `cc-whisper audio.mp3 --timestamps`
+   - "Transcribe this Spanish audio" -> `cc-whisper audio.mp3 --lang es`
 
 ---
 

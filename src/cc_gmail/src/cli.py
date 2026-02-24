@@ -128,7 +128,7 @@ def handle_api_error(error: Exception, account: str) -> None:
     if "invalid_grant" in error_str or "Token has been expired or revoked" in error_str:
         console.print("[red]Error:[/red] Your authentication token has expired or been revoked.")
         console.print("\n[yellow]To fix this:[/yellow]")
-        console.print(f"  cc_gmail --account {account} auth --force")
+        console.print(f"  cc-gmail --account {account} auth --force")
         return
 
     # Invalid credentials file
@@ -227,7 +227,7 @@ def accounts_list() -> None:
     if not accts:
         console.print("[yellow]No accounts configured.[/yellow]")
         console.print("\nTo add an account:")
-        console.print("  cc_gmail accounts add <name>")
+        console.print("  cc-gmail accounts add <name>")
         console.print(f"\nSee README for setup: {get_readme_path()}")
         return
 
@@ -263,7 +263,7 @@ def accounts_add(
 
     if creds_path.exists():
         console.print(f"[yellow]Credentials already exist for '{name}'[/yellow]")
-        console.print("Run 'cc_gmail auth' to re-authenticate.")
+        console.print("Run 'cc-gmail auth' to re-authenticate.")
     else:
         console.print("[yellow]OAuth credentials needed.[/yellow]")
         console.print()
@@ -289,7 +289,7 @@ def accounts_add(
         console.print(f"   [green]{creds_path}[/green]")
         console.print()
         console.print("6. Run authentication:")
-        console.print(f"   cc_gmail --account {name} auth")
+        console.print(f"   cc-gmail --account {name} auth")
 
     if set_as_default or not get_default_account():
         set_default_account(name)
@@ -309,7 +309,7 @@ def accounts_default(
         if account_names:
             console.print(f"Available accounts: {', '.join(account_names)}")
         else:
-            console.print("No accounts configured. Run 'cc_gmail accounts add <name>' first.")
+            console.print("No accounts configured. Run 'cc-gmail accounts add <name>' first.")
         raise typer.Exit(1)
 
     set_default_account(name)
@@ -401,7 +401,7 @@ def auth(
     if revoke:
         if revoke_token(acct):
             console.print(f"[green]Token revoked for '{acct}'.[/green]")
-            console.print("Run 'cc_gmail auth' to re-authenticate.")
+            console.print("Run 'cc-gmail auth' to re-authenticate.")
         else:
             console.print("[yellow]No token to revoke.[/yellow]")
         return
@@ -409,7 +409,7 @@ def auth(
     if not credentials_exist(acct):
         console.print(f"[red]Error:[/red] OAuth credentials not found for account '{acct}'")
         console.print(f"\nExpected location: {get_credentials_path(acct)}")
-        console.print(f"\nRun 'cc_gmail accounts add {acct}' for setup instructions.")
+        console.print(f"\nRun 'cc-gmail accounts add {acct}' for setup instructions.")
         console.print(f"Or see README: {get_readme_path()}")
         raise typer.Exit(1)
 

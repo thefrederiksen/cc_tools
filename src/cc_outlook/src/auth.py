@@ -433,12 +433,12 @@ def resolve_account(account_name: Optional[str] = None) -> str:
     if account_name:
         profiles = _load_profiles()
         if account_name not in profiles.get('profiles', {}):
-            raise ValueError(f"Account '{account_name}' not found. Run 'cc_outlook accounts list' to see available accounts.")
+            raise ValueError(f"Account '{account_name}' not found. Run 'cc-outlook accounts list' to see available accounts.")
         return account_name
 
     default = get_default_account()
     if not default:
-        raise ValueError("No default account set. Run 'cc_outlook accounts add <email> --client-id <id>' to add an account.")
+        raise ValueError("No default account set. Run 'cc-outlook accounts add <email> --client-id <id>' to add an account.")
 
     return default
 

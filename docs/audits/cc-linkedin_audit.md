@@ -1,9 +1,9 @@
-# cc_tool_audit: cc_linkedin
+# cc_tool_audit: cc-linkedin
 
 ## Summary
 
-- **Tool**: cc_linkedin
-- **Type**: Browser automation (via cc_browser daemon)
+- **Tool**: cc-linkedin
+- **Type**: Browser automation (via cc-browser daemon)
 - **Current Commands**: 24 commands
 - **LinkedIn Feature Coverage**: ~60% of common user actions
 - **Quick Wins Implemented**: 8 of 8 (all trivial-small effort items done)
@@ -242,7 +242,7 @@ Profile extraction ignores:
 |----------|--------|-------|
 | Clear purpose | OK | "LinkedIn interactions via browser automation" |
 | What it does NOT do | Missing | Should clarify: no job applications, no data export, no analytics |
-| Descriptive name | OK | cc_linkedin is clear |
+| Descriptive name | OK | cc-linkedin is clear |
 | LLM use cases | OK | Examples provided in README |
 
 ### Documentation Recommendations

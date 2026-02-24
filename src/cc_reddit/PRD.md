@@ -1,8 +1,8 @@
-# cc_reddit - Product Requirements Document
+# cc-reddit - Product Requirements Document
 
 ## Executive Summary
 
-cc_reddit is a command-line tool for automating Reddit interactions through browser automation, enabling users to perform all Reddit actions as if they were a real user. Part of the cc_tools suite.
+cc-reddit is a command-line tool for automating Reddit interactions through browser automation, enabling users to perform all Reddit actions as if they were a real user. Part of the cc-tools suite.
 
 ## The Problem
 
@@ -15,7 +15,7 @@ Users who want to automate Reddit interactions face several challenges:
 
 ## The Solution
 
-cc_reddit uses browser automation (via cc_browser) to interact with Reddit exactly like a human user would:
+cc-reddit uses browser automation (via cc-browser) to interact with Reddit exactly like a human user would:
 
 - No API keys required
 - Full feature access (everything visible in the browser is accessible)
@@ -153,7 +153,7 @@ Chrome (logged into Reddit)
 ## Technical Decisions
 
 ### Language: Python
-- Consistent with other cc_tools (cc_gmail, cc_markdown)
+- Consistent with other cc-tools (cc-gmail, cc-markdown)
 - Rich CLI support via Typer
 - Easy HTTP client (requests/httpx) for cc_browser communication
 
@@ -164,13 +164,13 @@ Chrome (logged into Reddit)
 - `pydantic` - Data validation and models
 
 ### Browser Automation
-- Uses cc_browser daemon (already built)
+- Uses cc-browser daemon (already built)
 - Communicates via HTTP API on localhost:9280
 - No direct Playwright dependency (cc_browser handles it)
 
 ### Build
 - PyInstaller for standalone executable
-- Same pattern as cc_gmail, cc_markdown
+- Same pattern as cc-gmail, cc-markdown
 
 ## CLI Interface Design
 
@@ -187,112 +187,112 @@ Chrome (logged into Reddit)
 #### Authentication
 ```bash
 # Check login status
-cc_reddit status
+cc-reddit status
 
 # Show current username
-cc_reddit whoami
+cc-reddit whoami
 ```
 
 #### Reading
 ```bash
 # View subreddit feed
-cc_reddit feed [SUBREDDIT] [--sort hot|new|top|rising] [--limit 25]
+cc-reddit feed [SUBREDDIT] [--sort hot|new|top|rising] [--limit 25]
 
 # View specific post
-cc_reddit post [POST_URL_OR_ID]
+cc-reddit post [POST_URL_OR_ID]
 
 # View comments on a post
-cc_reddit comments [POST_URL_OR_ID] [--sort best|top|new|controversial]
+cc-reddit comments [POST_URL_OR_ID] [--sort best|top|new|controversial]
 
 # Search
-cc_reddit search [QUERY] [--subreddit SUBREDDIT] [--type posts|comments|subreddits|users]
+cc-reddit search [QUERY] [--subreddit SUBREDDIT] [--type posts|comments|subreddits|users]
 
 # View user profile
-cc_reddit user [USERNAME] [--posts] [--comments]
+cc-reddit user [USERNAME] [--posts] [--comments]
 
 # View inbox
-cc_reddit inbox [--unread]
+cc-reddit inbox [--unread]
 
 # View saved items
-cc_reddit saved
+cc-reddit saved
 ```
 
 #### Writing
 ```bash
 # Create text post
-cc_reddit post create [SUBREDDIT] --title "Title" --body "Body text"
+cc-reddit post create [SUBREDDIT] --title "Title" --body "Body text"
 
 # Create link post
-cc_reddit post create [SUBREDDIT] --title "Title" --url "https://..."
+cc-reddit post create [SUBREDDIT] --title "Title" --url "https://..."
 
 # Create image post
-cc_reddit post create [SUBREDDIT] --title "Title" --image /path/to/image.png
+cc-reddit post create [SUBREDDIT] --title "Title" --image /path/to/image.png
 
 # Comment on post
-cc_reddit comment [POST_URL_OR_ID] --text "Your comment"
+cc-reddit comment [POST_URL_OR_ID] --text "Your comment"
 
 # Reply to comment
-cc_reddit reply [COMMENT_URL_OR_ID] --text "Your reply"
+cc-reddit reply [COMMENT_URL_OR_ID] --text "Your reply"
 
 # Edit post/comment
-cc_reddit edit [URL_OR_ID] --text "Updated text"
+cc-reddit edit [URL_OR_ID] --text "Updated text"
 
 # Delete post/comment
-cc_reddit delete [URL_OR_ID]
+cc-reddit delete [URL_OR_ID]
 ```
 
 #### Voting
 ```bash
 # Upvote
-cc_reddit upvote [URL_OR_ID]
+cc-reddit upvote [URL_OR_ID]
 
 # Downvote
-cc_reddit downvote [URL_OR_ID]
+cc-reddit downvote [URL_OR_ID]
 
 # Save
-cc_reddit save [URL_OR_ID]
+cc-reddit save [URL_OR_ID]
 
 # Unsave
-cc_reddit unsave [URL_OR_ID]
+cc-reddit unsave [URL_OR_ID]
 ```
 
 #### Subreddits
 ```bash
 # Join subreddit
-cc_reddit join [SUBREDDIT]
+cc-reddit join [SUBREDDIT]
 
 # Leave subreddit
-cc_reddit leave [SUBREDDIT]
+cc-reddit leave [SUBREDDIT]
 
 # List joined subreddits
-cc_reddit subscriptions
+cc-reddit subscriptions
 
 # Get subreddit info
-cc_reddit subreddit [NAME] [--rules]
+cc-reddit subreddit [NAME] [--rules]
 ```
 
 #### Messaging
 ```bash
 # Send message
-cc_reddit message [USERNAME] --subject "Subject" --body "Message body"
+cc-reddit message [USERNAME] --subject "Subject" --body "Message body"
 
 # Reply to message
-cc_reddit message reply [MESSAGE_ID] --body "Reply text"
+cc-reddit message reply [MESSAGE_ID] --body "Reply text"
 ```
 
 #### Moderation
 ```bash
 # Approve item
-cc_reddit mod approve [URL_OR_ID]
+cc-reddit mod approve [URL_OR_ID]
 
 # Remove item
-cc_reddit mod remove [URL_OR_ID] [--reason "Reason"]
+cc-reddit mod remove [URL_OR_ID] [--reason "Reason"]
 
 # Ban user
-cc_reddit mod ban [SUBREDDIT] [USERNAME] [--days 30] [--reason "Reason"]
+cc-reddit mod ban [SUBREDDIT] [USERNAME] [--days 30] [--reason "Reason"]
 
 # View modqueue
-cc_reddit mod queue [SUBREDDIT]
+cc-reddit mod queue [SUBREDDIT]
 ```
 
 ## Implementation Phases

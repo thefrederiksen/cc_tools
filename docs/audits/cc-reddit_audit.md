@@ -1,9 +1,9 @@
-# cc_tool_audit: cc_reddit
+# cc_tool_audit: cc-reddit
 
 ## Summary
 
-- **Tool**: cc_reddit
-- **Underlying System**: cc_browser (Playwright-based browser automation) -> Reddit Web UI
+- **Tool**: cc-reddit
+- **Underlying System**: cc-browser (Playwright-based browser automation) -> Reddit Web UI
 - **Current Commands**: 14 (status, whoami, me, goto, feed, post, comment, upvote, downvote, join, leave, snapshot, screenshot)
 - **PRD Coverage**: ~40% of P0/P1 requirements implemented
 - **Quick Wins Found**: 8
@@ -235,7 +235,7 @@ def user(
 
 ## Browser Client Capabilities Not Used
 
-The `browser_client.py` wraps cc_browser but several capabilities are unused:
+The `browser_client.py` wraps cc-browser but several capabilities are unused:
 
 | Capability | Used | Potential Use |
 |------------|------|---------------|
@@ -302,7 +302,7 @@ def output_posts(posts: list[PostSummary]):
 |----------|--------|-------|
 | Clear purpose | OK | README explains browser automation approach |
 | What it does NOT do | Missing | Should clarify: no API, requires login, no chat |
-| Descriptive name | OK | `cc_reddit` is clear |
+| Descriptive name | OK | `cc-reddit` is clear |
 | LLM use cases | Missing | Should add examples like "Ask Claude to post" |
 
 ### Recommendations
@@ -317,13 +317,13 @@ def output_posts(posts: list[PostSummary]):
    ## Using with Claude Code
 
    "Check my Reddit inbox"
-   -> cc_reddit inbox --unread
+   -> cc-reddit inbox --unread
 
    "Post this link to r/programming"
-   -> cc_reddit create programming --title "..." --url "..."
+   -> cc-reddit create programming --title "..." --url "..."
 
    "What are the hot posts in r/python?"
-   -> cc_reddit feed python --sort hot --limit 5
+   -> cc-reddit feed python --sort hot --limit 5
    ```
 
 ---
@@ -374,7 +374,7 @@ Based on this audit, the PRD implementation phases should be updated:
 ### Phase 1: Foundation (MVP) - MOSTLY COMPLETE
 - [x] Directory structure
 - [x] CLI scaffolding with Typer
-- [x] cc_browser HTTP client wrapper
+- [x] cc-browser HTTP client wrapper
 - [x] Reddit page detection and navigation
 - [x] `status` command
 - [x] `whoami` command

@@ -1,4 +1,4 @@
-# cc_vault Migration Plan
+# cc-vault Migration Plan
 
 ## Overview
 

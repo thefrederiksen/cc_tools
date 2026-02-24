@@ -1,8 +1,8 @@
-# cc_outlook Authentication Guide
+# cc-outlook Authentication Guide
 
 ## Overview
 
-cc_outlook uses **MSAL Device Code Flow** for authentication with Microsoft 365 / Outlook accounts. This is Microsoft's recommended authentication method for CLI applications.
+cc-outlook uses **MSAL Device Code Flow** for authentication with Microsoft 365 / Outlook accounts. This is Microsoft's recommended authentication method for CLI applications.
 
 ## Why Device Code Flow?
 
@@ -16,7 +16,7 @@ Device Code Flow solves all these by separating browser authentication from the 
 
 ## How It Works
 
-1. Run `cc_outlook auth`
+1. Run `cc-outlook auth`
 2. CLI displays a code and URL
 3. Open https://microsoft.com/devicelogin in any browser
 4. Enter the code
@@ -73,13 +73,13 @@ These are delegated permissions and don't require admin consent.
 ### Step 4: Add Account to cc_outlook
 
 ```bash
-cc_outlook accounts add your.email@domain.com --client-id YOUR_CLIENT_ID
+cc-outlook accounts add your.email@domain.com --client-id YOUR_CLIENT_ID
 ```
 
 ### Step 5: Authenticate
 
 ```bash
-cc_outlook auth
+cc-outlook auth
 ```
 
 You'll see:
@@ -106,29 +106,29 @@ and enter the code XXXXXXXXX to authenticate.
 ### Authentication
 
 ```bash
-cc_outlook auth                # Authenticate (uses cached token if valid)
-cc_outlook auth --force        # Force re-authentication
-cc_outlook profile             # Show current account info
-cc_outlook accounts list       # List all configured accounts
+cc-outlook auth                # Authenticate (uses cached token if valid)
+cc-outlook auth --force        # Force re-authentication
+cc-outlook profile             # Show current account info
+cc-outlook accounts list       # List all configured accounts
 ```
 
 ### Email
 
 ```bash
-cc_outlook list                # List inbox (default 10)
-cc_outlook list -n 25          # List 25 messages
-cc_outlook list --unread       # Unread only
-cc_outlook read MESSAGE_ID     # Read specific email
-cc_outlook search "keyword"    # Search emails
-cc_outlook send -t "to@email.com" -s "Subject" -b "Body"
-cc_outlook draft -t "to@email.com" -s "Subject" -b "Body"
+cc-outlook list                # List inbox (default 10)
+cc-outlook list -n 25          # List 25 messages
+cc-outlook list --unread       # Unread only
+cc-outlook read MESSAGE_ID     # Read specific email
+cc-outlook search "keyword"    # Search emails
+cc-outlook send -t "to@email.com" -s "Subject" -b "Body"
+cc-outlook draft -t "to@email.com" -s "Subject" -b "Body"
 ```
 
 ### Calendar
 
 ```bash
-cc_outlook calendar events           # Next 7 days
-cc_outlook calendar events -d 14     # Next 14 days
+cc-outlook calendar events           # Next 7 days
+cc-outlook calendar events -d 14     # Next 14 days
 ```
 
 ---
@@ -157,13 +157,13 @@ Token files contain:
 
 Codes are valid for ~15 minutes.
 
-**Fix:** Run `cc_outlook auth` again for a fresh code.
+**Fix:** Run `cc-outlook auth` again for a fresh code.
 
 ### "Token is expired" or "Oauth Token is expired"
 
 Refresh token expired (90+ days without use).
 
-**Fix:** `cc_outlook auth --force`
+**Fix:** `cc-outlook auth --force`
 
 ### MFA prompt appears
 
@@ -175,7 +175,7 @@ This is normal. Complete MFA in the browser. The CLI detects completion automati
 
 ### MSAL Integration
 
-cc_outlook uses Microsoft's MSAL (Microsoft Authentication Library):
+cc-outlook uses Microsoft's MSAL (Microsoft Authentication Library):
 
 - `acquire_token_silent()` handles automatic token refresh
 - `SerializableTokenCache` persists tokens between sessions

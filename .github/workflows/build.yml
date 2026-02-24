@@ -37,10 +37,10 @@ jobs:
         run: |
           cd src/cc_markdown
           pip install pyinstaller
-          pyinstaller --onefile --name cc_markdown src/__main__.py
+          pyinstaller --onefile --name cc-markdown src/__main__.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cc_markdown-${{ matrix.os }}
-          path: src/cc_markdown/dist/cc_markdown*
+          name: cc-markdown-${{ matrix.os }}
+          path: src/cc_markdown/dist/cc-markdown*

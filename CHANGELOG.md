@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial repository structure
-- cc_markdown planning and documentation
+- cc-markdown planning and documentation
 - GitHub Actions CI/CD workflows
 - Claude Code plugin configuration
 - Installation scripts for Windows and Unix
 
 ### Tools in Development
-- cc_markdown - Markdown to PDF/Word/HTML
+- cc-markdown - Markdown to PDF/Word/HTML
 
 ---
 
@@ -27,7 +27,7 @@ Future releases will be documented here:
 ## [1.0.0] - YYYY-MM-DD
 
 ### Added
-- cc_markdown v1.0.0
+- cc-markdown v1.0.0
   - PDF output with Playwright
   - Word output with python-docx
   - HTML output

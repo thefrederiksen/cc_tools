@@ -1,4 +1,4 @@
-# cc_outlook API Audit Report
+# cc-outlook API Audit Report
 
 **Date:** 2026-02-17
 **Auditor:** Claude Opus 4.5
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-cc_outlook provides a solid foundation for Outlook email and calendar operations using the O365 Python library, which wraps the Microsoft Graph API. The implementation covers basic email operations (list, read, send, search, delete, move) and calendar functionality (list events, create events). However, the Microsoft Graph API offers significantly more capabilities that could enhance LLM-driven workflows.
+cc-outlook provides a solid foundation for Outlook email and calendar operations using the O365 Python library, which wraps the Microsoft Graph API. The implementation covers basic email operations (list, read, send, search, delete, move) and calendar functionality (list events, create events). However, the Microsoft Graph API offers significantly more capabilities that could enhance LLM-driven workflows.
 
 **Current Coverage:** ~35% of available API capabilities
 **Quick Wins Identified:** 18 high-value features
@@ -337,7 +337,7 @@ SCOPES = [
 
 ## Conclusion
 
-cc_outlook has a solid foundation but utilizes only ~35% of available Microsoft Graph API capabilities. The identified quick wins would significantly enhance LLM-driven email/calendar workflows:
+cc-outlook has a solid foundation but utilizes only ~35% of available Microsoft Graph API capabilities. The identified quick wins would significantly enhance LLM-driven email/calendar workflows:
 
 1. **Reply/Forward** - Essential for email conversations
 2. **Attachments** - Critical for document workflows

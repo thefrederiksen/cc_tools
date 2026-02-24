@@ -11,12 +11,12 @@ Fixes #(issue number)
 - [ ] Documentation update
 
 ## Tool Affected
-- [ ] cc_markdown
-- [ ] cc_transcribe
-- [ ] cc_image
-- [ ] cc_voice
-- [ ] cc_whisper
-- [ ] cc_video
+- [ ] cc-markdown
+- [ ] cc-transcribe
+- [ ] cc-image
+- [ ] cc-voice
+- [ ] cc-whisper
+- [ ] cc-video
 - [ ] Repository/CI
 
 ## Checklist

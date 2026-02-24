@@ -96,7 +96,7 @@ def get_client(account: Optional[str] = None) -> OutlookClient:
     profile = get_profile(acct)
     if not profile:
         console.print(f"[red]Error:[/red] Account '{acct}' not configured")
-        console.print("\nRun 'cc_outlook accounts add <email> --client-id <id>' to add an account.")
+        console.print("\nRun 'cc-outlook accounts add <email> --client-id <id>' to add an account.")
         raise typer.Exit(1)
 
     try:
@@ -104,7 +104,7 @@ def get_client(account: Optional[str] = None) -> OutlookClient:
         return OutlookClient(auth_account)
     except ValueError as e:
         console.print(f"[red]Error:[/red] Configuration error: {e}")
-        console.print("\nTry running: cc_outlook auth --force")
+        console.print("\nTry running: cc-outlook auth --force")
         raise typer.Exit(1)
     except (ConnectionError, OSError) as e:
         logger.error(f"Network error during authentication: {e}")
@@ -114,7 +114,7 @@ def get_client(account: Optional[str] = None) -> OutlookClient:
     except RuntimeError as e:
         logger.error(f"Authentication failed: {e}")
         console.print(f"[red]Error:[/red] Authentication failed: {e}")
-        console.print("\nTry running: cc_outlook auth --force")
+        console.print("\nTry running: cc-outlook auth --force")
         raise typer.Exit(1)
 
 
@@ -156,7 +156,7 @@ def accounts_list() -> None:
     if not accts:
         console.print("[yellow]No accounts configured.[/yellow]")
         console.print("\nTo add an account:")
-        console.print("  cc_outlook accounts add <email> --client-id <your-azure-client-id>")
+        console.print("  cc-outlook accounts add <email> --client-id <your-azure-client-id>")
         console.print("\nSee docs/AUTHENTICATION.md for Azure setup instructions.")
         return
 
@@ -199,10 +199,10 @@ def accounts_add(
 
     console.print()
     console.print("Next step: Run authentication:")
-    console.print(f"  cc_outlook auth")
+    console.print(f"  cc-outlook auth")
     console.print()
     console.print("[cyan]Device Code Flow Authentication:[/cyan]")
-    console.print("  1. Run 'cc_outlook auth'")
+    console.print("  1. Run 'cc-outlook auth'")
     console.print("  2. A code will be displayed")
     console.print("  3. Go to https://microsoft.com/devicelogin")
     console.print("  4. Enter the code and sign in")
@@ -222,7 +222,7 @@ def accounts_default(
         if account_names:
             console.print(f"Available accounts: {', '.join(account_names)}")
         else:
-            console.print("No accounts configured. Run 'cc_outlook accounts add' first.")
+            console.print("No accounts configured. Run 'cc-outlook accounts add' first.")
         raise typer.Exit(1)
 
     set_default_account(name)
@@ -273,7 +273,7 @@ def auth(
     if revoke:
         if revoke_token(acct):
             console.print(f"[green]Token revoked for '{acct}'.[/green]")
-            console.print("Run 'cc_outlook auth' to re-authenticate.")
+            console.print("Run 'cc-outlook auth' to re-authenticate.")
         else:
             console.print("[yellow]No token to revoke.[/yellow]")
         return
@@ -281,7 +281,7 @@ def auth(
     profile = get_profile(acct)
     if not profile:
         console.print(f"[red]Error:[/red] Account '{acct}' not configured")
-        console.print("\nRun 'cc_outlook accounts add <email> --client-id <id>' first.")
+        console.print("\nRun 'cc-outlook accounts add <email> --client-id <id>' first.")
         raise typer.Exit(1)
 
     try:

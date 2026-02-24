@@ -1,8 +1,8 @@
-# cc_tool_audit: cc_crawl4ai
+# cc_tool_audit: cc-crawl4ai
 
 ## Summary
 
-- **Tool**: cc_crawl4ai
+- **Tool**: cc-crawl4ai
 - **API**: crawl4ai library (v0.8.x)
 - **Current Commands**: `crawl`, `batch`, `session` (list, create, delete, rename, info)
 - **API Coverage**: ~40% of available capabilities
@@ -461,7 +461,7 @@ The current implementation works, but the native arun_many() provides:
 |----------|--------|-------|
 | Clear purpose | OK | "AI-ready web crawler that extracts clean markdown" |
 | What it does NOT do | Missing | Should clarify: not a sitemap crawler, not for mass scraping |
-| Descriptive name | OK | `cc_crawl4ai` - clearly indicates crawl4ai wrapper |
+| Descriptive name | OK | `cc-crawl4ai` - clearly indicates crawl4ai wrapper |
 | LLM use cases | OK | Examples show typical LLM workflows |
 | **BUG documentation** | FAIL | --stealth and --timeout are documented but don't work |
 

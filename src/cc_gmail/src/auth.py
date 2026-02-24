@@ -272,7 +272,7 @@ def resolve_account(account: Optional[str]) -> str:
         raise ValueError(
             "No accounts configured.\n\n"
             "To add an account:\n"
-            "  1. Run: cc_gmail accounts add <name>\n"
+            "  1. Run: cc-gmail accounts add <name>\n"
             "  2. Follow the setup instructions\n\n"
             f"See README for details: {get_readme_path()}"
         )
@@ -280,7 +280,7 @@ def resolve_account(account: Optional[str]) -> str:
     raise ValueError(
         "Multiple accounts configured but no default set.\n\n"
         "Either:\n"
-        "  - Specify an account: cc_gmail --account <name> <command>\n"
-        "  - Set a default: cc_gmail accounts default <name>\n\n"
+        "  - Specify an account: cc-gmail --account <name> <command>\n"
+        "  - Set a default: cc-gmail accounts default <name>\n\n"
         f"Available accounts: {', '.join(a['name'] for a in accounts)}"
     )
