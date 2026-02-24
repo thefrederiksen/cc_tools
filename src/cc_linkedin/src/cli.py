@@ -472,6 +472,202 @@ def feed(
 
 
 @app.command()
+def create(
+    content: str = typer.Argument(..., help="Post content text"),
+    image: Optional[str] = typer.Option(None, "--image", "-i", help="Path to image file to attach"),
+):
+    """Create a new LinkedIn post."""
+    try:
+        client = get_client()
+
+        # Navigate to LinkedIn home
+        client.navigate(LinkedInURLs.home())
+        time.sleep(3)
+
+        # Get snapshot to find "Start a post" button
+        snapshot = client.snapshot()
+        snapshot_text = snapshot.get("snapshot", "")
+
+        if config.verbose:
+            console.print(snapshot_text)
+
+        # Find the "Start a post" button or text input area
+        start_post_ref = find_element_ref(snapshot_text, ["start a post", "share", "what's on your mind"], "button")
+
+        if not start_post_ref:
+            # Try finding via textbox
+            start_post_ref = find_element_ref(snapshot_text, ["start a post", "share an update"])
+
+        if not start_post_ref:
+            error("Could not find 'Start a post' button")
+            if config.verbose:
+                console.print("Snapshot:")
+                console.print(snapshot_text)
+            raise typer.Exit(1)
+
+        client.click(start_post_ref)
+        time.sleep(2)
+
+        # Get new snapshot to find the post editor
+        snapshot = client.snapshot()
+        snapshot_text = snapshot.get("snapshot", "")
+
+        if config.verbose:
+            console.print("After click snapshot:")
+            console.print(snapshot_text)
+
+        # Find the text editor/input area
+        editor_ref = find_element_ref(snapshot_text, ["textbox", "editor", "contenteditable", "what do you want to talk about"])
+
+        if not editor_ref:
+            # Try alternative patterns
+            lines = snapshot_text.split('\n')
+            for line in lines:
+                if 'textbox' in line.lower() or 'editor' in line.lower():
+                    match = re.search(r'\[ref=(\w+)\]', line)
+                    if match:
+                        editor_ref = match.group(1)
+                        break
+
+        if not editor_ref:
+            error("Could not find post editor")
+            raise typer.Exit(1)
+
+        # Click the editor and type content
+        client.click(editor_ref)
+        time.sleep(0.5)
+        client.type(editor_ref, content)
+        time.sleep(1)
+
+        # If image provided, attach it
+        if image:
+            _attach_image_to_post(client, image)
+
+        # Find and click the Post button
+        time.sleep(1)
+        snapshot = client.snapshot()
+        snapshot_text = snapshot.get("snapshot", "")
+
+        post_ref = None
+        lines = snapshot_text.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            # Look for Post button (not repost, not "post" in other contexts)
+            if 'button' in line_lower and 'post' in line_lower:
+                # Exclude repost, comment post
+                if 'repost' not in line_lower and 'comment' not in line_lower:
+                    match = re.search(r'\[ref=(\w+)\]', line)
+                    if match:
+                        post_ref = match.group(1)
+                        break
+
+        if not post_ref:
+            error("Could not find Post button")
+            raise typer.Exit(1)
+
+        client.click(post_ref)
+        time.sleep(3)
+
+        success("Post created successfully")
+
+        # Try to get the post URL
+        info = client.info()
+        current_url = info.get("url", "")
+        if "linkedin.com" in current_url:
+            console.print(f"Current page: {current_url}")
+
+    except BrowserError as e:
+        error(str(e))
+        raise typer.Exit(1)
+
+
+def _attach_image_to_post(client: BrowserClient, image_path: str) -> None:
+    """Attach an image to the post being created."""
+    from pathlib import Path
+
+    image_file = Path(image_path)
+    if not image_file.exists():
+        warn(f"Image file not found: {image_path}")
+        return
+
+    # Get snapshot to find media/image button
+    snapshot = client.snapshot()
+    snapshot_text = snapshot.get("snapshot", "")
+
+    # Look for media/photo/image button
+    media_ref = find_element_ref(snapshot_text, ["media", "photo", "image", "add media", "add a photo"], "button")
+
+    if not media_ref:
+        # Try finding via icon or aria-label
+        lines = snapshot_text.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            if ('photo' in line_lower or 'image' in line_lower or 'media' in line_lower) and 'button' in line_lower:
+                match = re.search(r'\[ref=(\w+)\]', line)
+                if match:
+                    media_ref = match.group(1)
+                    break
+
+    if media_ref:
+        client.click(media_ref)
+        time.sleep(1)
+
+        # Get snapshot to find file input
+        snapshot = client.snapshot()
+        snapshot_text = snapshot.get("snapshot", "")
+
+        # Find file input element ref
+        file_input_ref = None
+        lines = snapshot_text.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            if 'file' in line_lower and ('input' in line_lower or 'upload' in line_lower):
+                match = re.search(r'\[ref=(\w+)\]', line)
+                if match:
+                    file_input_ref = match.group(1)
+                    break
+
+        if file_input_ref:
+            # Use the browser client's upload method
+            try:
+                client.upload(file_input_ref, str(image_file.absolute()))
+                time.sleep(2)
+                console.print(f"[dim]Image attached: {image_file.name}[/dim]")
+            except Exception as e:
+                warn(f"Could not attach image: {e}")
+        else:
+            # Try using JavaScript to find and trigger the file input
+            js_find_input = """
+            (() => {
+                const fileInputs = document.querySelectorAll('input[type="file"]');
+                if (fileInputs.length > 0) {
+                    // Return info about first file input
+                    const input = fileInputs[0];
+                    return JSON.stringify({
+                        found: true,
+                        id: input.id || '',
+                        name: input.name || '',
+                        accept: input.accept || ''
+                    });
+                }
+                return JSON.stringify({ found: false });
+            })()
+            """
+
+            result = client.evaluate(js_find_input)
+            input_info = json.loads(result.get("result", "{}"))
+
+            if input_info.get("found"):
+                console.print(f"[yellow]File input found but cannot auto-upload.[/yellow]")
+                console.print(f"[yellow]Please manually select: {image_file.absolute()}[/yellow]")
+                time.sleep(5)  # Give user time to manually select
+            else:
+                warn("Could not find file input for image upload")
+    else:
+        warn("Could not find media button to attach image")
+
+
+@app.command()
 def post(
     url: str = typer.Argument(..., help="Post URL or activity ID"),
 ):
