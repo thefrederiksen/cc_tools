@@ -1,4 +1,4 @@
-"""Entry point for cc_markdown CLI."""
+"""Entry point for cc-markdown CLI."""
 
 from .cli import app
 

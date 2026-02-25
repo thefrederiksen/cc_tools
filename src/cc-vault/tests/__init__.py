@@ -1,1 +1,1 @@
-"""Tests for cc_vault."""
+"""Tests for cc-vault."""

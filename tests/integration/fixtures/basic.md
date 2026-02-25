@@ -1,6 +1,6 @@
 # Basic Markdown Test
 
-This is a basic markdown document for testing cc_markdown.
+This is a basic markdown document for testing cc-markdown.
 
 ## Features Tested
 

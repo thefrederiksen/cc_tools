@@ -1,25 +1,25 @@
-"""Database operations for cc_photos - uses vault database.
+"""Database operations for cc-photos - uses vault database.
 
 This module wraps the vault database functions to provide a consistent
-interface for cc_photos while storing all data in the central vault.
+interface for cc-photos while storing all data in the central vault.
 """
 
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Add cc_vault to path
+# Add cc-vault to path
 try:
     from cc_vault.src import db as vault_db
     from cc_vault.src.config import get_config as get_vault_config
 except ImportError:
-    cc_vault_path = Path(__file__).parent.parent.parent.parent / "cc_vault"
-    if cc_vault_path.exists():
-        sys.path.insert(0, str(cc_vault_path))
+    cc-vault_path = Path(__file__).parent.parent.parent.parent / "cc-vault"
+    if cc-vault_path.exists():
+        sys.path.insert(0, str(cc-vault_path))
         from src import db as vault_db
         from src.config import get_config as get_vault_config
     else:
-        raise ImportError("cc_vault module not available. Install cc_vault first.")
+        raise ImportError("cc-vault module not available. Install cc-vault first.")
 
 
 def init_db() -> None:

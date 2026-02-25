@@ -1,4 +1,4 @@
-"""Theme management for cc_markdown."""
+"""Theme management for cc-markdown."""
 
 import sys
 from pathlib import Path

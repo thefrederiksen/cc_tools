@@ -11,7 +11,7 @@ from typing import Optional
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com"
 REPO_OWNER = "CenterConsulting"
-REPO_NAME = "cc_tools"
+REPO_NAME = "cc-tools"
 
 
 def get_latest_release() -> Optional[dict]:
@@ -28,7 +28,7 @@ def get_latest_release() -> Optional[dict]:
             url,
             headers={
                 "Accept": "application/vnd.github.v3+json",
-                "User-Agent": "cc_tools-setup"
+                "User-Agent": "cc-tools-setup"
             }
         )
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -73,7 +73,7 @@ def download_file(url: str, dest_path: str, show_progress: bool = True) -> bool:
     try:
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": "cc_tools-setup"}
+            headers={"User-Agent": "cc-tools-setup"}
         )
 
         with urllib.request.urlopen(request, timeout=300) as response:
@@ -113,7 +113,7 @@ def download_raw_file(path: str, dest_path: str, branch: str = "main") -> bool:
     Download a raw file from the repository.
 
     Args:
-        path: Path within the repository (e.g., "skills/cc_tools/SKILL.md")
+        path: Path within the repository (e.g., "skills/cc-tools/SKILL.md")
         dest_path: Local path to save file
         branch: Git branch to download from
 

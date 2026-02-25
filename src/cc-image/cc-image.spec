@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for cc_image."""
+"""PyInstaller spec file for cc-image."""
 
 from pathlib import Path
 

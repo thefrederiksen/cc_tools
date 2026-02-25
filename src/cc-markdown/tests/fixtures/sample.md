@@ -1,6 +1,6 @@
 # Sample Document
 
-This is a sample Markdown document for testing cc_markdown.
+This is a sample Markdown document for testing cc-markdown.
 
 ## Features
 
@@ -60,4 +60,4 @@ Visit [CenterConsulting](https://www.centerconsulting.com) for more information.
 
 ## Conclusion
 
-This sample document covers the main Markdown features supported by cc_markdown.
+This sample document covers the main Markdown features supported by cc-markdown.

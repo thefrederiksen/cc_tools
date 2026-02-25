@@ -1,1 +1,1 @@
-"""Tests for cc_gmail."""
+"""Tests for cc-gmail."""

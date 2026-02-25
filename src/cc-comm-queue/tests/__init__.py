@@ -1,1 +1,1 @@
-"""Tests for cc_comm_queue."""
+"""Tests for cc-comm-queue."""

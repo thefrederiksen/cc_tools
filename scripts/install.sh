@@ -42,26 +42,26 @@ fi
 
 echo "Latest version: $LATEST_TAG"
 
-# Download cc_markdown
-ASSET_NAME="cc_markdown-${OS_NAME}-${ARCH_NAME}"
+# Download cc-markdown
+ASSET_NAME="cc-markdown-${OS_NAME}-${ARCH_NAME}"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/$ASSET_NAME"
 
 echo "Downloading $ASSET_NAME..."
-curl -L -o "/tmp/cc_markdown" "$DOWNLOAD_URL"
+curl -L -o "/tmp/cc-markdown" "$DOWNLOAD_URL"
 
-if [ ! -f "/tmp/cc_markdown" ]; then
+if [ ! -f "/tmp/cc-markdown" ]; then
     echo "ERROR: Download failed"
     exit 1
 fi
 
 # Install
 echo "Installing to $INSTALL_DIR..."
-chmod +x "/tmp/cc_markdown"
+chmod +x "/tmp/cc-markdown"
 
 if [ -w "$INSTALL_DIR" ]; then
-    mv "/tmp/cc_markdown" "$INSTALL_DIR/cc_markdown"
+    mv "/tmp/cc-markdown" "$INSTALL_DIR/cc-markdown"
 else
-    sudo mv "/tmp/cc_markdown" "$INSTALL_DIR/cc_markdown"
+    sudo mv "/tmp/cc-markdown" "$INSTALL_DIR/cc-markdown"
 fi
 
 # Install SKILL.md for Claude Code integration
@@ -80,9 +80,9 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "What was installed:"
-echo "  - cc_markdown -> $INSTALL_DIR"
+echo "  - cc-markdown -> $INSTALL_DIR"
 echo "  - SKILL.md -> $CLAUDE_SKILLS_DIR"
 echo ""
-echo "Run 'cc_markdown --help' to get started."
+echo "Run 'cc-markdown --help' to get started."
 echo ""
 echo "In Claude Code, just ask: 'Convert report.md to PDF with boardroom theme'"

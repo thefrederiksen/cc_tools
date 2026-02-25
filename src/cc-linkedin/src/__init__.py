@@ -1,1 +1,1 @@
-"""cc_linkedin - LinkedIn CLI via browser automation."""
+"""cc-linkedin - LinkedIn CLI via browser automation."""

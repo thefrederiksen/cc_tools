@@ -1,4 +1,4 @@
-"""Entry point for cc_hardware."""
+"""Entry point for cc-hardware."""
 
 from src.cli import app
 

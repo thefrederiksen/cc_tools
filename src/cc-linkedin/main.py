@@ -1,4 +1,4 @@
-"""Entry point for cc_linkedin when run as executable."""
+"""Entry point for cc-linkedin when run as executable."""
 
 import sys
 import os

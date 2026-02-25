@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for cc_whisper."""
+"""PyInstaller spec file for cc-whisper."""
 
 from pathlib import Path
 

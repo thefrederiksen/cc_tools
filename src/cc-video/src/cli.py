@@ -1,4 +1,4 @@
-"""CLI for cc_video."""
+"""CLI for cc-video."""
 
 from pathlib import Path
 from typing import Optional
@@ -17,7 +17,7 @@ except ImportError:
     from src.screenshots import extract_screenshots, extract_frame_at
 
 app = typer.Typer(
-    name="cc_video",
+    name="cc-video",
     help="Video utilities: info, extract audio, screenshots.",
     add_completion=False,
 )
@@ -26,7 +26,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_video version {__version__}")
+        console.print(f"cc-video version {__version__}")
         raise typer.Exit()
 
 

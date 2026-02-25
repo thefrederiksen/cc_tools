@@ -1,4 +1,4 @@
-"""Tests for cc_reddit CLI."""
+"""Tests for cc-reddit CLI."""
 
 import pytest
 from typer.testing import CliRunner

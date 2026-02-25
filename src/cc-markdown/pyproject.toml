@@ -46,10 +46,10 @@ dev = [
 cc-markdown = "src.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/CenterConsulting/cc_tools"
-Documentation = "https://github.com/CenterConsulting/cc_tools/tree/main/src/cc_markdown"
-Repository = "https://github.com/CenterConsulting/cc_tools"
-Issues = "https://github.com/CenterConsulting/cc_tools/issues"
+Homepage = "https://github.com/CenterConsulting/cc-tools"
+Documentation = "https://github.com/CenterConsulting/cc-tools/tree/main/src/cc-markdown"
+Repository = "https://github.com/CenterConsulting/cc-tools"
+Issues = "https://github.com/CenterConsulting/cc-tools/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

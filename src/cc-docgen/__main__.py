@@ -1,6 +1,6 @@
-"""Entry point for running cc_docgen as a module.
+"""Entry point for running cc-docgen as a module.
 
-Usage: python -m cc_docgen generate
+Usage: python -m cc-docgen generate
 """
 
 from cc_docgen.cli import cli

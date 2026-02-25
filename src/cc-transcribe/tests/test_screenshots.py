@@ -1,4 +1,4 @@
-"""Tests for screenshot extraction in cc_transcribe."""
+"""Tests for screenshot extraction in cc-transcribe."""
 
 import pytest
 from pathlib import Path

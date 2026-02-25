@@ -27,11 +27,11 @@ cc-tools/
 │   │   ├── src/                   # Source code
 │   │   ├── themes/                # CSS theme files
 │   │   └── tests/                 # Tool tests
-│   ├── cc_transcribe/             # Future
-│   ├── cc_image/                  # Future
-│   ├── cc_voice/                  # Future
-│   ├── cc_whisper/                # Future
-│   └── cc_video/                  # Future
+│   ├── cc-transcribe/             # Future
+│   ├── cc-image/                  # Future
+│   ├── cc-voice/                  # Future
+│   ├── cc-whisper/                # Future
+│   └── cc-video/                  # Future
 ├── scripts/
 │   ├── install.sh                 # Unix installer
 │   └── install.ps1                # Windows installer
@@ -380,11 +380,11 @@ cc-markdown v1.0 is complete when:
 ## Phase 3: Future Tools (Not in Scope)
 
 For reference, future phases will implement:
-- cc_transcribe
-- cc_image
-- cc_voice
-- cc_whisper
-- cc_video
+- cc-transcribe
+- cc-image
+- cc-voice
+- cc-whisper
+- cc-video
 
 Each will follow the same pattern established in Phase 2.
 

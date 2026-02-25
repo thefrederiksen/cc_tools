@@ -1,5 +1,5 @@
 """
-Authentication and account management for cc_outlook.
+Authentication and account management for cc-outlook.
 
 IMPLEMENTATION NOTES - MSAL Device Code Flow (February 2026)
 =============================================================

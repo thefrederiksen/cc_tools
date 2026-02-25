@@ -4,7 +4,7 @@ These selectors target the new Reddit (www.reddit.com) interface.
 Old Reddit (old.reddit.com) selectors are in a separate section.
 
 Note: Reddit's UI changes frequently. These selectors may need updates.
-The cc_browser snapshot command with --interactive is the best way to
+The cc-browser snapshot command with --interactive is the best way to
 discover current element refs.
 """
 

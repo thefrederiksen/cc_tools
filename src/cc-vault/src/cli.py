@@ -1,4 +1,4 @@
-"""CLI for cc_vault - Personal Vault from the command line."""
+"""CLI for cc-vault - Personal Vault from the command line."""
 
 import json
 import logging
@@ -39,7 +39,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = typer.Typer(
-    name="cc_vault",
+    name="cc-vault",
     help="Personal Vault CLI: manage contacts, tasks, goals, ideas, documents, and more.",
     add_completion=False,
 )
@@ -52,6 +52,7 @@ contacts_app = typer.Typer(help="Contact management")
 docs_app = typer.Typer(help="Document management")
 config_app = typer.Typer(help="Configuration")
 health_app = typer.Typer(help="Health data")
+posts_app = typer.Typer(help="Social media posts")
 
 app.add_typer(tasks_app, name="tasks")
 app.add_typer(goals_app, name="goals")
@@ -60,6 +61,7 @@ app.add_typer(contacts_app, name="contacts")
 app.add_typer(docs_app, name="docs")
 app.add_typer(config_app, name="config")
 app.add_typer(health_app, name="health")
+app.add_typer(posts_app, name="posts")
 
 console = Console()
 
@@ -67,7 +69,7 @@ console = Console()
 def version_callback(value: bool) -> None:
     """Print version and exit if --version flag is set."""
     if value:
-        console.print(f"cc_vault version {__version__}")
+        console.print(f"cc-vault version {__version__}")
         raise typer.Exit()
 
 
@@ -150,6 +152,10 @@ def stats() -> None:
         table.add_row("Ideas", str(stats_data.get('ideas', 0)))
         table.add_row("Documents", str(stats_data.get('documents', 0)))
         table.add_row("Health Entries", str(stats_data.get('health_entries', 0)))
+        if stats_data.get('social_posts', 0) > 0:
+            table.add_row("Social Posts", str(stats_data.get('social_posts', 0)))
+            table.add_row("  - Draft", str(stats_data.get('social_posts_draft', 0)))
+            table.add_row("  - Posted", str(stats_data.get('social_posts_posted', 0)))
 
         console.print(table)
         console.print(f"\n[dim]Vault path: {VAULT_PATH}[/dim]")
@@ -638,6 +644,230 @@ def ideas_archive(
 
     except sqlite3.Error as e:
         console.print(f"[red]Error archiving idea:[/red] {e}")
+        raise typer.Exit(1)
+
+
+# =============================================================================
+# Social Posts Commands
+# =============================================================================
+
+@posts_app.command("list")
+def posts_list(
+    platform: Optional[str] = typer.Option(None, "-p", "--platform", help="Filter: linkedin, twitter, reddit, other"),
+    status: Optional[str] = typer.Option(None, "-s", "--status", help="Filter: draft, scheduled, posted"),
+    limit: int = typer.Option(50, "-n", help="Max results"),
+):
+    """List social media posts."""
+    db = get_db()
+
+    try:
+        posts = db.list_social_posts(platform=platform, status=status, limit=limit)
+
+        if not posts:
+            console.print("[yellow]No posts found[/yellow]")
+            return
+
+        table = Table(title="Social Posts")
+        table.add_column("ID", style="dim")
+        table.add_column("Platform", style="cyan")
+        table.add_column("Status")
+        table.add_column("Content")
+        table.add_column("Audience")
+        table.add_column("Created")
+
+        platform_colors = {'linkedin': 'blue', 'twitter': 'cyan', 'reddit': 'red', 'other': 'white'}
+        status_colors = {'draft': 'yellow', 'scheduled': 'magenta', 'posted': 'green'}
+
+        for post in posts:
+            platform_val = post.get('platform', 'other')
+            status_val = post.get('status', 'draft')
+            content = post.get('content', '')[:40]
+            if len(post.get('content', '')) > 40:
+                content += '...'
+
+            table.add_row(
+                str(post['id']),
+                f"[{platform_colors.get(platform_val, 'white')}]{platform_val}[/]",
+                f"[{status_colors.get(status_val, 'white')}]{status_val}[/]",
+                content.replace('\n', ' '),
+                post.get('audience', '-') or '-',
+                post.get('created_at', '')[:10],
+            )
+
+        console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error listing posts:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@posts_app.command("add")
+def posts_add(
+    content: str = typer.Argument(..., help="Post content"),
+    platform: str = typer.Option("linkedin", "-p", "--platform", help="Platform: linkedin, twitter, reddit, other"),
+    audience: Optional[str] = typer.Option(None, "-a", "--audience", help="Target audience"),
+    tags: Optional[str] = typer.Option(None, "-t", "--tags", help="Tags (comma-separated)"),
+    goal_id: Optional[int] = typer.Option(None, "-g", "--goal", help="Link to goal ID"),
+    status: str = typer.Option("draft", "-s", "--status", help="Status: draft, scheduled, posted"),
+):
+    """Add a new social media post."""
+    db = get_db()
+
+    try:
+        post_id = db.add_social_post(
+            platform=platform,
+            content=content,
+            status=status,
+            audience=audience,
+            tags=tags,
+            goal_id=goal_id,
+        )
+        console.print(f"[green]Post added:[/green] #{post_id} ({platform}, {status})")
+
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error adding post:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@posts_app.command("show")
+def posts_show(
+    post_id: int = typer.Argument(..., help="Post ID"),
+):
+    """Show details of a social post."""
+    db = get_db()
+
+    try:
+        post = db.get_social_post(post_id)
+        if not post:
+            console.print(f"[red]Post #{post_id} not found[/red]")
+            raise typer.Exit(1)
+
+        platform_names = {'linkedin': 'LinkedIn', 'twitter': 'Twitter/X', 'reddit': 'Reddit', 'other': 'Other'}
+        title = f"{platform_names.get(post['platform'], 'Unknown')} Post #{post['id']}"
+
+        lines = []
+        lines.append(f"[bold]Status:[/bold] {post['status']}")
+        if post.get('audience'):
+            lines.append(f"[bold]Audience:[/bold] {post['audience']}")
+        if post.get('tags'):
+            lines.append(f"[bold]Tags:[/bold] {post['tags']}")
+        if post.get('goal_title'):
+            lines.append(f"[bold]Goal:[/bold] {post['goal_title']}")
+        if post.get('url'):
+            lines.append(f"[bold]URL:[/bold] {post['url']}")
+        if post.get('posted_at'):
+            lines.append(f"[bold]Posted:[/bold] {post['posted_at']}")
+        lines.append(f"[bold]Created:[/bold] {post['created_at']}")
+        lines.append("")
+        lines.append("[bold]Content:[/bold]")
+        lines.append(post['content'])
+
+        console.print(Panel("\n".join(lines), title=title))
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@posts_app.command("posted")
+def posts_posted(
+    post_id: int = typer.Argument(..., help="Post ID"),
+    url: Optional[str] = typer.Option(None, "-u", "--url", help="URL of live post"),
+):
+    """Mark a post as posted."""
+    db = get_db()
+
+    try:
+        success = db.mark_social_post_posted(post_id, url)
+        if success:
+            console.print(f"[green]Post #{post_id} marked as posted[/green]")
+            if url:
+                console.print(f"URL: {url}")
+        else:
+            console.print(f"[red]Post #{post_id} not found[/red]")
+            raise typer.Exit(1)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@posts_app.command("search")
+def posts_search(
+    query: str = typer.Argument(..., help="Search query"),
+):
+    """Search social posts by content, tags, or audience."""
+    db = get_db()
+
+    try:
+        posts = db.search_social_posts(query)
+
+        if not posts:
+            console.print(f"[yellow]No posts found matching '{query}'[/yellow]")
+            return
+
+        console.print(f"[bold]Search results for '{query}':[/bold] {len(posts)} found\n")
+
+        table = Table()
+        table.add_column("ID", style="dim")
+        table.add_column("Platform", style="cyan")
+        table.add_column("Status")
+        table.add_column("Content")
+        table.add_column("Created")
+
+        for post in posts:
+            content = post.get('content', '')[:50]
+            if len(post.get('content', '')) > 50:
+                content += '...'
+
+            table.add_row(
+                str(post['id']),
+                post.get('platform', 'other'),
+                post.get('status', 'draft'),
+                content.replace('\n', ' '),
+                post.get('created_at', '')[:10],
+            )
+
+        console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error searching posts:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@posts_app.command("update")
+def posts_update(
+    post_id: int = typer.Argument(..., help="Post ID"),
+    content: Optional[str] = typer.Option(None, "--content", help="New content"),
+    audience: Optional[str] = typer.Option(None, "-a", "--audience", help="Target audience"),
+    tags: Optional[str] = typer.Option(None, "-t", "--tags", help="Tags (comma-separated)"),
+    status: Optional[str] = typer.Option(None, "-s", "--status", help="Status: draft, scheduled, posted"),
+):
+    """Update a social post."""
+    db = get_db()
+
+    try:
+        success = db.update_social_post(
+            post_id=post_id,
+            content=content,
+            status=status,
+            audience=audience,
+            tags=tags,
+        )
+        if success:
+            console.print(f"[green]Post #{post_id} updated[/green]")
+        else:
+            console.print(f"[red]Post #{post_id} not found[/red]")
+            raise typer.Exit(1)
+
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error updating post:[/red] {e}")
         raise typer.Exit(1)
 
 

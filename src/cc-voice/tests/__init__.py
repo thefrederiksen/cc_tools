@@ -1,1 +1,1 @@
-"""Tests for cc_voice."""
+"""Tests for cc-voice."""

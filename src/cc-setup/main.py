@@ -1,6 +1,6 @@
 """
-cc_tools-setup - Windows installer for cc_tools suite
-Downloads and installs all cc_tools executables, adds to PATH, installs SKILL.md
+cc-tools-setup - Windows installer for cc-tools suite
+Downloads and installs all cc-tools executables, adds to PATH, installs SKILL.md
 """
 
 import sys
@@ -10,8 +10,8 @@ from installer import CCToolsInstaller
 def main():
     """Main entry point for the installer."""
     print("=" * 60)
-    print("  cc_tools Setup")
-    print("  https://github.com/CenterConsulting/cc_tools")
+    print("  cc-tools Setup")
+    print("  https://github.com/CenterConsulting/cc-tools")
     print("=" * 60)
     print()
 
@@ -23,7 +23,7 @@ def main():
             print()
             print("=" * 60)
             print("  Installation complete!")
-            print("  Restart your terminal to use cc_tools.")
+            print("  Restart your terminal to use cc-tools.")
             print("=" * 60)
             return 0
         else:

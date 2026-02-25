@@ -4,8 +4,8 @@ Vault Configuration Module
 Central configuration for the Vault 2.0 personal data platform.
 Supports configuration via (in priority order):
 1. CC_VAULT_PATH environment variable
-2. Shared ~/.cc_tools/config.json (preferred)
-3. Legacy ~/.cc_vault/config.json (deprecated)
+2. Shared ~/.cc-tools/config.json (preferred)
+3. Legacy ~/.cc-vault/config.json (deprecated)
 4. Default: D:/Vault
 """
 
@@ -37,8 +37,8 @@ class VaultConfig:
 
 
 def get_config_dir() -> Path:
-    """Get the config directory for cc_vault."""
-    return Path.home() / ".cc_vault"
+    """Get the config directory for cc-vault."""
+    return Path.home() / ".cc-vault"
 
 
 def get_config_file() -> Path:
@@ -50,8 +50,8 @@ def get_vault_path() -> Path:
     """
     Get the vault path from (in order of priority):
     1. CC_VAULT_PATH environment variable
-    2. Shared ~/.cc_tools/config.json (preferred)
-    3. Legacy ~/.cc_vault/config.json (deprecated)
+    2. Shared ~/.cc-tools/config.json (preferred)
+    3. Legacy ~/.cc-vault/config.json (deprecated)
     4. Default to D:/Vault
     """
     # 1. Check environment variable first (highest priority)
@@ -59,7 +59,7 @@ def get_vault_path() -> Path:
     if env_path:
         return Path(env_path).resolve()
 
-    # 2. Check shared cc_tools config (preferred)
+    # 2. Check shared cc-tools config (preferred)
     try:
         from cc_shared.config import get_config as get_shared_config
         shared = get_shared_config()
@@ -185,7 +185,7 @@ CHROMA_COLLECTIONS = {
 DOCUMENT_TYPES = ["transcript", "note", "journal", "research"]
 
 # Entity types for linking
-ENTITY_TYPES = ["contact", "task", "goal", "idea", "document", "fact", "health", "photo"]
+ENTITY_TYPES = ["contact", "task", "goal", "idea", "document", "fact", "health", "photo", "social_post"]
 
 # Photo categories
 PHOTO_CATEGORIES = ["private", "work", "other"]

@@ -1,4 +1,4 @@
-"""Allow running as python -m cc_photos."""
+"""Allow running as python -m cc-photos."""
 
 from .cli import app
 

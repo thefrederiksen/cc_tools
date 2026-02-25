@@ -41,10 +41,10 @@ cc-reddit uses browser automation (via cc-browser) to interact with Reddit exact
 Claude Code / User
     |
     v
-cc_reddit CLI (Python + Typer)
+cc-reddit CLI (Python + Typer)
     | HTTP (localhost:9280)
     v
-cc_browser Daemon
+cc-browser Daemon
     | CDP (localhost:9222)
     v
 Chrome (logged into Reddit)
@@ -155,18 +155,18 @@ Chrome (logged into Reddit)
 ### Language: Python
 - Consistent with other cc-tools (cc-gmail, cc-markdown)
 - Rich CLI support via Typer
-- Easy HTTP client (requests/httpx) for cc_browser communication
+- Easy HTTP client (requests/httpx) for cc-browser communication
 
 ### Dependencies
 - `typer` - CLI framework
 - `rich` - Terminal output formatting
-- `httpx` - HTTP client for cc_browser communication
+- `httpx` - HTTP client for cc-browser communication
 - `pydantic` - Data validation and models
 
 ### Browser Automation
 - Uses cc-browser daemon (already built)
 - Communicates via HTTP API on localhost:9280
-- No direct Playwright dependency (cc_browser handles it)
+- No direct Playwright dependency (cc-browser handles it)
 
 ### Build
 - PyInstaller for standalone executable
@@ -300,7 +300,7 @@ cc-reddit mod queue [SUBREDDIT]
 ### Phase 1: Foundation (MVP)
 - [x] Directory structure
 - [ ] CLI scaffolding with Typer
-- [ ] cc_browser HTTP client wrapper
+- [ ] cc-browser HTTP client wrapper
 - [ ] Reddit page detection and navigation
 - [ ] `status` command (check login)
 - [ ] `whoami` command
@@ -392,12 +392,12 @@ These will need validation during implementation:
 ## File Structure
 
 ```
-src/cc_reddit/
+src/cc-reddit/
 ├── src/
 │   ├── __init__.py
 │   ├── __main__.py           # Entry point
 │   ├── cli.py                # Typer CLI commands
-│   ├── browser_client.py     # cc_browser HTTP client wrapper
+│   ├── browser_client.py     # cc-browser HTTP client wrapper
 │   ├── reddit.py             # Reddit-specific page interactions
 │   ├── selectors.py          # CSS selectors for Reddit elements
 │   ├── models.py             # Pydantic models (Post, Comment, User, etc.)
@@ -410,7 +410,7 @@ src/cc_reddit/
 │
 ├── requirements.txt
 ├── pyproject.toml
-├── cc_reddit.spec
+├── cc-reddit.spec
 ├── build.ps1
 ├── README.md
 └── PRD.md                    # This document
@@ -419,7 +419,7 @@ src/cc_reddit/
 ## Next Steps
 
 1. Create the file structure above
-2. Implement browser_client.py (HTTP wrapper for cc_browser)
+2. Implement browser_client.py (HTTP wrapper for cc-browser)
 3. Implement basic CLI with `status` and `whoami` commands
 4. Add `feed` and `post` viewing commands
 5. Iterate through implementation phases

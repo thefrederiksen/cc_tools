@@ -6,7 +6,7 @@ CLI tool for adding content to the Communication Manager approval queue.
 
 ```bash
 # From source
-cd D:\ReposFred\cc-tools\src\cc_comm_queue
+cd D:\ReposFred\cc-tools\src\cc-comm-queue
 pip install -e .
 
 # Build executable

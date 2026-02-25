@@ -1,1 +1,1 @@
-"""Tests for cc_outlook."""
+"""Tests for cc-outlook."""

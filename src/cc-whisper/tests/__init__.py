@@ -1,1 +1,1 @@
-"""Tests for cc_whisper."""
+"""Tests for cc-whisper."""

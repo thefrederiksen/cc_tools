@@ -124,4 +124,4 @@ ALWAYS do these:
 
 **Skill Version:** 1.0
 **Last Updated:** 2026-02-16
-**Adapted from:** cc_director commit skill
+**Adapted from:** cc-director commit skill

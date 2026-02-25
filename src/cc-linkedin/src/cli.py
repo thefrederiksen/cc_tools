@@ -1,4 +1,4 @@
-"""cc_linkedin CLI - LinkedIn interactions via browser automation."""
+"""cc-linkedin CLI - LinkedIn interactions via browser automation."""
 
 import typer
 from rich.console import Console
@@ -21,7 +21,7 @@ except ImportError:
     from linkedin_selectors import LinkedInURLs, LinkedIn
 
 app = typer.Typer(
-    name="cc_linkedin",
+    name="cc-linkedin",
     help="LinkedIn CLI via browser automation",
     no_args_is_help=True,
 )
@@ -30,8 +30,8 @@ console = Console()
 
 
 def get_config_dir() -> Path:
-    """Get cc_linkedin config directory."""
-    return Path.home() / ".cc_linkedin"
+    """Get cc-linkedin config directory."""
+    return Path.home() / ".cc-linkedin"
 
 
 def load_default_profile() -> str:
@@ -169,14 +169,14 @@ def find_element_ref_near_text(snapshot_text: str, near_text: str, keywords: lis
 
 @app.callback()
 def main(
-    profile: Optional[str] = typer.Option(None, "--profile", "-p", help="cc_browser profile name or alias"),
+    profile: Optional[str] = typer.Option(None, "--profile", "-p", help="cc-browser profile name or alias"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
     delay: float = typer.Option(1.0, help="Delay between actions (seconds)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
     """LinkedIn CLI via browser automation.
 
-    Requires cc_browser daemon to be running.
+    Requires cc-browser daemon to be running.
     Start it with: cc-browser daemon --profile linkedin
     """
     # Load default profile from config if not specified
@@ -195,13 +195,13 @@ def main(
 
 @app.command()
 def status():
-    """Check cc_browser daemon and LinkedIn login status."""
+    """Check cc-browser daemon and LinkedIn login status."""
     try:
         client = get_client()
 
         # Check daemon status
         result = client.status()
-        console.print("[green]cc_browser daemon:[/green] running")
+        console.print("[green]cc-browser daemon:[/green] running")
 
         browser_status = result.get("browser", "unknown")
         console.print(f"[green]Browser:[/green] {browser_status}")

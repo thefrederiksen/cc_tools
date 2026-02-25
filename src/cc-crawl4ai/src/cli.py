@@ -1,4 +1,4 @@
-"""CLI for cc_crawl4ai - AI-ready web crawler."""
+"""CLI for cc-crawl4ai - AI-ready web crawler."""
 
 import sys
 import asyncio
@@ -34,7 +34,7 @@ except ImportError:
     from src.sessions import SessionManager
 
 app = typer.Typer(
-    name="cc_crawl4ai",
+    name="cc-crawl4ai",
     help="AI-ready web crawler: crawl pages to clean markdown, batch processing, sessions.",
     add_completion=False,
 )
@@ -47,7 +47,7 @@ console = Console()
 def version_callback(value: bool) -> None:
     """Handle --version flag."""
     if value:
-        console.print(f"cc_crawl4ai version {__version__}")
+        console.print(f"cc-crawl4ai version {__version__}")
         raise typer.Exit()
 
 
@@ -316,7 +316,7 @@ def session_list() -> None:
 
     if not sessions:
         console.print("[yellow]No sessions found.[/yellow]")
-        console.print("Create one with: cc_crawl4ai session create <name>")
+        console.print("Create one with: cc-crawl4ai session create <name>")
         return
 
     table = Table(title="Saved Sessions")
@@ -353,7 +353,7 @@ def session_create(
     if interactive and url:
         _run_interactive_session(manager, name, url, browser)
     else:
-        console.print(f"Use with: cc_crawl4ai crawl <url> --session {name}")
+        console.print(f"Use with: cc-crawl4ai crawl <url> --session {name}")
 
 
 @session_app.command("delete")

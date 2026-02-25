@@ -1,4 +1,4 @@
-"""Utility functions for cc_outlook."""
+"""Utility functions for cc-outlook."""
 
 from datetime import datetime
 from typing import Optional

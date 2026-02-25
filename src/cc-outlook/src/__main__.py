@@ -1,4 +1,4 @@
-"""Package entry point for cc_outlook."""
+"""Package entry point for cc-outlook."""
 
 from .cli import app
 

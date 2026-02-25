@@ -1,4 +1,4 @@
-"""CLI for cc_image - unified image toolkit."""
+"""CLI for cc-image - unified image toolkit."""
 
 from pathlib import Path
 from typing import Optional
@@ -21,7 +21,7 @@ except ImportError:
     from src.generation import generate_to_file
 
 app = typer.Typer(
-    name="cc_image",
+    name="cc-image",
     help="Unified image toolkit: generate, analyze, OCR, resize, convert.",
     add_completion=False,
 )
@@ -30,7 +30,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_image version {__version__}")
+        console.print(f"cc-image version {__version__}")
         raise typer.Exit()
 
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Migrate vault code from `D:\ReposFred\cc_consult\src\` to `D:\ReposFred\cc_tools\src\cc_vault\` as a standalone open-source CLI tool.
+Migrate vault code from `D:\ReposFred\cc_consult\src\` to `D:\ReposFred\cc-tools\src\cc-vault\` as a standalone open-source CLI tool.
 
 **Goal:** Users configure one thing (vault directory via env var or config file) and everything works.
 
@@ -26,13 +26,13 @@ Copy these files from `D:\ReposFred\cc_consult\src\`:
 
 ## Target Directory Structure
 
-Create this structure in `D:\ReposFred\cc_tools\src\cc_vault\`:
+Create this structure in `D:\ReposFred\cc-tools\src\cc-vault\`:
 
 ```
-cc_vault/
+cc-vault/
 ├── main.py                    # Entry point (PyInstaller)
 ├── pyproject.toml             # Package config
-├── cc_vault.spec              # PyInstaller spec
+├── cc-vault.spec              # PyInstaller spec
 ├── build.ps1                  # Build script
 ├── requirements.txt           # Dependencies
 ├── README.md                  # Documentation
@@ -52,7 +52,7 @@ cc_vault/
     └── __init__.py
 ```
 
-Also create: `D:\ReposFred\cc_tools\skills\cc_vault\SKILL.md`
+Also create: `D:\ReposFred\cc-tools\skills\cc-vault\SKILL.md`
 
 ---
 
@@ -61,22 +61,22 @@ Also create: `D:\ReposFred\cc_tools\skills\cc_vault\SKILL.md`
 ### Step 1: Create Directory Structure
 
 ```bash
-mkdir -p D:\ReposFred\cc_tools\src\cc_vault\src
-mkdir -p D:\ReposFred\cc_tools\src\cc_vault\tests
-mkdir -p D:\ReposFred\cc_tools\skills\cc_vault
+mkdir -p D:\ReposFred\cc-tools\src\cc-vault\src
+mkdir -p D:\ReposFred\cc-tools\src\cc-vault\tests
+mkdir -p D:\ReposFred\cc-tools\skills\cc-vault
 ```
 
 ### Step 2: Create Package Files
 
-**src/cc_vault/src/__init__.py:**
+**src/cc-vault/src/__init__.py:**
 ```python
-"""cc_vault - Personal life organizer CLI."""
+"""cc-vault - Personal life organizer CLI."""
 
 __version__ = "1.0.0"
 __author__ = "CenterConsulting Inc."
 ```
 
-**src/cc_vault/src/__main__.py:**
+**src/cc-vault/src/__main__.py:**
 ```python
 """Package entry point."""
 from .cli import app
@@ -85,10 +85,10 @@ if __name__ == "__main__":
     app()
 ```
 
-**src/cc_vault/main.py:**
+**src/cc-vault/main.py:**
 ```python
 #!/usr/bin/env python3
-"""Entry point for cc_vault CLI."""
+"""Entry point for cc-vault CLI."""
 
 import sys
 from pathlib import Path
@@ -113,11 +113,11 @@ if __name__ == "__main__":
 Key changes from original:
 - Replace hardcoded `VAULT_PATH = Path("D:/Vault")` with configurable resolution
 - Add environment variable support: `CC_VAULT_PATH`
-- Add config file support: `~/.cc_vault/config.json`
+- Add config file support: `~/.cc-vault/config.json`
 - Add `get_config()` function
 
 ```python
-"""Configuration for cc_vault."""
+"""Configuration for cc-vault."""
 
 import json
 import os
@@ -147,7 +147,7 @@ def get_vault_path() -> Path:
         return Path(env_path)
 
     # 2. Config file
-    config_file = Path.home() / ".cc_vault" / "config.json"
+    config_file = Path.home() / ".cc-vault" / "config.json"
     if config_file.exists():
         try:
             config = json.loads(config_file.read_text())
@@ -248,10 +248,10 @@ DOCUMENTS_PATH = _config.documents_path
 
 ### Step 10: Create cli.py (NEW - Typer CLI)
 
-Use cc_outlook's cli.py as template. Structure:
+Use cc-outlook's cli.py as template. Structure:
 
 ```python
-"""CLI for cc_vault using Typer."""
+"""CLI for cc-vault using Typer."""
 
 import logging
 from pathlib import Path
@@ -273,7 +273,7 @@ from .db import (
 from .rag import VaultRAG
 from .importer import VaultImporter
 
-app = typer.Typer(name="cc_vault", help="Personal life organizer", add_completion=False)
+app = typer.Typer(name="cc-vault", help="Personal life organizer", add_completion=False)
 tasks_app = typer.Typer(help="Manage tasks")
 goals_app = typer.Typer(help="Manage goals")
 ideas_app = typer.Typer(help="Manage ideas")
@@ -323,7 +323,7 @@ def search(query: str, n: int = 10):
 Extract formatting functions from db.py:
 
 ```python
-"""Utility functions for cc_vault."""
+"""Utility functions for cc-vault."""
 
 from rich.table import Table
 from rich.console import Console
@@ -356,7 +356,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cc_vault"
+name = "cc-vault"
 version = "1.0.0"
 description = "Personal life organizer: contacts, tasks, goals, ideas, documents with RAG"
 readme = "README.md"
@@ -377,16 +377,16 @@ dev = ["pytest>=7.0.0", "pyinstaller>=6.0.0"]
 all = ["python-docx>=0.8.0", "pymupdf>=1.23.0", "pytest>=7.0.0", "pyinstaller>=6.0.0"]
 
 [project.scripts]
-cc_vault = "src.cli:app"
+cc-vault = "src.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
 ```
 
-### Step 13: Create cc_vault.spec
+### Step 13: Create cc-vault.spec
 
-Use cc_outlook.spec as template, update hiddenimports:
+Use cc-outlook.spec as template, update hiddenimports:
 
 ```python
 hiddenimports=[
@@ -397,7 +397,7 @@ hiddenimports=[
 
 ### Step 14: Create build.ps1
 
-Copy from cc_outlook and update tool name.
+Copy from cc-outlook and update tool name.
 
 ### Step 15: Create requirements.txt
 
@@ -419,11 +419,11 @@ Document installation, configuration, and all commands.
 
 ### Step 17: Create SKILL.md
 
-Create `D:\ReposFred\cc_tools\skills\cc_vault\SKILL.md` for Claude Code integration.
+Create `D:\ReposFred\cc-tools\skills\cc-vault\SKILL.md` for Claude Code integration.
 
 ### Step 18: Update scripts/build.bat
 
-Add `cc_vault` to the PYTHON_TOOLS list.
+Add `cc-vault` to the PYTHON_TOOLS list.
 
 ---
 
@@ -431,51 +431,51 @@ Add `cc_vault` to the PYTHON_TOOLS list.
 
 ```bash
 # System
-cc_vault init                            # Initialize vault
-cc_vault stats                           # Show statistics
-cc_vault backup                          # Create backup
+cc-vault init                            # Initialize vault
+cc-vault stats                           # Show statistics
+cc-vault backup                          # Create backup
 
 # Tasks
-cc_vault tasks                           # List pending
-cc_vault tasks add "Task" [--due DATE] [--priority 1-5] [--context work]
-cc_vault tasks done ID
-cc_vault tasks cancel ID
+cc-vault tasks                           # List pending
+cc-vault tasks add "Task" [--due DATE] [--priority 1-5] [--context work]
+cc-vault tasks done ID
+cc-vault tasks cancel ID
 
 # Goals
-cc_vault goals                           # List active
-cc_vault goals add "Goal" [--category TYPE] [--timeframe short|medium|long]
-cc_vault goals achieve ID
-cc_vault goals pause ID
-cc_vault goals resume ID
+cc-vault goals                           # List active
+cc-vault goals add "Goal" [--category TYPE] [--timeframe short|medium|long]
+cc-vault goals achieve ID
+cc-vault goals pause ID
+cc-vault goals resume ID
 
 # Ideas
-cc_vault ideas                           # List ideas
-cc_vault ideas add "Idea" [--domain TYPE]
-cc_vault ideas actionable ID
-cc_vault ideas archive ID
+cc-vault ideas                           # List ideas
+cc-vault ideas add "Idea" [--domain TYPE]
+cc-vault ideas actionable ID
+cc-vault ideas archive ID
 
 # Contacts
-cc_vault contacts                        # List contacts
-cc_vault contacts add EMAIL --name "Name" [--account consulting|personal]
-cc_vault contacts show EMAIL
-cc_vault contacts profile EMAIL          # Full profile with memories
-cc_vault contacts update EMAIL [--company X] [--title Y]
-cc_vault contacts memory EMAIL "Fact about them"
+cc-vault contacts                        # List contacts
+cc-vault contacts add EMAIL --name "Name" [--account consulting|personal]
+cc-vault contacts show EMAIL
+cc-vault contacts profile EMAIL          # Full profile with memories
+cc-vault contacts update EMAIL [--company X] [--title Y]
+cc-vault contacts memory EMAIL "Fact about them"
 
 # Documents
-cc_vault docs                            # List documents
-cc_vault docs add FILE [--type transcript|note|journal|research] [--title X]
-cc_vault docs show ID
-cc_vault docs search "query"
+cc-vault docs                            # List documents
+cc-vault docs add FILE [--type transcript|note|journal|research] [--title X]
+cc-vault docs show ID
+cc-vault docs search "query"
 
 # RAG
-cc_vault ask "Question?"                 # RAG query with citations
-cc_vault search "query"                  # Semantic search
+cc-vault ask "Question?"                 # RAG query with citations
+cc-vault search "query"                  # Semantic search
 
 # Configuration
-cc_vault config                          # Show current config
-cc_vault config set vault_path PATH
-cc_vault config set embedding_model MODEL
+cc-vault config                          # Show current config
+cc-vault config set vault_path PATH
+cc-vault config set embedding_model MODEL
 ```
 
 ---
@@ -486,30 +486,30 @@ After implementation, verify:
 
 ```bash
 # 1. Build succeeds
-cd D:\ReposFred\cc_tools\src\cc_vault
+cd D:\ReposFred\cc-tools\src\cc-vault
 .\build.ps1
 
 # 2. Executable created
-dir dist\cc_vault.exe
+dir dist\cc-vault.exe
 
 # 3. Copy and test
-copy dist\cc_vault.exe C:\cc-tools\
+copy dist\cc-vault.exe C:\cc-tools\
 
 # 4. Initialize
-cc_vault init
+cc-vault init
 
 # 5. Test core commands
-cc_vault stats
-cc_vault tasks add "Test task"
-cc_vault tasks
-cc_vault tasks done 1
+cc-vault stats
+cc-vault tasks add "Test task"
+cc-vault tasks
+cc-vault tasks done 1
 
 # 6. Test config
-cc_vault config
+cc-vault config
 
 # 7. Test RAG (requires OPENAI_API_KEY)
 set OPENAI_API_KEY=your-key
-cc_vault ask "What tasks do I have?"
+cc-vault ask "What tasks do I have?"
 ```
 
 ---
@@ -533,7 +533,7 @@ Build:
 ## Notes
 
 - The vault stores data in `~/Vault` by default (or `CC_VAULT_PATH` env var)
-- Config file at `~/.cc_vault/config.json`
+- Config file at `~/.cc-vault/config.json`
 - OPENAI_API_KEY required for vector search and RAG
 - ChromaDB stores vectors in `{vault}/vectors/`
 - SQLite database at `{vault}/vault.db`

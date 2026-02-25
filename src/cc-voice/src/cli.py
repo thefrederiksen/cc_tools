@@ -1,4 +1,4 @@
-"""CLI for cc_voice."""
+"""CLI for cc-voice."""
 
 import logging
 from pathlib import Path
@@ -19,7 +19,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = typer.Typer(
-    name="cc_voice",
+    name="cc-voice",
     help="Convert text to speech using OpenAI TTS.",
     add_completion=False,
 )
@@ -28,7 +28,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_voice version {__version__}")
+        console.print(f"cc-voice version {__version__}")
         raise typer.Exit()
 
 

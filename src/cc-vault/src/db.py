@@ -537,6 +537,25 @@ def init_db(silent: bool = False):
         END
     """)
 
+    # ==========================================
+    # SOCIAL POSTS DOMAIN
+    # ==========================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS social_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform TEXT NOT NULL CHECK(platform IN ('linkedin', 'twitter', 'reddit', 'other')),
+            content TEXT NOT NULL,
+            status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'scheduled', 'posted')),
+            audience TEXT,
+            url TEXT,
+            posted_at TIMESTAMP,
+            tags TEXT,
+            goal_id INTEGER REFERENCES goals(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Entity links - flexible graph-like relationships
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS entity_links (
@@ -638,6 +657,11 @@ def init_db(silent: bool = False):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_chunks_document ON chunks(document_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_chunks_hash ON chunks(content_hash)")
 
+    # Social posts indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_platform ON social_posts(platform)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_posted_at ON social_posts(posted_at)")
+
     # Entity links indexes
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_source ON entity_links(source_type, source_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_links_target ON entity_links(target_type, target_id)")
@@ -688,6 +712,19 @@ def get_vault_stats() -> Dict[str, Any]:
     # Count health entries
     result = conn.execute("SELECT COUNT(*) FROM health_entries").fetchone()
     stats['health_entries'] = result[0] if result else 0
+
+    # Count social posts
+    try:
+        result = conn.execute("SELECT COUNT(*) FROM social_posts").fetchone()
+        stats['social_posts'] = result[0] if result else 0
+        result = conn.execute("SELECT COUNT(*) FROM social_posts WHERE status = 'draft'").fetchone()
+        stats['social_posts_draft'] = result[0] if result else 0
+        result = conn.execute("SELECT COUNT(*) FROM social_posts WHERE status = 'posted'").fetchone()
+        stats['social_posts_posted'] = result[0] if result else 0
+    except sqlite3.OperationalError:
+        stats['social_posts'] = 0
+        stats['social_posts_draft'] = 0
+        stats['social_posts_posted'] = 0
 
     return stats
 
@@ -1996,6 +2033,209 @@ def search_ideas(query: str) -> List[dict]:
            OR LOWER(i.tags) LIKE LOWER(?)
            OR LOWER(i.domain) LIKE LOWER(?)
         ORDER BY i.created_at DESC
+    """, (search_term, search_term, search_term))
+
+    results = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return results
+
+
+# ===========================================
+# SOCIAL POSTS DOMAIN
+# ===========================================
+
+def add_social_post(
+    platform: str,
+    content: str,
+    status: str = 'draft',
+    audience: Optional[str] = None,
+    url: Optional[str] = None,
+    tags: Optional[str] = None,
+    goal_id: Optional[int] = None
+) -> int:
+    """
+    Add a new social media post.
+    Returns the post ID.
+    """
+    if platform not in ('linkedin', 'twitter', 'reddit', 'other'):
+        raise ValueError(f"Invalid platform '{platform}'. Must be: linkedin, twitter, reddit, other")
+
+    if status not in ('draft', 'scheduled', 'posted'):
+        raise ValueError(f"Invalid status '{status}'. Must be: draft, scheduled, posted")
+
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    posted_at = datetime.now().isoformat() if status == 'posted' else None
+
+    cursor.execute("""
+        INSERT INTO social_posts (platform, content, status, audience, url, posted_at, tags, goal_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (platform, content, status, audience, url, posted_at, tags, goal_id))
+
+    post_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return post_id
+
+
+def get_social_post(post_id: int) -> Optional[dict]:
+    """Get a social post by ID."""
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT sp.*, g.title as goal_title
+        FROM social_posts sp
+        LEFT JOIN goals g ON sp.goal_id = g.id
+        WHERE sp.id = ?
+    """, (post_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    return dict(row) if row else None
+
+
+def list_social_posts(
+    platform: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50
+) -> list[dict]:
+    """List social posts with optional filtering."""
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    sql = """
+        SELECT sp.*, g.title as goal_title
+        FROM social_posts sp
+        LEFT JOIN goals g ON sp.goal_id = g.id
+        WHERE 1=1
+    """
+    params = []
+
+    if platform:
+        sql += " AND sp.platform = ?"
+        params.append(platform)
+
+    if status:
+        sql += " AND sp.status = ?"
+        params.append(status)
+
+    sql += " ORDER BY sp.created_at DESC LIMIT ?"
+    params.append(limit)
+
+    cursor.execute(sql, params)
+    results = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return results
+
+
+def update_social_post(
+    post_id: int,
+    content: Optional[str] = None,
+    status: Optional[str] = None,
+    audience: Optional[str] = None,
+    url: Optional[str] = None,
+    tags: Optional[str] = None,
+    goal_id: Optional[int] = None
+) -> bool:
+    """Update a social post's fields."""
+    post = get_social_post(post_id)
+    if not post:
+        return False
+
+    if status and status not in ('draft', 'scheduled', 'posted'):
+        raise ValueError(f"Invalid status '{status}'. Must be: draft, scheduled, posted")
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    updates = []
+    params = []
+
+    if content is not None:
+        updates.append("content = ?")
+        params.append(content)
+    if status is not None:
+        updates.append("status = ?")
+        params.append(status)
+    if audience is not None:
+        updates.append("audience = ?")
+        params.append(audience)
+    if url is not None:
+        updates.append("url = ?")
+        params.append(url)
+    if tags is not None:
+        updates.append("tags = ?")
+        params.append(tags)
+    if goal_id is not None:
+        updates.append("goal_id = ?")
+        params.append(goal_id)
+
+    if not updates:
+        conn.close()
+        return True  # Nothing to update
+
+    sql = f"UPDATE social_posts SET {', '.join(updates)} WHERE id = ?"
+    params.append(post_id)
+
+    cursor.execute(sql, params)
+    conn.commit()
+    conn.close()
+
+    return True
+
+
+def mark_social_post_posted(post_id: int, url: Optional[str] = None) -> bool:
+    """Mark a social post as posted."""
+    post = get_social_post(post_id)
+    if not post:
+        return False
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    if url:
+        cursor.execute("""
+            UPDATE social_posts
+            SET status = 'posted', posted_at = ?, url = ?
+            WHERE id = ?
+        """, (datetime.now().isoformat(), url, post_id))
+    else:
+        cursor.execute("""
+            UPDATE social_posts
+            SET status = 'posted', posted_at = ?
+            WHERE id = ?
+        """, (datetime.now().isoformat(), post_id))
+
+    conn.commit()
+    conn.close()
+
+    return True
+
+
+def search_social_posts(query: str) -> list[dict]:
+    """Search social posts by content, tags, or audience."""
+    init_db(silent=True)
+    conn = get_db()
+    cursor = conn.cursor()
+
+    search_term = f"%{query}%"
+    cursor.execute("""
+        SELECT sp.*, g.title as goal_title
+        FROM social_posts sp
+        LEFT JOIN goals g ON sp.goal_id = g.id
+        WHERE LOWER(sp.content) LIKE LOWER(?)
+           OR LOWER(sp.tags) LIKE LOWER(?)
+           OR LOWER(sp.audience) LIKE LOWER(?)
+        ORDER BY sp.created_at DESC
     """, (search_term, search_term, search_term))
 
     results = [dict(row) for row in cursor.fetchall()]
@@ -3522,6 +3762,7 @@ def get_stats() -> dict:
         'goals': {'total': 0, 'active': 0, 'achieved': 0},
         'ideas': {'total': 0, 'captured': 0, 'actionable': 0},
         'lead_scores': {'total': 0, 'by_category': {}},
+        'social_posts': {'total': 0, 'draft': 0, 'posted': 0, 'by_platform': {}},
         # Vault 2.0 tables
         'documents': {'total': 0, 'by_type': {}},
         'health_entries': {'total': 0, 'by_category': {}},
@@ -3607,6 +3848,23 @@ def get_stats() -> dict:
     cursor.execute("SELECT category, COUNT(*) FROM lead_scores WHERE category IS NOT NULL GROUP BY category")
     for row in cursor.fetchall():
         stats['lead_scores']['by_category'][row[0]] = row[1]
+
+    # Social posts counts
+    try:
+        cursor.execute("SELECT COUNT(*) FROM social_posts")
+        stats['social_posts']['total'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM social_posts WHERE status = 'draft'")
+        stats['social_posts']['draft'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM social_posts WHERE status = 'posted'")
+        stats['social_posts']['posted'] = cursor.fetchone()[0]
+
+        cursor.execute("SELECT platform, COUNT(*) FROM social_posts GROUP BY platform")
+        for row in cursor.fetchall():
+            stats['social_posts']['by_platform'][row[0]] = row[1]
+    except sqlite3.OperationalError:
+        pass  # Table may not exist in older databases
 
     # Vault 2.0: Document counts
     try:

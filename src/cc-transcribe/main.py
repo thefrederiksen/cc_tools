@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_transcribe CLI."""
+"""Entry point for cc-transcribe CLI."""
 
 import sys
 from pathlib import Path

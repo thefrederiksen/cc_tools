@@ -1,4 +1,4 @@
-"""CLI for cc_photos - photo organization tool."""
+"""CLI for cc-photos - photo organization tool."""
 
 import os
 import string
@@ -26,7 +26,7 @@ except ImportError:
 
 
 app = typer.Typer(
-    name="cc_photos",
+    name="cc-photos",
     help="Photo organization tool: scan, categorize, detect duplicates and screenshots, AI descriptions.",
     add_completion=False,
 )
@@ -35,7 +35,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_photos version {__version__}")
+        console.print(f"cc-photos version {__version__}")
         raise typer.Exit()
 
 
@@ -121,7 +121,7 @@ def source_list():
     sources = db.list_sources()
 
     if not sources:
-        console.print("No sources configured. Add one with: cc_photos source add <path> -l <label>")
+        console.print("No sources configured. Add one with: cc-photos source add <path> -l <label>")
         return
 
     table = Table(title="Photo Sources")
@@ -195,7 +195,7 @@ def exclude_list():
 
     if not exclusions:
         console.print("No exclusions configured.")
-        console.print("Add one with: cc_photos exclude add <path>")
+        console.print("Add one with: cc-photos exclude add <path>")
         return
 
     table = Table(title="Excluded Paths")
@@ -365,9 +365,9 @@ def discover(
         console.print(table)
 
         console.print("\n[dim]To add a directory as a source:[/dim]")
-        console.print("  cc_photos init <path> --category <private|work|other>")
+        console.print("  cc-photos init <path> --category <private|work|other>")
         console.print("\n[dim]Or use source add for more control:[/dim]")
-        console.print("  cc_photos source add <path> -l <label> -c <category> -p <priority>")
+        console.print("  cc-photos source add <path> -l <label> -c <category> -p <priority>")
 
 
 
@@ -404,13 +404,13 @@ def scan(
     excluded paths. Creates one source per drive automatically.
 
     First run adds default exclusions (Windows, Program Files, etc.)
-    Use 'cc_photos exclude add <path>' to add more exclusions.
+    Use 'cc-photos exclude add <path>' to add more exclusions.
 
     Examples:
-        cc_photos scan                    # Scan all drives
-        cc_photos scan D: E:              # Scan specific drives only
-        cc_photos scan --source "D Drive" # Rescan existing source only
-        cc_photos scan --category private # Mark new photos as private
+        cc-photos scan                    # Scan all drives
+        cc-photos scan D: E:              # Scan specific drives only
+        cc-photos scan --source "D Drive" # Rescan existing source only
+        cc-photos scan --category private # Mark new photos as private
     """
     # Validate category
     if category not in ("private", "work", "other"):
@@ -468,7 +468,7 @@ def scan(
         console.print("[cyan]First run - adding default exclusions...[/cyan]")
         count = db.add_default_exclusions()
         console.print(f"  Added {count} default exclusions (Windows, Program Files, etc.)")
-        console.print("  Use 'cc_photos exclude list' to view, 'cc_photos exclude add' to add more\n")
+        console.print("  Use 'cc-photos exclude list' to view, 'cc-photos exclude add' to add more\n")
 
     # Get drives to scan
     if drives:
@@ -572,9 +572,9 @@ def scan(
     # Show next steps on first run
     if total_added > 0:
         console.print("\n[dim]Next steps:[/dim]")
-        console.print("  cc_photos stats           # View statistics")
-        console.print("  cc_photos dupes           # Find duplicates")
-        console.print("  cc_photos analyze -n 10   # AI analyze 10 photos")
+        console.print("  cc-photos stats           # View statistics")
+        console.print("  cc-photos dupes           # Find duplicates")
+        console.print("  cc-photos analyze -n 10   # AI analyze 10 photos")
 
 
 # ============================================================================

@@ -1,1 +1,1 @@
-"""Tests for cc_youtube."""
+"""Tests for cc-youtube."""

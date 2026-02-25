@@ -1,4 +1,4 @@
-"""Tests for cc_vault CLI commands."""
+"""Tests for cc-vault CLI commands."""
 
 import os
 import pytest
@@ -38,7 +38,7 @@ class TestCLIBasic:
         _, app = test_vault
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "cc_vault version" in result.output
+        assert "cc-vault version" in result.output
 
     def test_help(self, runner, test_vault):
         """Test --help flag."""

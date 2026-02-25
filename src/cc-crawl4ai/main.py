@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_crawl4ai CLI."""
+"""Entry point for cc-crawl4ai CLI."""
 
 import sys
 from pathlib import Path

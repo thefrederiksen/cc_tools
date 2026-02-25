@@ -1,1 +1,1 @@
-"""Tests for cc_reddit."""
+"""Tests for cc-reddit."""

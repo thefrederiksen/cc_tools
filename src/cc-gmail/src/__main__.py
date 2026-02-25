@@ -1,4 +1,4 @@
-"""Package entry point for cc_gmail."""
+"""Package entry point for cc-gmail."""
 
 from .cli import app
 

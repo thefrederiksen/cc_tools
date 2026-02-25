@@ -1,5 +1,5 @@
 """
-Core installer logic for cc_tools.
+Core installer logic for cc-tools.
 """
 
 import os
@@ -18,21 +18,21 @@ from github_api import (
 
 # Tools to install (order matters for display)
 TOOLS = [
-    "cc_markdown",
-    "cc_transcribe",
-    "cc_image",
-    "cc_voice",
-    "cc_whisper",
-    "cc_video",
+    "cc-markdown",
+    "cc-transcribe",
+    "cc-image",
+    "cc-voice",
+    "cc-whisper",
+    "cc-video",
 ]
 
 
 class CCToolsInstaller:
-    """Installer for cc_tools suite."""
+    """Installer for cc-tools suite."""
 
     def __init__(self):
-        self.install_dir = Path(os.environ.get("LOCALAPPDATA", "")) / "cc_tools"
-        self.skill_dir = Path(os.environ.get("USERPROFILE", "")) / ".claude" / "skills" / "cc_tools"
+        self.install_dir = Path(os.environ.get("LOCALAPPDATA", "")) / "cc-tools"
+        self.skill_dir = Path(os.environ.get("USERPROFILE", "")) / ".claude" / "skills" / "cc-tools"
 
     def install(self) -> bool:
         """
@@ -75,7 +75,7 @@ class CCToolsInstaller:
         self.skill_dir.mkdir(parents=True, exist_ok=True)
         skill_path = self.skill_dir / "SKILL.md"
 
-        if download_raw_file("skills/cc_tools/SKILL.md", str(skill_path)):
+        if download_raw_file("skills/cc-tools/SKILL.md", str(skill_path)):
             print(f"      Installed: {skill_path}")
         else:
             print(f"      WARNING: Could not download SKILL.md")

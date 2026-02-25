@@ -1,4 +1,4 @@
-"""Core crawler module for cc_crawl4ai."""
+"""Core crawler module for cc-crawl4ai."""
 
 import asyncio
 import json

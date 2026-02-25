@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_outlook CLI."""
+"""Entry point for cc-outlook CLI."""
 
 import sys
 from pathlib import Path

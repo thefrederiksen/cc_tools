@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_photos CLI."""
+"""Entry point for cc-photos CLI."""
 
 import sys
 from pathlib import Path
@@ -16,10 +16,10 @@ else:
     sys.path.insert(0, str(base_path))
     sys.path.insert(0, str(base_path / 'src'))
 
-# Add cc_vault and cc_shared to path
-cc_vault_path = base_path.parent / 'cc_vault'
-if cc_vault_path.exists():
-    sys.path.insert(0, str(cc_vault_path.parent))
+# Add cc-vault and cc_shared to path
+cc-vault_path = base_path.parent / 'cc-vault'
+if cc-vault_path.exists():
+    sys.path.insert(0, str(cc-vault_path.parent))
 
 cc_shared_path = base_path.parent / 'cc_shared'
 if cc_shared_path.exists():

@@ -1,1 +1,1 @@
-"""Tests for cc_transcribe."""
+"""Tests for cc-transcribe."""

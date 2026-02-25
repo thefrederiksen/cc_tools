@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_image CLI."""
+"""Entry point for cc-image CLI."""
 
 import sys
 from pathlib import Path

@@ -1,6 +1,6 @@
 # TriSight & cc-click Test Plan
 
-Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
+Test output directory: `D:\ReposFred\cc-tools\src\trisight\test_output\`
 
 ---
 
@@ -14,7 +14,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 
 2. Create test output directory:
    ```bash
-   mkdir -p D:/ReposFred/cc_tools/src/trisight/test_output
+   mkdir -p D:/ReposFred/cc-tools/src/trisight/test_output
    ```
 
 ---
@@ -24,7 +24,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.1: List Windows
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" list-windows
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" list-windows
 ```
 **Expected:** JSON array of windows including "Notepad" or "Untitled - Notepad"
 **Validation:** Find Notepad in the output
@@ -34,7 +34,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.2: List Elements in Notepad
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" list-elements -w "Notepad"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" list-elements -w "Notepad"
 ```
 **Expected:** JSON array of UI elements (menu items, text area, etc.)
 **Validation:** Should contain elements like "File", "Edit", "View", "Help" menus
@@ -44,7 +44,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.3: Screenshot Notepad
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc_tools/src/trisight/test_output/01_notepad_screenshot.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc-tools/src/trisight/test_output/01_notepad_screenshot.png"
 ```
 **Expected:** Screenshot saved to test_output folder
 **Validation:** Open image - should show Notepad window with "Hello World - Test Document"
@@ -54,7 +54,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.4: Read Text from Element
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" read-text -w "Notepad" --name "Text editor"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" read-text -w "Notepad" --name "Text editor"
 ```
 **Expected:** JSON with text content "Hello World - Test Document"
 **Validation:** Text matches what was typed
@@ -64,7 +64,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.5: Click Menu Item
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Notepad" --name "Edit"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Notepad" --name "Edit"
 ```
 **Expected:** Edit menu opens
 **Validation:** Take screenshot after to verify menu is open
@@ -74,8 +74,8 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 1.6: Type Text
 **Command:** (First click in text area, then type)
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Notepad" --name "Text editor"
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" type -w "Notepad" --text " - Additional text added by cc_click"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Notepad" --name "Text editor"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" type -w "Notepad" --text " - Additional text added by cc-click"
 ```
 **Expected:** Text appended to Notepad
 **Validation:** Screenshot shows new text
@@ -87,7 +87,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.1: UIA Detection Only
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" uia --window "Notepad"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" uia --window "Notepad"
 ```
 **Expected:** JSON with UIA elements from Notepad
 **Validation:** Contains window elements with bounding boxes
@@ -97,9 +97,9 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.2: OCR Detection
 **Command:** (requires screenshot first)
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc_tools/src/trisight/test_output/02_for_ocr.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc-tools/src/trisight/test_output/02_for_ocr.png"
 
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" ocr --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/02_for_ocr.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" ocr --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/02_for_ocr.png"
 ```
 **Expected:** JSON with detected text regions
 **Validation:** Should detect "Hello World", "File", "Edit", etc.
@@ -109,9 +109,9 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.3: Full Detection Pipeline
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc_tools/src/trisight/test_output/03_for_detect.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc-tools/src/trisight/test_output/03_for_detect.png"
 
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/03_for_detect.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/03_for_detect.png"
 ```
 **Expected:** JSON with fused elements from UIA + OCR
 **Validation:** Element count should be higher than UIA-only
@@ -121,9 +121,9 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.4: Detection with Annotation (KEY TEST)
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc_tools/src/trisight/test_output/04_raw.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Notepad" -o "D:/ReposFred/cc-tools/src/trisight/test_output/04_raw.png"
 
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/04_raw.png" --annotate --output "D:/ReposFred/cc_tools/src/trisight/test_output/04_annotated.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/04_raw.png" --annotate --output "D:/ReposFred/cc-tools/src/trisight/test_output/04_annotated.png"
 ```
 **Expected:**
 - JSON output with element details
@@ -135,7 +135,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.5: Annotate Existing Screenshot
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" annotate --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/04_raw.png" --window "Notepad" --output "D:/ReposFred/cc_tools/src/trisight/test_output/05_annotated_v2.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" annotate --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/04_raw.png" --window "Notepad" --output "D:/ReposFred/cc-tools/src/trisight/test_output/05_annotated_v2.png"
 ```
 **Expected:** New annotated screenshot created
 **Validation:** Compare with 04_annotated.png - should be similar
@@ -145,7 +145,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 2.6: UIA-Only Detection (No OCR/Pixel)
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/04_raw.png" --tiers uia --annotate --output "D:/ReposFred/cc_tools/src/trisight/test_output/06_uia_only.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Notepad" --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/04_raw.png" --tiers uia --annotate --output "D:/ReposFred/cc-tools/src/trisight/test_output/06_uia_only.png"
 ```
 **Expected:** Annotated screenshot with only UIA elements
 **Validation:** Compare element count - should be less than full detection
@@ -157,7 +157,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 3.1: Screenshot Browser
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Edge" -o "D:/ReposFred/cc_tools/src/trisight/test_output/07_browser.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Edge" -o "D:/ReposFred/cc-tools/src/trisight/test_output/07_browser.png"
 ```
 **Expected:** Browser window screenshot
 **Validation:** Image shows browser content
@@ -167,7 +167,7 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 3.2: Detect Browser Elements
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Edge" --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/07_browser.png" --annotate --output "D:/ReposFred/cc_tools/src/trisight/test_output/07_browser_annotated.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Edge" --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/07_browser.png" --annotate --output "D:/ReposFred/cc-tools/src/trisight/test_output/07_browser_annotated.png"
 ```
 **Expected:** Annotated browser screenshot
 **Validation:** OCR should detect text that UIA misses in web content
@@ -180,9 +180,9 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 **Prereq:** Open Windows Calculator (calc.exe)
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Calculator" -o "D:/ReposFred/cc_tools/src/trisight/test_output/08_calc.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Calculator" -o "D:/ReposFred/cc-tools/src/trisight/test_output/08_calc.png"
 
-"D:/ReposFred/cc_tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Calculator" --screenshot "D:/ReposFred/cc_tools/src/trisight/test_output/08_calc.png" --annotate --output "D:/ReposFred/cc_tools/src/trisight/test_output/08_calc_annotated.png"
+"D:/ReposFred/cc-tools/src/trisight/TrisightCli/bin/Release/net10.0-windows10.0.17763.0/TrisightCli.exe" detect --window "Calculator" --screenshot "D:/ReposFred/cc-tools/src/trisight/test_output/08_calc.png" --annotate --output "D:/ReposFred/cc-tools/src/trisight/test_output/08_calc_annotated.png"
 ```
 **Expected:** All calculator buttons detected and numbered
 **Validation:** Each button (0-9, +, -, *, /, =) should have a bounding box
@@ -192,11 +192,11 @@ Test output directory: `D:\ReposFred\cc_tools\src\trisight\test_output\`
 ### Test 4.2: Click Calculator Button
 **Command:**
 ```bash
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Seven"
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Plus"
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Three"
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Equals"
-"D:/ReposFred/cc_tools/src/cc_click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Calculator" -o "D:/ReposFred/cc_tools/src/trisight/test_output/09_calc_result.png"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Seven"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Plus"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Three"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" click -w "Calculator" --name "Equals"
+"D:/ReposFred/cc-tools/src/cc-click/src/CcClick/bin/Release/net10.0-windows/CcClick.exe" screenshot -w "Calculator" -o "D:/ReposFred/cc-tools/src/trisight/test_output/09_calc_result.png"
 ```
 **Expected:** Calculator shows "10"
 **Validation:** Screenshot shows 7+3=10

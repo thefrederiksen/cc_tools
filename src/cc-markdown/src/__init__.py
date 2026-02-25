@@ -1,4 +1,4 @@
-"""cc_markdown - Convert Markdown to PDF, Word, and HTML with beautiful themes."""
+"""cc-markdown - Convert Markdown to PDF, Word, and HTML with beautiful themes."""
 
 __version__ = "0.1.0"
 __author__ = "CenterConsulting Inc."

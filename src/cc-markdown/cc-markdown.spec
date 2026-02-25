@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for cc_markdown."""
+"""PyInstaller spec file for cc-markdown."""
 
 import os
 from pathlib import Path

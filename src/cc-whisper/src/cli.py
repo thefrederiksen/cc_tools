@@ -1,4 +1,4 @@
-"""CLI for cc_whisper."""
+"""CLI for cc-whisper."""
 
 import json
 from pathlib import Path
@@ -7,11 +7,15 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from . import __version__
-from .transcribe import transcribe, transcribe_to_file, transcribe_formatted, translate
+try:
+    from . import __version__
+    from .transcribe import transcribe, transcribe_to_file, transcribe_formatted, translate
+except ImportError:
+    from src import __version__
+    from src.transcribe import transcribe, transcribe_to_file, transcribe_formatted, translate
 
 app = typer.Typer(
-    name="cc_whisper",
+    name="cc-whisper",
     help="Transcribe audio files using OpenAI Whisper.",
     add_completion=False,
 )
@@ -20,7 +24,7 @@ console = Console()
 
 def version_callback(value: bool) -> None:
     if value:
-        console.print(f"cc_whisper version {__version__}")
+        console.print(f"cc-whisper version {__version__}")
         raise typer.Exit()
 
 

@@ -1,11 +1,11 @@
 @echo off
-REM Build all cc_tools and copy to C:\cc-tools
+REM Build all cc-tools and copy to C:\cc-tools
 REM Usage: scripts\build.bat
 
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo Building all cc_tools
+echo Building all cc-tools
 echo ============================================
 echo.
 
@@ -25,7 +25,7 @@ REM ============================================
 REM Python tools (built with PyInstaller)
 REM Directory names use underscores, exe names use dashes
 REM ============================================
-set "PYTHON_TOOLS=cc_comm_queue cc_crawl4ai cc_gmail cc_hardware cc_image cc_linkedin cc_markdown cc_outlook cc_photos cc_reddit cc_setup cc_transcribe cc_vault cc_video cc_voice cc_whisper cc_youtube_info"
+set "PYTHON_TOOLS=cc-comm-queue cc-crawl4ai cc-gmail cc-hardware cc-image cc-linkedin cc-markdown cc-outlook cc-photos cc-reddit cc-setup cc-transcribe cc-vault cc-video cc-voice cc-whisper cc-youtube-info"
 
 for %%T in (%PYTHON_TOOLS%) do (
     echo.
@@ -35,7 +35,7 @@ for %%T in (%PYTHON_TOOLS%) do (
 
     set "TOOL_DIR=%REPO_DIR%\src\%%T"
 
-    REM Convert underscore to dash for exe name (cc_outlook -> cc-outlook)
+    REM Convert underscore to dash for exe name (cc-outlook -> cc-outlook)
     set "EXE_NAME=%%T"
     set "EXE_NAME=!EXE_NAME:_=-!"
 
@@ -45,8 +45,8 @@ for %%T in (%PYTHON_TOOLS%) do (
 
         if !errorlevel! equ 0 (
             REM Copy exe to install directory
-            REM Handle special case: cc_setup builds as cc-tools-setup.exe
-            if "%%T"=="cc_setup" (
+            REM Handle special case: cc-setup builds as cc-tools-setup.exe
+            if "%%T"=="cc-setup" (
                 if exist "dist\cc-tools-setup.exe" (
                     copy /Y "dist\cc-tools-setup.exe" "%INSTALL_DIR%\" >nul
                     echo [OK] cc-tools-setup.exe copied to %INSTALL_DIR%
@@ -77,14 +77,14 @@ for %%T in (%PYTHON_TOOLS%) do (
 )
 
 REM ============================================
-REM Node.js tools (cc_browser)
+REM Node.js tools (cc-browser)
 REM ============================================
 echo.
 echo --------------------------------------------
-echo Building cc_browser (Node.js)...
+echo Building cc-browser (Node.js)...
 echo --------------------------------------------
 
-set "BROWSER_SRC=%REPO_DIR%\src\cc_browser"
+set "BROWSER_SRC=%REPO_DIR%\src\cc-browser"
 set "BROWSER_DEST=%INSTALL_DIR%\cc-browser"
 
 if exist "%BROWSER_SRC%\build.ps1" (
@@ -111,27 +111,27 @@ if exist "%BROWSER_SRC%\build.ps1" (
         echo [OK] cc-browser installed to %BROWSER_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
-        echo [FAIL] Build failed for cc_browser
-        set "FAILED=!FAILED! cc_browser"
+        echo [FAIL] Build failed for cc-browser
+        set "FAILED=!FAILED! cc-browser"
         set /a FAIL_COUNT+=1
     )
     popd
 ) else (
-    echo [SKIP] No build.ps1 found for cc_browser
+    echo [SKIP] No build.ps1 found for cc-browser
 )
 
 REM ============================================
-REM .NET tools (cc_click, cc_trisight)
+REM .NET tools (cc-click, cc-trisight)
 REM ============================================
 echo.
 echo --------------------------------------------
-echo Building cc_click (.NET)...
+echo Building cc-click (.NET)...
 echo --------------------------------------------
 
-set "CCCLICK_SRC=%REPO_DIR%\src\cc_click"
+set "CCCLICK_SRC=%REPO_DIR%\src\cc-click"
 set "CCCLICK_DEST=%INSTALL_DIR%\cc-click"
 
-if exist "%CCCLICK_SRC%\cc_click.slnx" (
+if exist "%CCCLICK_SRC%\cc-click.slnx" (
     pushd "%CCCLICK_SRC%"
     dotnet publish -c Release -o "%CCCLICK_DEST%"
 
@@ -141,24 +141,24 @@ if exist "%CCCLICK_SRC%\cc_click.slnx" (
         echo [OK] cc-click installed to %CCCLICK_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
-        echo [FAIL] Build failed for cc_click
-        set "FAILED=!FAILED! cc_click"
+        echo [FAIL] Build failed for cc-click
+        set "FAILED=!FAILED! cc-click"
         set /a FAIL_COUNT+=1
     )
     popd
 ) else (
-    echo [SKIP] No cc_click.slnx found
+    echo [SKIP] No cc-click.slnx found
 )
 
 echo.
 echo --------------------------------------------
-echo Building cc_trisight (.NET)...
+echo Building cc-trisight (.NET)...
 echo --------------------------------------------
 
-set "TRISIGHT_SRC=%REPO_DIR%\src\cc_trisight"
+set "TRISIGHT_SRC=%REPO_DIR%\src\cc-trisight"
 set "TRISIGHT_DEST=%INSTALL_DIR%\cc-trisight"
 
-if exist "%TRISIGHT_SRC%\cc_trisight.slnx" (
+if exist "%TRISIGHT_SRC%\cc-trisight.slnx" (
     pushd "%TRISIGHT_SRC%"
     dotnet publish -c Release -o "%TRISIGHT_DEST%"
 
@@ -168,13 +168,13 @@ if exist "%TRISIGHT_SRC%\cc_trisight.slnx" (
         echo [OK] cc-trisight installed to %TRISIGHT_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
-        echo [FAIL] Build failed for cc_trisight
-        set "FAILED=!FAILED! cc_trisight"
+        echo [FAIL] Build failed for cc-trisight
+        set "FAILED=!FAILED! cc-trisight"
         set /a FAIL_COUNT+=1
     )
     popd
 ) else (
-    echo [SKIP] No cc_trisight.slnx found
+    echo [SKIP] No cc-trisight.slnx found
 )
 
 REM ============================================

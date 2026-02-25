@@ -1,4 +1,4 @@
-"""Tests for cc_vault database operations."""
+"""Tests for cc-vault database operations."""
 
 import os
 import tempfile

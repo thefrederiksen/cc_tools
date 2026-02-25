@@ -4,7 +4,7 @@ These selectors target the LinkedIn interface.
 LinkedIn uses React with various data-testid attributes and ARIA labels.
 
 Note: LinkedIn's UI changes frequently. These selectors may need updates.
-The cc_browser snapshot command with --interactive is the best way to
+The cc-browser snapshot command with --interactive is the best way to
 discover current element refs.
 """
 

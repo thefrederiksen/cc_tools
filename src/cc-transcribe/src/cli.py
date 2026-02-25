@@ -1,4 +1,4 @@
-"""CLI for cc_transcribe."""
+"""CLI for cc-transcribe."""
 
 import logging
 from pathlib import Path
@@ -21,7 +21,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = typer.Typer(
-    name="cc_transcribe",
+    name="cc-transcribe",
     help="Transcribe video and audio files with timestamps and screenshots.",
     add_completion=False,
 )
@@ -30,7 +30,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_transcribe version {__version__}")
+        console.print(f"cc-transcribe version {__version__}")
         raise typer.Exit()
 
 

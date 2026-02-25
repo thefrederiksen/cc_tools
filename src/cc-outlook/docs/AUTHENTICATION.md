@@ -33,7 +33,7 @@ Device Code Flow solves all these by separating browser authentication from the 
 1. Go to [Azure Portal](https://portal.azure.com) -> Azure Active Directory -> App registrations
 2. Click "New registration"
 3. Configure:
-   - **Name:** `cc_outlook_cli` (or your preferred name)
+   - **Name:** `cc-outlook_cli` (or your preferred name)
    - **Supported account types:** "Accounts in any organizational directory and personal Microsoft accounts"
    - **Redirect URI:**
      - Platform: "Mobile and desktop applications"
@@ -70,7 +70,7 @@ Without this, you'll get: `Failed to create device flow`
 
 These are delegated permissions and don't require admin consent.
 
-### Step 4: Add Account to cc_outlook
+### Step 4: Add Account to cc-outlook
 
 ```bash
 cc-outlook accounts add your.email@domain.com --client-id YOUR_CLIENT_ID
@@ -136,8 +136,8 @@ cc-outlook calendar events -d 14     # Next 14 days
 ## Token Storage
 
 Tokens are stored locally:
-- **Windows:** `%USERPROFILE%\.cc_outlook\tokens\`
-- **Linux/Mac:** `~/.cc_outlook/tokens/`
+- **Windows:** `%USERPROFILE%\.cc-outlook\tokens\`
+- **Linux/Mac:** `~/.cc-outlook/tokens/`
 
 Token files contain:
 - Access tokens (expire in ~1 hour, auto-refreshed by MSAL)

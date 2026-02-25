@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_markdown CLI."""
+"""Entry point for cc-markdown CLI."""
 
 import sys
 from pathlib import Path

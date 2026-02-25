@@ -1,4 +1,4 @@
-"""cc_reddit CLI - Reddit interactions via browser automation."""
+"""cc-reddit CLI - Reddit interactions via browser automation."""
 
 import typer
 from rich.console import Console
@@ -13,7 +13,7 @@ from .browser_client import BrowserClient, BrowserError, ProfileError
 from .selectors import RedditURLs, NewReddit
 
 app = typer.Typer(
-    name="cc_reddit",
+    name="cc-reddit",
     help="Reddit CLI via browser automation",
     no_args_is_help=True,
 )
@@ -98,7 +98,7 @@ def main(
 ):
     """Reddit CLI via browser automation.
 
-    Requires cc_browser daemon to be running with the specified profile.
+    Requires cc-browser daemon to be running with the specified profile.
     Start it with: cc-browser daemon --profile chrome-work
     """
     config.profile = profile
@@ -113,13 +113,13 @@ def main(
 
 @app.command()
 def status():
-    """Check cc_browser daemon and Reddit login status."""
+    """Check cc-browser daemon and Reddit login status."""
     try:
         client = get_client()
 
         # Check daemon status
         result = client.status()
-        console.print("[green]cc_browser daemon:[/green] running")
+        console.print("[green]cc-browser daemon:[/green] running")
 
         browser_status = result.get("browser", "unknown")
         console.print(f"[green]Browser:[/green] {browser_status}")
@@ -927,7 +927,7 @@ def comment(
                     break
 
         if not comment_ref:
-            error("Could not find comment input. Try using 'cc_reddit snapshot' to see page elements.")
+            error("Could not find comment input. Try using 'cc-reddit snapshot' to see page elements.")
             raise typer.Exit(1)
 
         # Type comment (human-like speed)

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Build script for cc_markdown executable
+# Build script for cc-markdown executable
 # Usage: ./build.sh
 
 set -e
 
-echo "Building cc_markdown executable..."
+echo "Building cc-markdown executable..."
 
 # Check for Python
 if ! command -v python3 &> /dev/null; then
@@ -28,12 +28,12 @@ pip install -e ".[dev]"
 
 # Build with PyInstaller
 echo "Building executable with PyInstaller..."
-pyinstaller cc_markdown.spec --clean --noconfirm
+pyinstaller cc-markdown.spec --clean --noconfirm
 
 # Check result
-if [ -f "dist/cc_markdown" ]; then
-    size=$(du -h dist/cc_markdown | cut -f1)
-    echo "SUCCESS: Built dist/cc_markdown ($size)"
+if [ -f "dist/cc-markdown" ]; then
+    size=$(du -h dist/cc-markdown | cut -f1)
+    echo "SUCCESS: Built dist/cc-markdown ($size)"
 else
     echo "ERROR: Build failed - executable not found"
     exit 1

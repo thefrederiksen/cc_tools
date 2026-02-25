@@ -1,7 +1,7 @@
-"""CLI interface for cc_docgen using Click.
+"""CLI interface for cc-docgen using Click.
 
 Usage:
-    cc_docgen generate [OPTIONS]
+    cc-docgen generate [OPTIONS]
 """
 
 import sys
@@ -23,9 +23,9 @@ EXIT_OUTPUT_NOT_WRITABLE = 5
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="cc_docgen")
+@click.version_option(version=__version__, prog_name="cc-docgen")
 def cli():
-    """cc_docgen - Generate C4 architecture diagrams from CenCon manifests."""
+    """cc-docgen - Generate C4 architecture diagrams from CenCon manifests."""
     pass
 
 
@@ -73,13 +73,13 @@ def generate(
     Examples:
 
         # Generate with defaults
-        cc_docgen generate
+        cc-docgen generate
 
         # Specify manifest and output
-        cc_docgen generate --manifest ./docs/cencon/architecture_manifest.yaml --output ./docs/cencon/
+        cc-docgen generate --manifest ./docs/cencon/architecture_manifest.yaml --output ./docs/cencon/
 
         # Generate SVG format
-        cc_docgen generate --format svg
+        cc-docgen generate --format svg
     """
     # Set defaults
     if manifest is None:
@@ -107,7 +107,7 @@ def generate(
     # Check output directory is writable
     try:
         output.mkdir(parents=True, exist_ok=True)
-        test_file = output / ".cc_docgen_test"
+        test_file = output / ".cc-docgen_test"
         test_file.touch()
         test_file.unlink()
     except (PermissionError, OSError) as e:

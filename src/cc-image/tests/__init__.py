@@ -1,1 +1,1 @@
-"""Tests for cc_image."""
+"""Tests for cc-image."""

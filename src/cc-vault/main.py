@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Entry point for cc_vault CLI."""
+"""Entry point for cc-vault CLI."""
 
 import sys
 from pathlib import Path
 
 
 def main() -> None:
-    """Main entry point for cc_vault CLI."""
+    """Main entry point for cc-vault CLI."""
     # Add src to path for PyInstaller compatibility
     if getattr(sys, 'frozen', False):
         # Running as compiled executable

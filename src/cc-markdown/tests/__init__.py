@@ -1,1 +1,1 @@
-"""Tests for cc_markdown."""
+"""Tests for cc-markdown."""

@@ -1,4 +1,4 @@
-"""CLI for cc_youtube_info - Extract transcripts, metadata, and information from YouTube videos."""
+"""CLI for cc-youtube-info - Extract transcripts, metadata, and information from YouTube videos."""
 
 import json
 import sys
@@ -46,7 +46,7 @@ except ImportError:
 
 
 app = typer.Typer(
-    name="cc_youtube_info",
+    name="cc-youtube-info",
     help="Extract transcripts, metadata, and information from YouTube videos.",
     add_completion=False,
 )
@@ -58,7 +58,7 @@ stderr_console = Console(stderr=True)
 def version_callback(value: bool) -> None:
     """Print version and exit if --version flag is set."""
     if value:
-        console.print(f"cc_youtube_info version {__version__}")
+        console.print(f"cc-youtube-info version {__version__}")
         raise typer.Exit()
 
 
@@ -179,7 +179,7 @@ def info(
     Get video metadata (title, channel, duration, stats, description).
 
     Example:
-        cc_youtube_info info "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        cc-youtube-info info "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     """
     try:
         video_info = get_video_info(url)
@@ -282,7 +282,7 @@ def languages(
     List available transcript languages for a video.
 
     Example:
-        cc_youtube_info languages "https://www.youtube.com/watch?v=VIDEO_ID"
+        cc-youtube-info languages "https://www.youtube.com/watch?v=VIDEO_ID"
     """
     try:
         langs = list_languages(url)
@@ -324,7 +324,7 @@ def chapters(
     List video chapters with timestamps.
 
     Example:
-        cc_youtube_info chapters "https://www.youtube.com/watch?v=VIDEO_ID"
+        cc-youtube-info chapters "https://www.youtube.com/watch?v=VIDEO_ID"
     """
     try:
         video_info = get_video_info(url)

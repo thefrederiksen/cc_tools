@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_voice CLI."""
+"""Entry point for cc-voice CLI."""
 
 import sys
 from pathlib import Path

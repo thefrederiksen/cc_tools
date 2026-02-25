@@ -1,4 +1,4 @@
-"""Shared configuration and LLM abstraction for cc_tools."""
+"""Shared configuration and LLM abstraction for cc-tools."""
 
 __version__ = "0.1.0"
 

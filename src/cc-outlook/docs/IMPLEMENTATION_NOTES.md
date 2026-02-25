@@ -48,7 +48,7 @@ Device Code Flow is Microsoft's recommended authentication method for CLI/deskto
 | `src/auth.py` | Core authentication logic with MSAL |
 | `src/cli.py` | CLI command updates |
 | `requirements.txt` | Added `msal>=1.20.0` |
-| `cc_outlook.spec` | PyInstaller config |
+| `cc-outlook.spec` | PyInstaller config |
 
 ### MSALTokenBackend Class
 
@@ -65,7 +65,7 @@ class MSALTokenBackend(BaseTokenBackend):
 - Intercepts O365's internal token checking
 
 **Token Storage:**
-- Path: `~/.cc_outlook/tokens/{email}_msal.json`
+- Path: `~/.cc-outlook/tokens/{email}_msal.json`
 - Format: MSAL's SerializableTokenCache JSON (~13KB)
 
 ### Critical Method Overrides
@@ -105,7 +105,7 @@ else:
 ## Token Flow Diagram
 
 ```
-User runs: cc_outlook auth
+User runs: cc-outlook auth
               |
               v
     +-------------------+
@@ -229,14 +229,14 @@ Including them causes: `Configuration error: You cannot use any scope value that
 ## Build
 
 ```bash
-cd src/cc_outlook
+cd src/cc-outlook
 ./build.ps1   # Windows
 ./build.sh    # Linux/Mac
 ```
 
 ### PyInstaller Note
 
-The `cc_outlook.spec` includes:
+The `cc-outlook.spec` includes:
 ```python
 datas=collect_data_files('rich'),
 hiddenimports=[...] + collect_submodules('rich._unicode_data'),
@@ -255,6 +255,6 @@ print(flow["message"], flush=True)
 
 | Item | Path |
 |------|------|
-| Config dir | `~/.cc_outlook/` |
-| Profiles | `~/.cc_outlook/profiles.json` |
-| Token cache | `~/.cc_outlook/tokens/{email}_msal.json` |
+| Config dir | `~/.cc-outlook/` |
+| Profiles | `~/.cc-outlook/profiles.json` |
+| Token cache | `~/.cc-outlook/tokens/{email}_msal.json` |

@@ -8,7 +8,7 @@ Usage:
 import subprocess
 import time
 
-from config import get_cc_click_path
+from config import get_cc-click_path
 
 
 def run(subcommand: str, args: dict[str, str | None] | None = None,
@@ -23,8 +23,8 @@ def run(subcommand: str, args: dict[str, str | None] | None = None,
     Returns:
         Tuple of (exit_code, stdout, stderr, elapsed_ms).
     """
-    cc_click = get_cc_click_path()
-    cmd = [cc_click, subcommand]
+    cc-click = get_cc-click_path()
+    cmd = [cc-click, subcommand]
 
     if args:
         for k, v in args.items():
@@ -47,4 +47,4 @@ def run(subcommand: str, args: dict[str, str | None] | None = None,
         return 1, "", f"cc-click timed out after {timeout}s", elapsed
     except FileNotFoundError:
         elapsed = int((time.perf_counter() - start) * 1000)
-        return 1, "", f"cc-click.exe not found at: {cc_click}", elapsed
+        return 1, "", f"cc-click.exe not found at: {cc-click}", elapsed

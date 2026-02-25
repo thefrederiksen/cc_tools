@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for cc_voice."""
+"""PyInstaller spec file for cc-voice."""
 
 from pathlib import Path
 

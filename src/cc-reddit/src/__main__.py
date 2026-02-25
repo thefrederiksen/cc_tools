@@ -1,4 +1,4 @@
-"""Entry point for cc_reddit."""
+"""Entry point for cc-reddit."""
 
 from src.cli import app
 

@@ -1,4 +1,4 @@
-"""CLI for cc_gmail - Gmail from the command line with multi-account support."""
+"""CLI for cc-gmail - Gmail from the command line with multi-account support."""
 
 import logging
 import sys
@@ -58,7 +58,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = typer.Typer(
-    name="cc_gmail",
+    name="cc-gmail",
     help="Gmail CLI: read, send, search, and manage emails from the command line.",
     add_completion=False,
 )
@@ -154,7 +154,7 @@ state = State()
 def version_callback(value: bool) -> None:
     """Print version and exit if --version flag is set."""
     if value:
-        console.print(f"cc_gmail version {__version__}")
+        console.print(f"cc-gmail version {__version__}")
         raise typer.Exit()
 
 

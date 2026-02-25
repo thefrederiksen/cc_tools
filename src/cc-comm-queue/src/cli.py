@@ -1,4 +1,4 @@
-"""CLI for cc_comm_queue - Communication Manager Queue Tool."""
+"""CLI for cc-comm-queue - Communication Manager Queue Tool."""
 
 import json
 import logging
@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(
-    name="cc_comm_queue",
+    name="cc-comm-queue",
     help="CLI tool for adding content to the Communication Manager approval queue.",
     add_completion=False,
 )
@@ -51,7 +51,7 @@ def get_config():
         return get_cc_config()
     except ImportError:
         # Fallback: read directly from config file
-        config_path = Path.home() / ".cc_tools" / "config.json"
+        config_path = Path.home() / ".cc-tools" / "config.json"
         if config_path.exists():
             with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -61,7 +61,7 @@ def get_config():
             class CommManager:
                 def __init__(self, d):
                     cm = d.get("comm_manager", {})
-                    self.queue_path = cm.get("queue_path", "D:/ReposFred/cc_consult/tools/communication_manager/content")
+                    self.queue_path = cm.get("queue_path", "D:/ReposFred/cc-consult/tools/communication_manager/content")
                     self.default_persona = cm.get("default_persona", "personal")
                     self.default_created_by = cm.get("default_created_by", "claude_code")
                 def get_queue_path(self):
@@ -74,7 +74,7 @@ def get_config():
             class SimpleConfig:
                 pass
             class CommManager:
-                queue_path = "D:/ReposFred/cc_consult/tools/communication_manager/content"
+                queue_path = "D:/ReposFred/cc-consult/tools/communication_manager/content"
                 default_persona = "personal"
                 default_created_by = "claude_code"
                 def get_queue_path(self):
@@ -94,7 +94,7 @@ def get_queue_manager() -> QueueManager:
 def version_callback(value: bool) -> None:
     """Print version and exit if --version flag is set."""
     if value:
-        console.print(f"cc_comm_queue version {__version__}")
+        console.print(f"cc-comm-queue version {__version__}")
         raise typer.Exit()
 
 
@@ -438,7 +438,7 @@ def config_set(
     value: str = typer.Argument(..., help="Config value"),
 ):
     """Set a configuration value."""
-    config_path = Path.home() / ".cc_tools" / "config.json"
+    config_path = Path.home() / ".cc-tools" / "config.json"
 
     # Load existing config
     if config_path.exists():

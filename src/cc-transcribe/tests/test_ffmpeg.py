@@ -1,4 +1,4 @@
-"""Tests for FFmpeg utilities in cc_transcribe."""
+"""Tests for FFmpeg utilities in cc-transcribe."""
 
 import pytest
 from pathlib import Path

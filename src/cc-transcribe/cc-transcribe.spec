@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for cc_transcribe."""
+"""PyInstaller spec file for cc-transcribe."""
 
 from pathlib import Path
 

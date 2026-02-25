@@ -1,4 +1,4 @@
-"""Utility functions for cc_gmail."""
+"""Utility functions for cc-gmail."""
 
 from datetime import datetime
 from typing import Dict, Any, Optional

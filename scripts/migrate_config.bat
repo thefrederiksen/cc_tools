@@ -21,9 +21,9 @@ set DATA_DIR=C:\cc-tools\data
 set USER_HOME=%USERPROFILE%
 
 echo Source locations:
-echo   Gmail:   %USER_HOME%\.cc_gmail
-echo   Outlook: %USER_HOME%\.cc_outlook
-echo   Config:  %USER_HOME%\.cc_tools
+echo   Gmail:   %USER_HOME%\.cc-gmail
+echo   Outlook: %USER_HOME%\.cc-outlook
+echo   Config:  %USER_HOME%\.cc-tools
 echo.
 echo Target location: %DATA_DIR%
 echo.
@@ -39,10 +39,10 @@ echo       Done.
 
 REM Copy Gmail accounts
 echo [2/5] Migrating Gmail accounts...
-if exist "%USER_HOME%\.cc_gmail\accounts" (
-    xcopy "%USER_HOME%\.cc_gmail\accounts" "%DATA_DIR%\gmail\accounts" /E /Y /Q
-    if exist "%USER_HOME%\.cc_gmail\config.json" (
-        copy /Y "%USER_HOME%\.cc_gmail\config.json" "%DATA_DIR%\gmail\config.json"
+if exist "%USER_HOME%\.cc-gmail\accounts" (
+    xcopy "%USER_HOME%\.cc-gmail\accounts" "%DATA_DIR%\gmail\accounts" /E /Y /Q
+    if exist "%USER_HOME%\.cc-gmail\config.json" (
+        copy /Y "%USER_HOME%\.cc-gmail\config.json" "%DATA_DIR%\gmail\config.json"
     )
     echo       Migrated Gmail accounts.
 ) else (
@@ -51,22 +51,22 @@ if exist "%USER_HOME%\.cc_gmail\accounts" (
 
 REM Copy Outlook tokens
 echo [3/5] Migrating Outlook tokens...
-if exist "%USER_HOME%\.cc_outlook\tokens" (
-    xcopy "%USER_HOME%\.cc_outlook\tokens" "%DATA_DIR%\outlook\tokens" /E /Y /Q
+if exist "%USER_HOME%\.cc-outlook\tokens" (
+    xcopy "%USER_HOME%\.cc-outlook\tokens" "%DATA_DIR%\outlook\tokens" /E /Y /Q
     echo       Migrated Outlook tokens.
 ) else (
     echo       No Outlook tokens found to migrate.
 )
 
-if exist "%USER_HOME%\.cc_outlook\profiles.json" (
-    copy /Y "%USER_HOME%\.cc_outlook\profiles.json" "%DATA_DIR%\outlook\profiles.json"
+if exist "%USER_HOME%\.cc-outlook\profiles.json" (
+    copy /Y "%USER_HOME%\.cc-outlook\profiles.json" "%DATA_DIR%\outlook\profiles.json"
     echo       Migrated Outlook profiles.
 )
 
 REM Copy shared config
 echo [4/5] Migrating shared config...
-if exist "%USER_HOME%\.cc_tools\config.json" (
-    copy /Y "%USER_HOME%\.cc_tools\config.json" "%DATA_DIR%\config.json"
+if exist "%USER_HOME%\.cc-tools\config.json" (
+    copy /Y "%USER_HOME%\.cc-tools\config.json" "%DATA_DIR%\config.json"
     echo       Migrated shared config.
 ) else (
     echo       No shared config found to migrate.
@@ -84,7 +84,7 @@ echo.
 echo Next steps:
 echo   1. Rebuild cc-gmail and cc-outlook (run build scripts)
 echo   2. Copy new executables to C:\cc-tools\
-echo   3. Restart cc_director service
+echo   3. Restart cc-director service
 echo   4. Test: cc-gmail list
 echo   5. Test: cc-outlook list
 echo.

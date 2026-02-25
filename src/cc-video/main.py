@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for cc_video CLI."""
+"""Entry point for cc-video CLI."""
 
 import sys
 from pathlib import Path

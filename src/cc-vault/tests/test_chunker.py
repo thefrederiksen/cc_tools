@@ -1,4 +1,4 @@
-"""Tests for cc_vault document chunker."""
+"""Tests for cc-vault document chunker."""
 
 import pytest
 from pathlib import Path

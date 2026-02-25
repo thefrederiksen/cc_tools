@@ -64,7 +64,7 @@ SUGGESTIONS:
 [full path]:[line]
 Issue: [what could be improved]
 
-CRITICAL: Use FULL file paths like D:\ReposFred\cc_tools\src\cc_markdown\main.py:45
+CRITICAL: Use FULL file paths like D:\ReposFred\cc-tools\src\cc-markdown\main.py:45
 Never use just the filename.
 
 STEP 5: Return structured status
@@ -182,4 +182,4 @@ The commit skill depends on the REVIEW_STATUS line.
 
 **Skill Version:** 1.1
 **Last Updated:** 2026-02-18
-**Adapted from:** cc_director review-code skill
+**Adapted from:** cc-director review-code skill

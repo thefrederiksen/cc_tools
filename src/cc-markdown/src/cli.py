@@ -1,4 +1,4 @@
-"""CLI interface for cc_markdown using Typer."""
+"""CLI interface for cc-markdown using Typer."""
 
 import sys
 from pathlib import Path
@@ -26,7 +26,7 @@ except ImportError:
     from src.themes import THEMES, get_theme_css
 
 app = typer.Typer(
-    name="cc_markdown",
+    name="cc-markdown",
     help="Convert Markdown to PDF, Word, and HTML with beautiful themes.",
     add_completion=False,
 )
@@ -35,7 +35,7 @@ console = Console()
 
 def version_callback(value: bool):
     if value:
-        console.print(f"cc_markdown version {__version__}")
+        console.print(f"cc-markdown version {__version__}")
         raise typer.Exit()
 
 

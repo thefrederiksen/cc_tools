@@ -1,4 +1,4 @@
-"""Session management for cc_crawl4ai."""
+"""Session management for cc-crawl4ai."""
 
 import json
 import shutil
@@ -10,14 +10,14 @@ from datetime import datetime
 
 def get_sessions_dir() -> Path:
     """Get the sessions directory."""
-    sessions_dir = Path.home() / ".cc_crawl4ai" / "sessions"
+    sessions_dir = Path.home() / ".cc-crawl4ai" / "sessions"
     sessions_dir.mkdir(parents=True, exist_ok=True)
     return sessions_dir
 
 
 def get_cache_dir() -> Path:
     """Get the cache directory."""
-    cache_dir = Path.home() / ".cc_crawl4ai" / "cache"
+    cache_dir = Path.home() / ".cc-crawl4ai" / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
 

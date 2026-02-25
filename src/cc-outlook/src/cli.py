@@ -1,4 +1,4 @@
-"""CLI for cc_outlook - Outlook from the command line with multi-account support."""
+"""CLI for cc-outlook - Outlook from the command line with multi-account support."""
 
 import logging
 import sys
@@ -58,7 +58,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 app = typer.Typer(
-    name="cc_outlook",
+    name="cc-outlook",
     help="Outlook CLI: read, send, search emails and manage calendar from the command line.",
     add_completion=False,
 )
@@ -81,7 +81,7 @@ _current_account: Optional[str] = None
 def version_callback(value: bool) -> None:
     """Print version and exit if --version flag is set."""
     if value:
-        console.print(f"cc_outlook version {__version__}")
+        console.print(f"cc-outlook version {__version__}")
         raise typer.Exit()
 
 

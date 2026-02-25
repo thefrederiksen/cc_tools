@@ -1,4 +1,4 @@
-"""LLM provider abstraction for cc_tools.
+"""LLM provider abstraction for cc-tools.
 
 Supports OpenAI and Claude Code CLI as providers.
 """

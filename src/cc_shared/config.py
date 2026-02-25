@@ -1,9 +1,9 @@
-"""Shared configuration for cc_tools.
+"""Shared configuration for cc-tools.
 
-Configuration is stored in the cc_tools data directory:
+Configuration is stored in the cc-tools data directory:
 - C:\\cc-tools\\data\\ (if exists, for service access)
 - CC_TOOLS_DATA env var (if set)
-- ~/.cc_tools/ (fallback for user-only use)
+- ~/.cc-tools/ (fallback for user-only use)
 """
 
 import json
@@ -22,7 +22,7 @@ def get_data_dir() -> Path:
     Priority:
     1. CC_TOOLS_DATA environment variable
     2. C:\\cc-tools\\data (if exists - for Windows service access)
-    3. ~/.cc_tools (fallback for user-only use)
+    3. ~/.cc-tools (fallback for user-only use)
 
     Returns:
         Path to the data directory
@@ -37,11 +37,11 @@ def get_data_dir() -> Path:
         return system_path
 
     # 3. Fallback to user home directory
-    return Path.home() / ".cc_tools"
+    return Path.home() / ".cc-tools"
 
 
 def get_config_path() -> Path:
-    """Get the path to the cc_tools config file."""
+    """Get the path to the cc-tools config file."""
     return get_data_dir() / "config.json"
 
 
@@ -122,7 +122,7 @@ class VaultConfig:
 @dataclass
 class CommManagerConfig:
     """Communication Manager configuration."""
-    queue_path: str = "D:/ReposFred/cc_consult/tools/communication_manager/content"
+    queue_path: str = "D:/ReposFred/cc-consult/tools/communication_manager/content"
     default_persona: str = "personal"
     default_created_by: str = "claude_code"
 
@@ -156,7 +156,7 @@ class CommManagerConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CommManagerConfig":
         return cls(
-            queue_path=data.get("queue_path", "D:/ReposFred/cc_consult/tools/communication_manager/content"),
+            queue_path=data.get("queue_path", "D:/ReposFred/cc-consult/tools/communication_manager/content"),
             default_persona=data.get("default_persona", "personal"),
             default_created_by=data.get("default_created_by", "claude_code"),
         )
@@ -165,7 +165,7 @@ class CommManagerConfig:
 @dataclass
 class PhotosConfig:
     """Photos tool configuration."""
-    database_path: str = "~/.cc_tools/photos.db"
+    database_path: str = "~/.cc-tools/photos.db"
     sources: List[PhotoSource] = field(default_factory=list)
 
     def get_database_path(self) -> Path:
@@ -182,13 +182,13 @@ class PhotosConfig:
     def from_dict(cls, data: Dict[str, Any]) -> "PhotosConfig":
         sources = [PhotoSource.from_dict(s) for s in data.get("sources", [])]
         return cls(
-            database_path=data.get("database_path", "~/.cc_tools/photos.db"),
+            database_path=data.get("database_path", "~/.cc-tools/photos.db"),
             sources=sources,
         )
 
 
 class CCToolsConfig:
-    """Main configuration class for cc_tools."""
+    """Main configuration class for cc-tools."""
 
     def __init__(self):
         self.llm = LLMConfig()

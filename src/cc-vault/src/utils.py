@@ -1,4 +1,4 @@
-"""Utility functions for cc_vault."""
+"""Utility functions for cc-vault."""
 
 from datetime import datetime
 from typing import Optional, List, Dict, Any

@@ -155,7 +155,7 @@ def calculate_hash(data: bytes) -> str:
 
 | Element | Convention | Example |
 |---------|------------|---------|
-| Modules | snake_case | `cc_markdown`, `file_utils` |
+| Modules | snake_case | `cc-markdown`, `file_utils` |
 | Classes | PascalCase | `MarkdownConverter`, `ConfigParser` |
 | Functions | snake_case | `convert_file`, `parse_config` |
 | Methods | snake_case | `get_metadata`, `set_option` |
@@ -279,11 +279,11 @@ def test_1() -> None:
 
 ```
 tests/
-    test_cc_markdown/
+    test_cc-markdown/
         test_converter.py
         test_parser.py
         conftest.py  # Shared fixtures
-    test_cc_voice/
+    test_cc-voice/
         test_transcriber.py
 ```
 

@@ -1,4 +1,4 @@
-"""Entry point for running cc_vault as a module."""
+"""Entry point for running cc-vault as a module."""
 
 from .cli import app
 

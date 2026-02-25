@@ -1,4 +1,4 @@
-# cc_tools-setup dependencies
+# cc-tools-setup dependencies
 # Note: Uses only stdlib for minimal footprint
 # requests is NOT needed - we use urllib
 

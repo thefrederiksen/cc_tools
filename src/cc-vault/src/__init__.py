@@ -1,4 +1,4 @@
-"""cc_vault - Personal Data Platform CLI.
+"""cc-vault - Personal Data Platform CLI.
 
 A unified command-line interface for managing contacts, tasks, goals, ideas,
 documents, and semantic search across your personal data vault.

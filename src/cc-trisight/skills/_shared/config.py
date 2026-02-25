@@ -8,15 +8,15 @@ import os
 
 # Updated default paths (exe names use dashes per CLI convention)
 _DEFAULT_CC_CLICK = (
-    r"D:\ReposFred\cc_tools\src\cc_click\src\CcClick\bin\Release\net10.0-windows\cc-click.exe"
+    r"D:\ReposFred\cc-tools\src\cc-click\src\CcClick\bin\Release\net10.0-windows\cc-click.exe"
 )
 
 _DEFAULT_TRISIGHT_CLI = (
-    r"D:\ReposFred\cc_tools\src\cc_trisight\TrisightCli\bin\Release\net10.0-windows10.0.17763.0\cc-trisight.exe"
+    r"D:\ReposFred\cc-tools\src\cc-trisight\TrisightCli\bin\Release\net10.0-windows10.0.17763.0\cc-trisight.exe"
 )
 
 
-def get_cc_click_path() -> str:
+def get_cc-click_path() -> str:
     """Resolve cc-click.exe path."""
     env = os.environ.get("CC_CLICK_PATH")
     if env:

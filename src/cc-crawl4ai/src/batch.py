@@ -1,4 +1,4 @@
-"""Batch processing for cc_crawl4ai."""
+"""Batch processing for cc-crawl4ai."""
 
 import sys
 import asyncio

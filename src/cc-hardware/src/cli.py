@@ -1,4 +1,4 @@
-"""CLI interface for cc_hardware."""
+"""CLI interface for cc-hardware."""
 
 import json
 from typing import Any
@@ -10,7 +10,7 @@ from . import __version__
 from . import hardware
 
 app = typer.Typer(
-    name="cc_hardware",
+    name="cc-hardware",
     help="Query system hardware information.",
     no_args_is_help=False,
 )
@@ -19,7 +19,7 @@ console = Console()
 
 def version_callback(value: bool) -> None:
     if value:
-        console.print(f"cc_hardware v{__version__}")
+        console.print(f"cc-hardware v{__version__}")
         raise typer.Exit()
 
 

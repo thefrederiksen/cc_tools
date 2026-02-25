@@ -38,7 +38,7 @@ This is ~~deleted text~~ with strikethrough.
 
 ## Inline Code
 
-Use the `cc_markdown` command to convert files.
+Use the `cc-markdown` command to convert files.
 
 ## Horizontal Rule
 

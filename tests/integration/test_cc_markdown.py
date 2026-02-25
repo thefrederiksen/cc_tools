@@ -1,4 +1,4 @@
-"""Integration tests for cc_markdown CLI.
+"""Integration tests for cc-markdown CLI.
 
 These tests run the actual CLI tool and verify outputs.
 """
@@ -16,14 +16,14 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 
-def run_cc_markdown(*args, check=True):
-    """Run cc_markdown CLI and return result."""
+def run_cc-markdown(*args, check=True):
+    """Run cc-markdown CLI and return result."""
     cmd = [sys.executable, "-m", "src.cli"] + list(args)
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
-        cwd=Path(__file__).parent.parent.parent / "src" / "cc_markdown",
+        cwd=Path(__file__).parent.parent.parent / "src" / "cc-markdown",
     )
     if check and result.returncode != 0:
         print(f"STDOUT: {result.stdout}")
@@ -36,19 +36,19 @@ class TestCLIBasic:
 
     def test_version(self):
         """Test --version flag."""
-        result = run_cc_markdown("--version")
+        result = run_cc-markdown("--version")
         assert result.returncode == 0
-        assert "cc_markdown" in result.stdout.lower() or "0." in result.stdout
+        assert "cc-markdown" in result.stdout.lower() or "0." in result.stdout
 
     def test_help(self):
         """Test --help flag."""
-        result = run_cc_markdown("--help")
+        result = run_cc-markdown("--help")
         assert result.returncode == 0
         assert "markdown" in result.stdout.lower()
 
     def test_list_themes(self):
         """Test --themes flag."""
-        result = run_cc_markdown("--themes")
+        result = run_cc-markdown("--themes")
         assert result.returncode == 0
         # Check for known themes
         assert "paper" in result.stdout.lower()
@@ -63,7 +63,7 @@ class TestMarkdownToHTML:
         input_file = FIXTURES_DIR / "basic.md"
         output_file = OUTPUT_DIR / "basic.html"
 
-        result = run_cc_markdown(str(input_file), "-o", str(output_file))
+        result = run_cc-markdown(str(input_file), "-o", str(output_file))
 
         assert result.returncode == 0
         assert output_file.exists()
@@ -79,7 +79,7 @@ class TestMarkdownToHTML:
         input_file = FIXTURES_DIR / "advanced.md"
         output_file = OUTPUT_DIR / "advanced.html"
 
-        result = run_cc_markdown(str(input_file), "-o", str(output_file))
+        result = run_cc-markdown(str(input_file), "-o", str(output_file))
 
         assert result.returncode == 0
         assert output_file.exists()
@@ -97,7 +97,7 @@ class TestMarkdownToPDF:
         input_file = FIXTURES_DIR / "basic.md"
         output_file = OUTPUT_DIR / "basic.pdf"
 
-        result = run_cc_markdown(str(input_file), "-o", str(output_file))
+        result = run_cc-markdown(str(input_file), "-o", str(output_file))
 
         assert result.returncode == 0
         assert output_file.exists()
@@ -109,7 +109,7 @@ class TestMarkdownToPDF:
         input_file = FIXTURES_DIR / "report.md"
         output_file = OUTPUT_DIR / "report_boardroom.pdf"
 
-        result = run_cc_markdown(
+        result = run_cc-markdown(
             str(input_file),
             "-o", str(output_file),
             "--theme", "boardroom"
@@ -126,7 +126,7 @@ class TestMarkdownToPDF:
 
         for theme in themes:
             output_file = OUTPUT_DIR / f"theme_{theme}.pdf"
-            result = run_cc_markdown(
+            result = run_cc-markdown(
                 str(input_file),
                 "-o", str(output_file),
                 "--theme", theme
@@ -143,7 +143,7 @@ class TestMarkdownToWord:
         input_file = FIXTURES_DIR / "basic.md"
         output_file = OUTPUT_DIR / "basic.docx"
 
-        result = run_cc_markdown(str(input_file), "-o", str(output_file))
+        result = run_cc-markdown(str(input_file), "-o", str(output_file))
 
         assert result.returncode == 0
         assert output_file.exists()
@@ -154,7 +154,7 @@ class TestMarkdownToWord:
         input_file = FIXTURES_DIR / "report.md"
         output_file = OUTPUT_DIR / "report.docx"
 
-        result = run_cc_markdown(str(input_file), "-o", str(output_file))
+        result = run_cc-markdown(str(input_file), "-o", str(output_file))
 
         assert result.returncode == 0
         assert output_file.exists()
@@ -165,7 +165,7 @@ class TestErrorHandling:
 
     def test_missing_input_file(self):
         """Test error for missing input file."""
-        result = run_cc_markdown("nonexistent.md", "-o", "output.pdf", check=False)
+        result = run_cc-markdown("nonexistent.md", "-o", "output.pdf", check=False)
         assert result.returncode != 0
 
     def test_invalid_theme(self):
@@ -173,7 +173,7 @@ class TestErrorHandling:
         input_file = FIXTURES_DIR / "basic.md"
         output_file = OUTPUT_DIR / "invalid_theme.pdf"
 
-        result = run_cc_markdown(
+        result = run_cc-markdown(
             str(input_file),
             "-o", str(output_file),
             "--theme", "nonexistent_theme",

@@ -20,7 +20,7 @@ choco install graphviz
 
 ```bash
 # From source
-cd cc-tools/src/cc_docgen
+cd cc-tools/src/cc-docgen
 pip install -e .
 
 # Or install dependencies directly
@@ -124,7 +124,7 @@ containers:
 - name: Generate architecture diagrams
   run: |
     pip install click pyyaml diagrams
-    python -m cc_docgen generate  # Module name keeps underscore
+    python -m cc-docgen generate  # Module name keeps underscore
 
 - name: Verify diagrams exist
   run: |
@@ -142,5 +142,5 @@ pip install -e ".[dev]"
 pytest
 
 # Run with verbose output
-python -m cc_docgen generate --verbose  # Module name keeps underscore
+python -m cc-docgen generate --verbose  # Module name keeps underscore
 ```

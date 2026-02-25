@@ -1,4 +1,4 @@
-"""HTTP client wrapper for cc_browser daemon."""
+"""HTTP client wrapper for cc-browser daemon."""
 
 import httpx
 import json
@@ -8,7 +8,7 @@ from typing import Optional
 
 
 class BrowserError(Exception):
-    """Error from cc_browser daemon."""
+    """Error from cc-browser daemon."""
     pass
 
 
@@ -17,7 +17,7 @@ class ProfileError(Exception):
     pass
 
 
-def get_cc_browser_dir() -> Path:
+def get_cc-browser_dir() -> Path:
     """Get cc-browser profiles directory."""
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     if not local_app_data:
@@ -42,17 +42,17 @@ def resolve_profile(profile_name: str) -> dict:
     Raises:
         ProfileError: If profile cannot be found or resolved.
     """
-    cc_browser_dir = get_cc_browser_dir()
+    cc-browser_dir = get_cc-browser_dir()
 
-    if not cc_browser_dir.exists():
+    if not cc-browser_dir.exists():
         raise ProfileError(
-            f"cc-browser directory not found: {cc_browser_dir}\n"
+            f"cc-browser directory not found: {cc-browser_dir}\n"
             "Install cc-browser and create a profile first.\n"
             "Run: cc-browser profile create work"
         )
 
     # Scan all profile directories
-    for profile_dir in cc_browser_dir.iterdir():
+    for profile_dir in cc-browser_dir.iterdir():
         if not profile_dir.is_dir():
             continue
 
@@ -83,7 +83,7 @@ def resolve_profile(profile_name: str) -> dict:
 
     # Profile not found - provide helpful error
     available = []
-    for profile_dir in cc_browser_dir.iterdir():
+    for profile_dir in cc-browser_dir.iterdir():
         if profile_dir.is_dir():
             profile_json = profile_dir / "profile.json"
             if profile_json.exists():
@@ -129,9 +129,9 @@ def get_port_for_profile(profile_name: str) -> int:
 
 
 class BrowserClient:
-    """HTTP client for cc_browser daemon.
+    """HTTP client for cc-browser daemon.
 
-    Communicates with the cc_browser daemon on localhost.
+    Communicates with the cc-browser daemon on localhost.
     Profile is resolved to get the daemon port.
     """
 
@@ -166,7 +166,7 @@ class BrowserClient:
             return result
         except httpx.ConnectError:
             raise BrowserError(
-                f"Cannot connect to cc_browser daemon on port {self.port}.\n"
+                f"Cannot connect to cc-browser daemon on port {self.port}.\n"
                 f"Start it with: cc-browser daemon --profile {self.profile}"
             )
         except httpx.TimeoutException:
@@ -184,7 +184,7 @@ class BrowserClient:
             return result
         except httpx.ConnectError:
             raise BrowserError(
-                f"Cannot connect to cc_browser daemon on port {self.port}.\n"
+                f"Cannot connect to cc-browser daemon on port {self.port}.\n"
                 f"Start it with: cc-browser daemon --profile {self.profile}"
             )
         except httpx.TimeoutException:

@@ -1,4 +1,4 @@
-"""cc_docgen - Architecture diagram generator for CenCon documentation.
+"""cc-docgen - Architecture diagram generator for CenCon documentation.
 
 Converts architecture_manifest.yaml into C4 model diagrams (PNG/SVG).
 """
