@@ -13,6 +13,7 @@ Command-line tools for document conversion, media processing, email, and AI work
 | cc-browser | Persistent browser automation with profiles | Node.js, Playwright |
 | cc-click | Windows UI automation (click, type, inspect) | Windows, .NET |
 | cc-comm-queue | Communication Manager queue CLI | None |
+| cc-computer | AI desktop automation agent with TriSight detection | Windows, .NET, OPENAI_API_KEY |
 | cc-crawl4ai | AI-ready web crawler to clean markdown | Playwright browsers |
 | cc-gmail | Gmail CLI: read, send, search emails | Google OAuth |
 | cc-hardware | System hardware info (RAM, CPU, GPU, disk) | None (NVIDIA for GPU) |
@@ -28,6 +29,43 @@ Command-line tools for document conversion, media processing, email, and AI work
 | cc-voice | Text-to-speech | OpenAI API key |
 | cc-whisper | Audio transcription | OpenAI API key |
 | cc-youtube-info | YouTube transcript/metadata extraction | None |
+
+---
+
+## Desktop Automation Stack
+
+Three tools work together to provide AI-powered desktop automation:
+
+```
+cc-computer (AI Agent - the "brain")
+    |-- Decides what to do next based on screen state
+    |-- LLM-powered (GPT via Semantic Kernel)
+    |-- Screenshot-in-the-loop verification
+    |-- Evidence chain logging for audit
+    |
+    +-- uses TrisightCore (shared detection library)
+    |       |-- 3-tier detection: UI Automation + OCR + Pixel Analysis
+    |       +-- 98.9% element clickability accuracy
+    |
+    +-- calls cc-click for actions
+
+cc-trisight (Detection CLI - the "eyes")
+    |-- Standalone tool for UI element detection
+    |-- Takes screenshot, returns element list with coordinates
+    |-- Outputs annotated screenshots with bounding boxes
+    +-- uses TrisightCore (same shared library)
+
+cc-click (Automation CLI - the "hands")
+    |-- Click at coordinates
+    |-- Type text, send keystrokes
+    |-- List windows, focus windows
+    +-- Low-level Windows UI automation
+```
+
+**When to use which:**
+- `cc-click` - Direct automation when you know exactly what to click/type
+- `cc-trisight` - Inspect UI elements, get coordinates for scripting
+- `cc-computer` - Natural language tasks: "Open Notepad and save a file called test.txt"
 
 ---
 
@@ -468,6 +506,56 @@ cc-comm-queue config set default_persona mindzie
 
 ---
 
+## cc-computer
+
+AI desktop automation agent using TriSight 3-tier visual detection (98.9% element clickability).
+
+```bash
+# Run a task in CLI mode
+cc-computer "Open Notepad and type Hello World"
+
+# Interactive REPL mode
+cc-computer
+
+# Launch GUI mode
+cc-computer-gui
+```
+
+**Features:**
+- Screenshot-in-the-loop verification after every action
+- TriSight 3-tier detection: UI Automation + OCR + Pixel Analysis
+- Evidence chain logging with timestamps and screenshots
+- Semantic Kernel LLM orchestration
+
+**How it works:**
+1. Takes a screenshot
+2. Detects UI elements (buttons, text fields, etc.)
+3. Overlays numbered bounding boxes on screenshot
+4. LLM sees annotated screenshot + element list
+5. LLM issues action (click, type, shortcut)
+6. Agent executes action, captures new screenshot
+7. Loop until task complete
+
+**Configuration:** Edit `appsettings.json` in install directory
+
+```json
+{
+  "LLM": {
+    "ModelId": "gpt-5.2",
+    "ApiKey": "your-key-or-set-OPENAI_API_KEY"
+  },
+  "Desktop": {
+    "CcClickPath": "C:\\cc-tools\\cc-click\\cc-click.exe"
+  }
+}
+```
+
+**Dependencies:**
+- cc-click (for UI automation actions)
+- cc-trisight (shared detection library)
+
+---
+
 ## cc-image
 
 Image generation and analysis using OpenAI.
@@ -543,6 +631,7 @@ set OPENAI_API_KEY=your-key-here
 | cc-browser | Node.js, Playwright |
 | cc-click | Windows, .NET runtime |
 | cc-comm-queue | None |
+| cc-computer | Windows, .NET runtime, OPENAI_API_KEY |
 | cc-crawl4ai | `playwright install chromium` |
 | cc-gmail | OAuth credentials from Google Cloud Console |
 | cc-hardware | None (NVIDIA drivers for GPU info) |

@@ -177,6 +177,34 @@ if exist "%TRISIGHT_SRC%\cc-trisight.slnx" (
     echo [SKIP] No cc-trisight.slnx found
 )
 
+echo.
+echo --------------------------------------------
+echo Building cc-computer (.NET)...
+echo --------------------------------------------
+
+set "CCCOMPUTER_SRC=%REPO_DIR%\src\cc-computer"
+set "CCCOMPUTER_DEST=%INSTALL_DIR%\cc-computer"
+
+if exist "%CCCOMPUTER_SRC%\cc-computer.slnx" (
+    pushd "%CCCOMPUTER_SRC%"
+    dotnet publish ComputerApp -c Release -o "%CCCOMPUTER_DEST%"
+
+    if !errorlevel! equ 0 (
+        REM Create launcher scripts for CLI and GUI modes
+        echo @"%%~dp0cc-computer\cc-computer.exe" --cli %%*> "%INSTALL_DIR%\cc-computer.cmd"
+        echo @"%%~dp0cc-computer\cc-computer.exe" %%*> "%INSTALL_DIR%\cc-computer-gui.cmd"
+        echo [OK] cc-computer installed to %CCCOMPUTER_DEST%
+        set /a SUCCESS_COUNT+=1
+    ) else (
+        echo [FAIL] Build failed for cc-computer
+        set "FAILED=!FAILED! cc-computer"
+        set /a FAIL_COUNT+=1
+    )
+    popd
+) else (
+    echo [SKIP] No cc-computer.slnx found
+)
+
 REM ============================================
 REM Copy documentation
 REM ============================================
