@@ -82,10 +82,10 @@ echo.
 echo Migration complete!
 echo.
 echo Next steps:
-echo   1. Rebuild cc_gmail and cc_outlook (run build scripts)
+echo   1. Rebuild cc-gmail and cc-outlook (run build scripts)
 echo   2. Copy new executables to C:\cc-tools\
 echo   3. Restart cc_director service
-echo   4. Test: cc_gmail list
-echo   5. Test: cc_outlook list
+echo   4. Test: cc-gmail list
+echo   5. Test: cc-outlook list
 echo.
 pause

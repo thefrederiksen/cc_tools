@@ -218,7 +218,7 @@ Claude: [Uses fred_transcribe_video to transcribe with timestamp extraction]
 
 - [Testing Documentation](docs/TESTING.md)
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
-- [Strategy Document](docs/CC_Tools_Strategy.md)
+- [Strategy Document](docs/cc-tools-strategy.md)
 - [cc-markdown PRD](docs/cc-markdown_PRD.md)
 - [Handover Document](docs/HANDOVER.md)
 

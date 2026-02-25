@@ -1,15 +1,15 @@
 {
-  "name": "cc_tools",
+  "name": "cc-tools",
   "version": "0.1.0",
   "description": "CLI tools for agentic coding workflows - Markdown conversion, video transcription, image processing, and more",
   "author": {
     "name": "CenterConsulting Inc.",
     "url": "https://www.centerconsulting.com"
   },
-  "repository": "https://github.com/CenterConsulting/cc_tools",
+  "repository": "https://github.com/CenterConsulting/cc-tools",
   "license": "MIT",
   "skills": [
-    "cc_markdown"
+    "cc-markdown"
   ],
   "keywords": [
     "markdown",

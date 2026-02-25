@@ -3,7 +3,7 @@
 
 set -e
 
-REPO="CenterConsulting/cc_tools"
+REPO="CenterConsulting/cc-tools"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
 # Detect OS and architecture
@@ -65,11 +65,11 @@ else
 fi
 
 # Install SKILL.md for Claude Code integration
-CLAUDE_SKILLS_DIR="$HOME/.claude/skills/cc_markdown"
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills/cc-markdown"
 mkdir -p "$CLAUDE_SKILLS_DIR"
 
 echo "Installing SKILL.md for Claude Code..."
-SKILL_URL="https://raw.githubusercontent.com/$REPO/main/skills/cc_markdown/SKILL.md"
+SKILL_URL="https://raw.githubusercontent.com/$REPO/main/skills/cc-markdown/SKILL.md"
 if curl -sL "$SKILL_URL" -o "$CLAUDE_SKILLS_DIR/SKILL.md"; then
     echo "SKILL.md installed to: $CLAUDE_SKILLS_DIR"
 else
