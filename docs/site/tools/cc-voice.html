@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cc-voice - Text to Speech</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="../index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#2563eb"/>
+                        <path d="M10 18L14 22L26 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    CC Tools
+                </a>
+                <nav class="nav">
+                    <a href="../index.html">Tools</a>
+                    <a href="../getting-started.html">Getting Started</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Doc Header -->
+    <section class="doc-header voice">
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="../index.html">Tools</a>
+                <span>/</span>
+                <span>cc-voice</span>
+            </div>
+            <h1>cc-voice</h1>
+            <p>Convert text to natural-sounding speech with multiple voices and automatic markdown cleaning.</p>
+        </div>
+    </section>
+
+    <!-- Content -->
+    <section class="doc-content">
+        <div class="container">
+            <div class="doc-layout">
+                <!-- Sidebar -->
+                <aside class="doc-sidebar">
+                    <nav class="doc-nav">
+                        <h4>On This Page</h4>
+                        <ul>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#requirements">Requirements</a></li>
+                            <li><a href="#usage">Usage</a></li>
+                            <li><a href="#options">Options</a></li>
+                            <li><a href="#voices">Voices</a></li>
+                            <li><a href="#examples">Examples</a></li>
+                            <li><a href="#workflow">How It Works</a></li>
+                        </ul>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="doc-main">
+                    <h2 id="overview">Overview</h2>
+                    <p>cc-voice converts text to natural-sounding speech using OpenAI's Text-to-Speech API. It supports multiple voices, automatic markdown cleanup, and handles long texts by splitting them into manageable chunks.</p>
+
+                    <div class="alert alert-warning">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <path d="M12 9v4M12 17h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Requires:</strong> OpenAI API key set as OPENAI_API_KEY environment variable.
+                        </div>
+                    </div>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li>6 distinct voices to choose from</li>
+                        <li>Standard and HD quality options</li>
+                        <li>Automatic markdown formatting removal</li>
+                        <li>Adjustable speech speed (0.25x to 4x)</li>
+                        <li>Handles long texts with automatic chunking</li>
+                        <li>Accepts text directly or from files</li>
+                    </ul>
+
+                    <h2 id="requirements">Requirements</h2>
+                    <div class="command-block">
+                        <div class="command-header">Set API Key</div>
+                        <div class="command-body">
+                            <code># Windows<br>set OPENAI_API_KEY=your-key-here<br><br># macOS / Linux<br>export OPENAI_API_KEY=your-key-here</code>
+                        </div>
+                    </div>
+
+                    <h2 id="usage">Usage</h2>
+                    <div class="command-block">
+                        <div class="command-header">Basic Syntax</div>
+                        <div class="command-body">
+                            <code>cc-voice TEXT_OR_FILE -o OUTPUT.mp3 [OPTIONS]</code>
+                        </div>
+                    </div>
+
+                    <p>The first argument can be either:</p>
+                    <ul>
+                        <li>Direct text in quotes</li>
+                        <li>Path to a text file (.txt, .md, etc.)</li>
+                    </ul>
+
+                    <h2 id="options">Options</h2>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Default</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>-o, --output</code></td>
+                                    <td>Required</td>
+                                    <td>Output audio file path (.mp3)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-v, --voice</code></td>
+                                    <td>onyx</td>
+                                    <td>Voice: alloy, echo, fable, nova, onyx, shimmer</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-m, --model</code></td>
+                                    <td>tts-1</td>
+                                    <td>Model: tts-1 (standard), tts-1-hd (high quality)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-s, --speed</code></td>
+                                    <td>1.0</td>
+                                    <td>Speed: 0.25 to 4.0</td>
+                                </tr>
+                                <tr>
+                                    <td><code>--raw</code></td>
+                                    <td>false</td>
+                                    <td>Don't clean markdown formatting</td>
+                                </tr>
+                                <tr>
+                                    <td><code>--version</code></td>
+                                    <td>-</td>
+                                    <td>Show version and exit</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h2 id="voices">Available Voices</h2>
+                    <p>OpenAI provides 6 distinct voices, each with its own character:</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Voice</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>alloy</code></td>
+                                    <td>Neutral, versatile voice</td>
+                                </tr>
+                                <tr>
+                                    <td><code>echo</code></td>
+                                    <td>Warm, resonant male voice</td>
+                                </tr>
+                                <tr>
+                                    <td><code>fable</code></td>
+                                    <td>British-accented narrator voice</td>
+                                </tr>
+                                <tr>
+                                    <td><code>nova</code></td>
+                                    <td>Friendly, conversational female voice</td>
+                                </tr>
+                                <tr>
+                                    <td><code>onyx</code></td>
+                                    <td>Deep, authoritative male voice (default)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>shimmer</code></td>
+                                    <td>Clear, bright female voice</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Models</h3>
+                    <ul>
+                        <li><strong>tts-1</strong> - Standard quality, faster, lower cost</li>
+                        <li><strong>tts-1-hd</strong> - High definition, better for professional use</li>
+                    </ul>
+
+                    <h2 id="examples">Examples</h2>
+
+                    <h3>Simple Text</h3>
+                    <div class="command-block">
+                        <div class="command-header">Convert text directly</div>
+                        <div class="command-body">
+                            <code>cc-voice "Hello, welcome to CC Tools!" -o greeting.mp3</code>
+                        </div>
+                    </div>
+
+                    <h3>From File</h3>
+                    <div class="command-block">
+                        <div class="command-header">Convert a text file</div>
+                        <div class="command-body">
+                            <code>cc-voice article.txt -o article.mp3</code>
+                        </div>
+                    </div>
+
+                    <h3>Different Voice</h3>
+                    <div class="command-block">
+                        <div class="command-header">Use nova voice</div>
+                        <div class="command-body">
+                            <code>cc-voice script.md -o narration.mp3 -v nova</code>
+                        </div>
+                    </div>
+
+                    <h3>High Quality</h3>
+                    <div class="command-block">
+                        <div class="command-header">HD quality with fable voice</div>
+                        <div class="command-body">
+                            <code>cc-voice story.txt -o audiobook.mp3 -v fable -m tts-1-hd</code>
+                        </div>
+                    </div>
+
+                    <h3>Adjust Speed</h3>
+                    <div class="command-block">
+                        <div class="command-header">Slower speech for clarity</div>
+                        <div class="command-body">
+                            <code>cc-voice tutorial.txt -o slow_tutorial.mp3 -s 0.8</code>
+                        </div>
+                    </div>
+
+                    <h3>Raw Markdown</h3>
+                    <div class="command-block">
+                        <div class="command-header">Keep markdown symbols</div>
+                        <div class="command-body">
+                            <code>cc-voice notes.md -o notes.mp3 --raw</code>
+                        </div>
+                    </div>
+
+                    <h2 id="workflow">How It Works</h2>
+                    <div class="diagram">
+                        <svg viewBox="0 0 750 320" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Input -->
+                            <rect x="50" y="80" width="120" height="80" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                            <text x="110" y="110" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#92400e">Text Input</text>
+                            <text x="110" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#d97706">String or File</text>
+                            <text x="110" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#f59e0b">.txt .md</text>
+
+                            <!-- Arrow -->
+                            <path d="M170 120 L210 120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow3)"/>
+
+                            <!-- Markdown Cleaner -->
+                            <rect x="210" y="80" width="120" height="80" rx="8" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+                            <text x="270" y="110" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#166534">Clean Text</text>
+                            <text x="270" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#22c55e">Strip Markdown</text>
+                            <text x="270" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#10b981">Headers, Links...</text>
+
+                            <!-- Arrow -->
+                            <path d="M330 120 L370 120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow3)"/>
+
+                            <!-- Chunk Splitter -->
+                            <rect x="370" y="80" width="120" height="80" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+                            <text x="430" y="110" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">Split Chunks</text>
+                            <text x="430" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#7c3aed">Long Text</text>
+                            <text x="430" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#8b5cf6">Max 4096 chars</text>
+
+                            <!-- Arrow -->
+                            <path d="M490 120 L530 120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow3)"/>
+
+                            <!-- OpenAI TTS -->
+                            <rect x="530" y="60" width="140" height="120" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+                            <text x="600" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#1e40af">OpenAI TTS</text>
+                            <text x="600" y="115" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#3b82f6">6 Voices</text>
+                            <text x="600" y="135" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#3b82f6">tts-1 / tts-1-hd</text>
+                            <text x="600" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#60a5fa">0.25x - 4.0x speed</text>
+
+                            <!-- Arrow down -->
+                            <path d="M600 180 L600 210 L500 210 L500 240" stroke="#64748b" stroke-width="2" marker-end="url(#arrow3)"/>
+
+                            <!-- Output -->
+                            <rect x="420" y="240" width="160" height="50" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+                            <text x="500" y="270" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="#991b1b">output.mp3</text>
+
+                            <!-- Command example -->
+                            <rect x="100" y="240" width="280" height="50" rx="6" fill="#1e293b"/>
+                            <text x="240" y="270" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#e2e8f0">cc-voice text.md -o audio.mp3 -v nova</text>
+
+                            <!-- Arrow marker -->
+                            <defs>
+                                <marker id="arrow3" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+                                </marker>
+                            </defs>
+                        </svg>
+                        <p class="diagram-caption">cc-voice cleans markdown, splits long text into chunks, and converts each chunk to speech</p>
+                    </div>
+
+                    <h3>Processing Steps</h3>
+                    <ol>
+                        <li><strong>Read Input:</strong> Loads text from argument or file</li>
+                        <li><strong>Clean Markdown:</strong> Removes formatting symbols (# headers, ** bold, etc.) unless --raw is used</li>
+                        <li><strong>Split Chunks:</strong> Breaks long text into 4096-character chunks at sentence boundaries</li>
+                        <li><strong>Call TTS API:</strong> Sends each chunk to OpenAI TTS with selected voice and model</li>
+                        <li><strong>Combine Audio:</strong> Merges all audio chunks into the final output file</li>
+                    </ol>
+
+                    <h3>Markdown Cleaning</h3>
+                    <p>By default, cc-voice removes markdown formatting for natural speech:</p>
+                    <ul>
+                        <li>Removes <code># Header</code> markers</li>
+                        <li>Removes <code>**bold**</code> and <code>*italic*</code> markers</li>
+                        <li>Converts <code>[links](url)</code> to just the link text</li>
+                        <li>Removes code fence markers</li>
+                        <li>Preserves actual content for natural reading</li>
+                    </ul>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-logo">CC Tools</div>
+                <div class="footer-links">
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/releases">Releases</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/issues">Issues</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

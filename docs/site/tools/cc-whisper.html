@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cc-whisper - Audio Transcription</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="../index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#2563eb"/>
+                        <path d="M10 18L14 22L26 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    CC Tools
+                </a>
+                <nav class="nav">
+                    <a href="../index.html">Tools</a>
+                    <a href="../getting-started.html">Getting Started</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Doc Header -->
+    <section class="doc-header whisper">
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="../index.html">Tools</a>
+                <span>/</span>
+                <span>cc-whisper</span>
+            </div>
+            <h1>cc-whisper</h1>
+            <p>Transcribe audio files to text using OpenAI Whisper with optional timestamps.</p>
+        </div>
+    </section>
+
+    <!-- Content -->
+    <section class="doc-content">
+        <div class="container">
+            <div class="doc-layout">
+                <!-- Sidebar -->
+                <aside class="doc-sidebar">
+                    <nav class="doc-nav">
+                        <h4>On This Page</h4>
+                        <ul>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#requirements">Requirements</a></li>
+                            <li><a href="#usage">Usage</a></li>
+                            <li><a href="#options">Options</a></li>
+                            <li><a href="#output">Output Formats</a></li>
+                            <li><a href="#examples">Examples</a></li>
+                            <li><a href="#workflow">How It Works</a></li>
+                        </ul>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="doc-main">
+                    <h2 id="overview">Overview</h2>
+                    <p>cc-whisper is a simple audio transcription tool powered by OpenAI's Whisper API. It converts audio files to text with optional word-level timestamps and supports multiple languages.</p>
+
+                    <div class="alert alert-warning">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <path d="M12 9v4M12 17h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Requires:</strong> OpenAI API key set as OPENAI_API_KEY environment variable.
+                        </div>
+                    </div>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li>Transcribe any audio format (mp3, wav, m4a, flac, etc.)</li>
+                        <li>Optional word-level timestamps</li>
+                        <li>Multi-language support with auto-detection</li>
+                        <li>Output to console, file, or JSON</li>
+                        <li>Simple, focused interface</li>
+                    </ul>
+
+                    <div class="alert alert-info">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Audio Only:</strong> For video files with screenshot extraction, use <a href="cc-transcribe.html">cc-transcribe</a> instead.
+                        </div>
+                    </div>
+
+                    <h2 id="requirements">Requirements</h2>
+                    <div class="command-block">
+                        <div class="command-header">Set API Key</div>
+                        <div class="command-body">
+                            <code># Windows<br>set OPENAI_API_KEY=your-key-here<br><br># macOS / Linux<br>export OPENAI_API_KEY=your-key-here</code>
+                        </div>
+                    </div>
+
+                    <h2 id="usage">Usage</h2>
+                    <div class="command-block">
+                        <div class="command-header">Basic Syntax</div>
+                        <div class="command-body">
+                            <code>cc-whisper AUDIO_FILE [OPTIONS]</code>
+                        </div>
+                    </div>
+
+                    <h2 id="options">Options</h2>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Default</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>-o, --output</code></td>
+                                    <td>None</td>
+                                    <td>Output file (default: print to console)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-l, --language</code></td>
+                                    <td>Auto</td>
+                                    <td>Language code (en, es, de, fr, etc.)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-t, --timestamps</code></td>
+                                    <td>false</td>
+                                    <td>Include timestamps in output</td>
+                                </tr>
+                                <tr>
+                                    <td><code>--json</code></td>
+                                    <td>false</td>
+                                    <td>Output as JSON format</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-v, --version</code></td>
+                                    <td>-</td>
+                                    <td>Show version and exit</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Supported Languages</h3>
+                    <p>Whisper supports many languages. Common codes:</p>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Language</th>
+                                    <th>Code</th>
+                                    <th>Language</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>en</code></td>
+                                    <td>English</td>
+                                    <td><code>fr</code></td>
+                                    <td>French</td>
+                                </tr>
+                                <tr>
+                                    <td><code>es</code></td>
+                                    <td>Spanish</td>
+                                    <td><code>de</code></td>
+                                    <td>German</td>
+                                </tr>
+                                <tr>
+                                    <td><code>zh</code></td>
+                                    <td>Chinese</td>
+                                    <td><code>ja</code></td>
+                                    <td>Japanese</td>
+                                </tr>
+                                <tr>
+                                    <td><code>ko</code></td>
+                                    <td>Korean</td>
+                                    <td><code>pt</code></td>
+                                    <td>Portuguese</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h2 id="output">Output Formats</h2>
+
+                    <h3>Plain Text (Default)</h3>
+                    <div class="command-block">
+                        <div class="command-header">Without timestamps</div>
+                        <div class="command-body">
+                            <code>Hello and welcome to today's meeting. We'll be discussing the quarterly results and our plans for next year.</code>
+                        </div>
+                    </div>
+
+                    <h3>With Timestamps</h3>
+                    <div class="command-block">
+                        <div class="command-header">Using -t flag</div>
+                        <div class="command-body">
+                            <code>[00:00] Hello and welcome to today's meeting.<br>[00:04] We'll be discussing the quarterly results<br>[00:08] and our plans for next year.</code>
+                        </div>
+                    </div>
+
+                    <h3>JSON Format</h3>
+                    <div class="command-block">
+                        <div class="command-header">Using --json flag</div>
+                        <div class="command-body">
+                            <code>{<br>  "text": "Hello and welcome...",<br>  "segments": [<br>    {"start": 0.0, "end": 3.5, "text": "Hello and welcome..."},<br>    {"start": 3.5, "end": 7.2, "text": "We'll be discussing..."},<br>    ...<br>  ],<br>  "language": "en"<br>}</code>
+                        </div>
+                    </div>
+
+                    <h2 id="examples">Examples</h2>
+
+                    <h3>Simple Transcription</h3>
+                    <div class="command-block">
+                        <div class="command-header">Print to console</div>
+                        <div class="command-body">
+                            <code>cc-whisper recording.mp3</code>
+                        </div>
+                    </div>
+
+                    <h3>Save to File</h3>
+                    <div class="command-block">
+                        <div class="command-header">Output to text file</div>
+                        <div class="command-body">
+                            <code>cc-whisper interview.m4a -o transcript.txt</code>
+                        </div>
+                    </div>
+
+                    <h3>With Timestamps</h3>
+                    <div class="command-block">
+                        <div class="command-header">Include time markers</div>
+                        <div class="command-body">
+                            <code>cc-whisper podcast.mp3 -o transcript.txt -t</code>
+                        </div>
+                    </div>
+
+                    <h3>Specific Language</h3>
+                    <div class="command-block">
+                        <div class="command-header">Force Spanish detection</div>
+                        <div class="command-body">
+                            <code>cc-whisper audio_es.wav -l es -o spanish.txt</code>
+                        </div>
+                    </div>
+
+                    <h3>JSON Output</h3>
+                    <div class="command-block">
+                        <div class="command-header">Full JSON with segments</div>
+                        <div class="command-body">
+                            <code>cc-whisper meeting.mp3 -o result.json --json</code>
+                        </div>
+                    </div>
+
+                    <h2 id="workflow">How It Works</h2>
+                    <div class="diagram">
+                        <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Audio Input -->
+                            <rect x="50" y="80" width="120" height="80" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+                            <text x="110" y="110" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">Audio File</text>
+                            <text x="110" y="130" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#7c3aed">.mp3 .wav .m4a</text>
+                            <text x="110" y="148" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#8b5cf6">.flac .ogg ...</text>
+
+                            <!-- Arrow -->
+                            <path d="M170 120 L230 120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow4)"/>
+
+                            <!-- OpenAI Whisper -->
+                            <rect x="230" y="60" width="180" height="120" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+                            <text x="320" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#1e40af">OpenAI Whisper</text>
+                            <text x="320" y="120" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#3b82f6">Speech-to-Text API</text>
+                            <text x="320" y="145" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#60a5fa">Multi-language</text>
+                            <text x="320" y="165" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#60a5fa">Auto-detect language</text>
+
+                            <!-- Arrow -->
+                            <path d="M410 120 L470 120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow4)"/>
+
+                            <!-- Output -->
+                            <rect x="470" y="60" width="160" height="120" rx="8" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+                            <text x="550" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#166534">Output</text>
+                            <text x="550" y="120" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#22c55e">Plain text</text>
+                            <text x="550" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#22c55e">With timestamps</text>
+                            <text x="550" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#22c55e">JSON format</text>
+
+                            <!-- Command example -->
+                            <rect x="150" y="210" width="400" height="50" rx="6" fill="#1e293b"/>
+                            <text x="350" y="240" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#e2e8f0">cc-whisper recording.mp3 -o transcript.txt -t</text>
+
+                            <!-- Arrow marker -->
+                            <defs>
+                                <marker id="arrow4" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+                                </marker>
+                            </defs>
+                        </svg>
+                        <p class="diagram-caption">cc-whisper sends audio directly to OpenAI Whisper API and formats the response</p>
+                    </div>
+
+                    <h3>Processing Steps</h3>
+                    <ol>
+                        <li><strong>Load Audio:</strong> Reads the audio file from disk</li>
+                        <li><strong>Upload to API:</strong> Sends audio to OpenAI Whisper endpoint</li>
+                        <li><strong>Receive Transcription:</strong> Gets text with optional segment timestamps</li>
+                        <li><strong>Format Output:</strong> Outputs as plain text, timestamped text, or JSON</li>
+                    </ol>
+
+                    <h3>cc-whisper vs cc-transcribe</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>cc-whisper</th>
+                                    <th>cc-transcribe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Audio files</td>
+                                    <td>Yes</td>
+                                    <td>Yes (via extraction)</td>
+                                </tr>
+                                <tr>
+                                    <td>Video files</td>
+                                    <td>No</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Screenshots</td>
+                                    <td>No</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>FFmpeg required</td>
+                                    <td>No</td>
+                                    <td>Yes</td>
+                                </tr>
+                                <tr>
+                                    <td>Best for</td>
+                                    <td>Podcasts, meetings</td>
+                                    <td>Tutorials, lectures</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-logo">CC Tools</div>
+                <div class="footer-links">
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/releases">Releases</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/issues">Issues</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

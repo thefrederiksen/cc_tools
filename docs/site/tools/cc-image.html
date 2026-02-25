@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cc-image - Unified Image Toolkit</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="../index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#2563eb"/>
+                        <path d="M10 18L14 22L26 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    CC Tools
+                </a>
+                <nav class="nav">
+                    <a href="../index.html">Tools</a>
+                    <a href="../getting-started.html">Getting Started</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Doc Header -->
+    <section class="doc-header image">
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="../index.html">Tools</a>
+                <span>/</span>
+                <span>cc-image</span>
+            </div>
+            <h1>cc-image</h1>
+            <p>Unified image toolkit: resize, convert formats, generate with DALL-E, analyze, and extract text (OCR).</p>
+        </div>
+    </section>
+
+    <!-- Content -->
+    <section class="doc-content">
+        <div class="container">
+            <div class="doc-layout">
+                <!-- Sidebar -->
+                <aside class="doc-sidebar">
+                    <nav class="doc-nav">
+                        <h4>On This Page</h4>
+                        <ul>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#commands">Commands</a></li>
+                            <li><a href="#info">info</a></li>
+                            <li><a href="#resize">resize</a></li>
+                            <li><a href="#convert">convert</a></li>
+                            <li><a href="#describe">describe</a></li>
+                            <li><a href="#ocr">ocr</a></li>
+                            <li><a href="#generate">generate</a></li>
+                            <li><a href="#workflow">How It Works</a></li>
+                        </ul>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="doc-main">
+                    <h2 id="overview">Overview</h2>
+                    <p>cc-image is a unified command-line toolkit for image operations. It combines local processing (resize, convert) with AI-powered features (describe, OCR, generate) in a single tool.</p>
+
+                    <div class="alert alert-info">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        <div>
+                            <strong>API Note:</strong> The <code>info</code>, <code>resize</code>, and <code>convert</code> commands work offline. The <code>describe</code>, <code>ocr</code>, and <code>generate</code> commands require an OpenAI API key.
+                        </div>
+                    </div>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li><strong>info</strong> - Display image metadata (dimensions, format, size)</li>
+                        <li><strong>resize</strong> - Resize images with aspect ratio preservation</li>
+                        <li><strong>convert</strong> - Convert between formats (PNG, JPEG, WebP, etc.)</li>
+                        <li><strong>describe</strong> - Get AI description of image content</li>
+                        <li><strong>ocr</strong> - Extract text from images</li>
+                        <li><strong>generate</strong> - Create images with DALL-E</li>
+                    </ul>
+
+                    <h2 id="commands">Commands</h2>
+                    <div class="command-block">
+                        <div class="command-header">General Syntax</div>
+                        <div class="command-body">
+                            <code>cc-image COMMAND [ARGUMENTS] [OPTIONS]</code>
+                        </div>
+                    </div>
+
+                    <h2 id="info">info - Image Metadata</h2>
+                    <p>Display image dimensions, format, color mode, and file size.</p>
+
+                    <div class="command-block">
+                        <div class="command-header">Usage</div>
+                        <div class="command-body">
+                            <code>cc-image info IMAGE_FILE</code>
+                        </div>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Example</div>
+                        <div class="command-body">
+                            <code>cc-image info photo.jpg<br><br># Output:<br># Dimensions: 1920 x 1080<br># Format: JPEG<br># Mode: RGB<br># Size: 245.3 KB</code>
+                        </div>
+                    </div>
+
+                    <h2 id="resize">resize - Resize Images</h2>
+                    <p>Resize images while preserving aspect ratio. Specify width, height, or both.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>-o, --output</code></td>
+                                    <td>Output file path (required)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-w, --width</code></td>
+                                    <td>Target width in pixels</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-h, --height</code></td>
+                                    <td>Target height in pixels</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-q, --quality</code></td>
+                                    <td>JPEG quality 1-100 (default: 95)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Examples</div>
+                        <div class="command-body">
+                            <code># Resize to 800px width (height auto-calculated)<br>cc-image resize photo.jpg -o thumb.jpg -w 800<br><br># Resize to specific height<br>cc-image resize photo.jpg -o small.jpg -h 600<br><br># Both dimensions (may not preserve aspect ratio)<br>cc-image resize photo.jpg -o resized.jpg -w 1024 -h 768</code>
+                        </div>
+                    </div>
+
+                    <h2 id="convert">convert - Format Conversion</h2>
+                    <p>Convert images between formats. Output format is determined by file extension.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>-o, --output</code></td>
+                                    <td>Output file path (required)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-q, --quality</code></td>
+                                    <td>JPEG quality 1-100 (default: 95)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Examples</div>
+                        <div class="command-body">
+                            <code># PNG to JPEG<br>cc-image convert screenshot.png -o screenshot.jpg<br><br># JPEG to WebP<br>cc-image convert photo.jpg -o photo.webp<br><br># Convert with quality setting<br>cc-image convert image.png -o image.jpg -q 85</code>
+                        </div>
+                    </div>
+
+                    <h2 id="describe">describe - AI Image Analysis</h2>
+                    <p>Get a detailed AI-generated description of image content using GPT-4 Vision.</p>
+
+                    <div class="alert alert-warning">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <path d="M12 9v4M12 17h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Requires:</strong> OPENAI_API_KEY environment variable
+                        </div>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Usage</div>
+                        <div class="command-body">
+                            <code>cc-image describe IMAGE_FILE</code>
+                        </div>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Example</div>
+                        <div class="command-body">
+                            <code>cc-image describe photo.jpg<br><br># Output:<br># This image shows a sunset over a mountain range...<br># The sky displays vibrant orange and purple hues...</code>
+                        </div>
+                    </div>
+
+                    <h2 id="ocr">ocr - Extract Text</h2>
+                    <p>Extract text from images using GPT-4 Vision. Works with screenshots, documents, signs, and more.</p>
+
+                    <div class="command-block">
+                        <div class="command-header">Usage</div>
+                        <div class="command-body">
+                            <code>cc-image ocr IMAGE_FILE</code>
+                        </div>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Example</div>
+                        <div class="command-body">
+                            <code>cc-image ocr receipt.jpg<br><br># Output:<br># GROCERY STORE<br># Date: 2024-01-15<br># Apples    $3.99<br># Bread     $2.49<br># Total     $6.48</code>
+                        </div>
+                    </div>
+
+                    <h2 id="generate">generate - Create with DALL-E</h2>
+                    <p>Generate images from text descriptions using DALL-E 3.</p>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Default</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>-o, --output</code></td>
+                                    <td>Required</td>
+                                    <td>Output file path</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-s, --size</code></td>
+                                    <td>1024x1024</td>
+                                    <td>Size: 1024x1024, 1024x1792, 1792x1024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>-q, --quality</code></td>
+                                    <td>standard</td>
+                                    <td>Quality: standard, hd</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="command-block">
+                        <div class="command-header">Examples</div>
+                        <div class="command-body">
+                            <code># Generate square image<br>cc-image generate "A cat wearing a space helmet" -o space_cat.png<br><br># Portrait orientation<br>cc-image generate "Mountain landscape at sunset" -o mountains.png -s 1024x1792<br><br># High quality<br>cc-image generate "Detailed steampunk clockwork" -o clock.png -q hd</code>
+                        </div>
+                    </div>
+
+                    <h2 id="workflow">How It Works</h2>
+                    <div class="diagram">
+                        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                            <!-- cc-image central box -->
+                            <rect x="300" y="150" width="200" height="100" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="3"/>
+                            <text x="400" y="190" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#166534">cc-image</text>
+                            <text x="400" y="215" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#059669">Unified Image Toolkit</text>
+
+                            <!-- Local Processing (left side) -->
+                            <rect x="50" y="50" width="140" height="60" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="120" y="75" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#475569">info</text>
+                            <text x="120" y="93" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#64748b">Local / Pillow</text>
+
+                            <rect x="50" y="130" width="140" height="60" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="120" y="155" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#475569">resize</text>
+                            <text x="120" y="173" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#64748b">Local / Pillow</text>
+
+                            <rect x="50" y="210" width="140" height="60" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+                            <text x="120" y="235" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#475569">convert</text>
+                            <text x="120" y="253" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#64748b">Local / Pillow</text>
+
+                            <!-- Arrows from local -->
+                            <path d="M190 80 L300 170" stroke="#64748b" stroke-width="1.5"/>
+                            <path d="M190 160 L300 195" stroke="#64748b" stroke-width="1.5"/>
+                            <path d="M190 240 L300 215" stroke="#64748b" stroke-width="1.5"/>
+
+                            <!-- API Features (right side) -->
+                            <rect x="610" y="50" width="140" height="60" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
+                            <text x="680" y="75" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#1e40af">describe</text>
+                            <text x="680" y="93" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#3b82f6">GPT-4 Vision</text>
+
+                            <rect x="610" y="130" width="140" height="60" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
+                            <text x="680" y="155" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#1e40af">ocr</text>
+                            <text x="680" y="173" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#3b82f6">GPT-4 Vision</text>
+
+                            <rect x="610" y="210" width="140" height="60" rx="6" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1"/>
+                            <text x="680" y="235" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#5b21b6">generate</text>
+                            <text x="680" y="253" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#7c3aed">DALL-E 3</text>
+
+                            <!-- Arrows to API -->
+                            <path d="M500 170 L610 80" stroke="#2563eb" stroke-width="1.5"/>
+                            <path d="M500 195 L610 160" stroke="#2563eb" stroke-width="1.5"/>
+                            <path d="M500 215 L610 240" stroke="#8b5cf6" stroke-width="1.5"/>
+
+                            <!-- Labels -->
+                            <text x="120" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#64748b" font-weight="600">OFFLINE</text>
+                            <text x="680" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#2563eb" font-weight="600">OPENAI API</text>
+
+                            <!-- Command examples -->
+                            <rect x="150" y="320" width="500" height="50" rx="6" fill="#1e293b"/>
+                            <text x="400" y="350" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#e2e8f0">cc-image resize photo.jpg -o thumb.jpg -w 800</text>
+                        </svg>
+                        <p class="diagram-caption">cc-image combines local Pillow-based operations with OpenAI API-powered features</p>
+                    </div>
+
+                    <h3>Local Processing</h3>
+                    <p>The <code>info</code>, <code>resize</code>, and <code>convert</code> commands use Pillow (PIL) for fast, local image processing without any external API calls.</p>
+
+                    <h3>AI-Powered Features</h3>
+                    <p>The <code>describe</code> and <code>ocr</code> commands send images to GPT-4 Vision for analysis. The <code>generate</code> command uses DALL-E 3 to create images from text prompts.</p>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-logo">CC Tools</div>
+                <div class="footer-links">
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/releases">Releases</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/issues">Issues</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

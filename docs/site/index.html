@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC Tools - Open Source CLI Tools for Agentic Workflows</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#2563eb"/>
+                        <path d="M10 18L14 22L26 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    CC Tools
+                </a>
+                <nav class="nav">
+                    <a href="index.html" class="active">Tools</a>
+                    <a href="getting-started.html">Getting Started</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <h1>CLI Tools for AI Workflows</h1>
+            <p>Open source command-line utilities designed for agentic coding. Single executables, no dependencies, MIT licensed.</p>
+            <div class="hero-buttons">
+                <a href="#tools" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Explore Tools
+                </a>
+                <a href="https://github.com/CenterConsulting/cc-tools/releases" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    Download
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Overview -->
+    <section class="tools-section" style="background: white; padding-bottom: 2rem;">
+        <div class="container">
+            <div class="section-title">
+                <h2>How CC Tools Work</h2>
+                <p>Simple CLI interfaces that integrate seamlessly with AI coding assistants</p>
+            </div>
+            <div class="diagram">
+                <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background boxes -->
+                    <rect x="50" y="100" width="140" height="100" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+                    <rect x="250" y="100" width="140" height="100" rx="8" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+                    <rect x="450" y="100" width="140" height="100" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <rect x="610" y="100" width="140" height="100" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+
+                    <!-- Labels -->
+                    <text x="120" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#1e40af">AI Assistant</text>
+                    <text x="120" y="165" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#3b82f6">Claude, GPT, etc.</text>
+
+                    <text x="320" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#166534">CC Tools CLI</text>
+                    <text x="320" y="165" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#22c55e">Single Executable</text>
+
+                    <text x="520" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#92400e">Processing</text>
+                    <text x="520" y="165" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#f59e0b">Local or API</text>
+
+                    <text x="680" y="140" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#5b21b6">Output</text>
+                    <text x="680" y="165" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#8b5cf6">PDF, Audio, etc.</text>
+
+                    <!-- Arrows -->
+                    <path d="M190 150 L250 150" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <path d="M390 150 L450 150" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <path d="M590 150 L610 150" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- Arrow marker -->
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+                        </marker>
+                    </defs>
+
+                    <!-- Command example -->
+                    <rect x="200" y="230" width="400" height="40" rx="6" fill="#1e293b"/>
+                    <text x="400" y="255" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="#e2e8f0">cc-markdown report.md -o report.pdf --theme boardroom</text>
+                </svg>
+                <p class="diagram-caption">AI assistants call CC Tools directly via command line to transform files and generate outputs</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools Grid -->
+    <section class="tools-section" id="tools">
+        <div class="container">
+            <div class="section-title">
+                <h2>Available Tools</h2>
+                <p>Each tool is a standalone executable - download and run</p>
+            </div>
+            <div class="tools-grid">
+                <!-- cc-markdown -->
+                <div class="tool-card tool-markdown">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-markdown.html">cc-markdown</a></h3>
+                    <p>Convert Markdown to beautifully styled PDF, Word, and HTML documents with built-in professional themes.</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">PDF</span>
+                        <span class="feature-tag">Word</span>
+                        <span class="feature-tag">HTML</span>
+                        <span class="feature-tag">7 Themes</span>
+                        <span class="feature-tag">No API</span>
+                    </div>
+                </div>
+
+                <!-- cc-transcribe -->
+                <div class="tool-card tool-transcribe">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-transcribe.html">cc-transcribe</a></h3>
+                    <p>Transcribe videos with timestamps and automatically extract screenshots at content changes.</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">Video Input</span>
+                        <span class="feature-tag">Timestamps</span>
+                        <span class="feature-tag">Screenshots</span>
+                        <span class="feature-tag">OpenAI API</span>
+                    </div>
+                </div>
+
+                <!-- cc-image -->
+                <div class="tool-card tool-image">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-image.html">cc-image</a></h3>
+                    <p>Unified image toolkit: resize, convert formats, generate with DALL-E, analyze, and extract text (OCR).</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">Resize</span>
+                        <span class="feature-tag">Convert</span>
+                        <span class="feature-tag">Generate</span>
+                        <span class="feature-tag">OCR</span>
+                        <span class="feature-tag">Describe</span>
+                    </div>
+                </div>
+
+                <!-- cc-voice -->
+                <div class="tool-card tool-voice">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-voice.html">cc-voice</a></h3>
+                    <p>Convert text to natural-sounding speech with multiple voices, automatic markdown cleaning, and long text support.</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">6 Voices</span>
+                        <span class="feature-tag">HD Quality</span>
+                        <span class="feature-tag">Markdown Clean</span>
+                        <span class="feature-tag">OpenAI API</span>
+                    </div>
+                </div>
+
+                <!-- cc-whisper -->
+                <div class="tool-card tool-whisper">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                            <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-whisper.html">cc-whisper</a></h3>
+                    <p>Transcribe audio files to text using OpenAI Whisper with optional word-level timestamps.</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">Audio Input</span>
+                        <span class="feature-tag">Timestamps</span>
+                        <span class="feature-tag">Multi-language</span>
+                        <span class="feature-tag">OpenAI API</span>
+                    </div>
+                </div>
+
+                <!-- cc-video -->
+                <div class="tool-card tool-video">
+                    <div class="tool-card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                            <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/>
+                        </svg>
+                    </div>
+                    <h3><a href="tools/cc-video.html">cc-video</a></h3>
+                    <p>Video utilities: get info, extract audio tracks, capture screenshots at content changes or specific timestamps.</p>
+                    <div class="tool-card-features">
+                        <span class="feature-tag">Video Info</span>
+                        <span class="feature-tag">Extract Audio</span>
+                        <span class="feature-tag">Screenshots</span>
+                        <span class="feature-tag">No API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Requirements -->
+    <section class="tools-section" style="background: white;">
+        <div class="container-narrow">
+            <div class="section-title">
+                <h2>Requirements</h2>
+                <p>What you need to run CC Tools</p>
+            </div>
+
+            <div class="doc-main" style="margin-top: 2rem;">
+                <h3>OpenAI API Key</h3>
+                <p>Tools that use AI features (transcription, image generation, TTS) require an OpenAI API key:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Linux / macOS</div>
+                    <div class="command-body">
+                        <code>export OPENAI_API_KEY=your-key-here</code>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-header">Windows</div>
+                    <div class="command-body">
+                        <code>set OPENAI_API_KEY=your-key-here</code>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                    <div>
+                        <strong>No API needed:</strong> cc-markdown and cc-video work entirely offline without an API key.
+                    </div>
+                </div>
+
+                <h3>FFmpeg (for video tools)</h3>
+                <p>cc-video and cc-transcribe require FFmpeg for video processing:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Install FFmpeg</div>
+                    <div class="command-body">
+                        <code># Windows (Chocolatey)<br>choco install ffmpeg<br><br># macOS (Homebrew)<br>brew install ffmpeg<br><br># Linux (apt)<br>sudo apt install ffmpeg</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-logo">CC Tools</div>
+                <div class="footer-links">
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/releases">Releases</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/issues">Issues</a>
+                    <a href="https://www.centerconsulting.com">CenterConsulting</a>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem; font-size: 0.875rem;">
+                MIT License - Built by CenterConsulting Inc.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

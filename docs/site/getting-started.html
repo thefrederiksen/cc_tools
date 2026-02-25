@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - CC Tools</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#2563eb"/>
+                        <path d="M10 18L14 22L26 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    CC Tools
+                </a>
+                <nav class="nav">
+                    <a href="index.html">Tools</a>
+                    <a href="getting-started.html" class="active">Getting Started</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" style="padding: 3rem 0;">
+        <div class="container">
+            <h1>Getting Started</h1>
+            <p>Download, configure, and start using CC Tools in minutes</p>
+        </div>
+    </section>
+
+    <!-- Content -->
+    <section class="doc-content">
+        <div class="container-narrow">
+            <div class="doc-main">
+                <h2 id="download">Download</h2>
+                <p>CC Tools are distributed as standalone executables. Download the tools you need from GitHub Releases:</p>
+
+                <div class="command-block">
+                    <div class="command-header">GitHub Releases</div>
+                    <div class="command-body">
+                        <code><a href="https://github.com/CenterConsulting/cc-tools/releases" style="color: #60a5fa;">https://github.com/CenterConsulting/cc-tools/releases</a></code>
+                    </div>
+                </div>
+
+                <p>Each release includes executables for:</p>
+                <ul>
+                    <li><strong>Windows:</strong> <code>.exe</code> files</li>
+                    <li><strong>macOS:</strong> Universal binaries</li>
+                    <li><strong>Linux:</strong> x64 binaries</li>
+                </ul>
+
+                <h2 id="installation">Installation</h2>
+                <p>No installation required - just download and run. Optionally, add the tools to your PATH:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Windows (PowerShell)</div>
+                    <div class="command-body">
+                        <code># Create a tools directory<br>mkdir C:\tools<br><br># Add to PATH (run as administrator)<br>$path = [Environment]::GetEnvironmentVariable("PATH", "Machine")<br>[Environment]::SetEnvironmentVariable("PATH", "$path;C:\tools", "Machine")<br><br># Copy tools to directory<br>copy cc-markdown.exe C:\tools\</code>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-header">macOS / Linux</div>
+                    <div class="command-body">
+                        <code># Move to /usr/local/bin (requires sudo)<br>sudo mv cc-markdown /usr/local/bin/<br>sudo chmod +x /usr/local/bin/cc-markdown<br><br># Or add to your own bin directory<br>mkdir -p ~/bin<br>mv cc-markdown ~/bin/<br>chmod +x ~/bin/cc-markdown<br># Add ~/bin to PATH in .bashrc or .zshrc</code>
+                    </div>
+                </div>
+
+                <h2 id="requirements">Requirements</h2>
+
+                <h3>OpenAI API Key</h3>
+                <p>Some tools require an OpenAI API key for AI features (transcription, TTS, image generation, vision):</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>API Required</th>
+                                <th>Features Using API</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>cc-markdown</td>
+                                <td>No</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>cc-transcribe</td>
+                                <td>Yes</td>
+                                <td>Whisper transcription</td>
+                            </tr>
+                            <tr>
+                                <td>cc-image</td>
+                                <td>Partial</td>
+                                <td>describe, ocr, generate</td>
+                            </tr>
+                            <tr>
+                                <td>cc-voice</td>
+                                <td>Yes</td>
+                                <td>Text-to-speech</td>
+                            </tr>
+                            <tr>
+                                <td>cc-whisper</td>
+                                <td>Yes</td>
+                                <td>Audio transcription</td>
+                            </tr>
+                            <tr>
+                                <td>cc-video</td>
+                                <td>No</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Set your API key as an environment variable:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Windows (Command Prompt)</div>
+                    <div class="command-body">
+                        <code>set OPENAI_API_KEY=sk-your-key-here</code>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-header">Windows (PowerShell - Permanent)</div>
+                    <div class="command-body">
+                        <code>[Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "sk-your-key-here", "User")</code>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-header">macOS / Linux</div>
+                    <div class="command-body">
+                        <code># Temporary (current session)<br>export OPENAI_API_KEY=sk-your-key-here<br><br># Permanent (add to ~/.bashrc or ~/.zshrc)<br>echo 'export OPENAI_API_KEY=sk-your-key-here' >> ~/.bashrc</code>
+                    </div>
+                </div>
+
+                <h3>FFmpeg</h3>
+                <p>cc-video and cc-transcribe require FFmpeg for video processing:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Install FFmpeg</div>
+                    <div class="command-body">
+                        <code># Windows (Chocolatey)<br>choco install ffmpeg<br><br># Windows (Scoop)<br>scoop install ffmpeg<br><br># macOS (Homebrew)<br>brew install ffmpeg<br><br># Linux (apt)<br>sudo apt install ffmpeg<br><br># Linux (dnf)<br>sudo dnf install ffmpeg</code>
+                    </div>
+                </div>
+
+                <h2 id="quick-start">Quick Start Examples</h2>
+
+                <h3>Convert Markdown to PDF</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-markdown</div>
+                    <div class="command-body">
+                        <code>cc-markdown report.md -o report.pdf --theme boardroom</code>
+                    </div>
+                </div>
+
+                <h3>Transcribe a Video</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-transcribe</div>
+                    <div class="command-body">
+                        <code>cc-transcribe lecture.mp4 -o ./transcript</code>
+                    </div>
+                </div>
+
+                <h3>Resize an Image</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-image</div>
+                    <div class="command-body">
+                        <code>cc-image resize photo.jpg -o thumb.jpg -w 800</code>
+                    </div>
+                </div>
+
+                <h3>Text to Speech</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-voice</div>
+                    <div class="command-body">
+                        <code>cc-voice "Hello, welcome to CC Tools!" -o greeting.mp3 -v nova</code>
+                    </div>
+                </div>
+
+                <h3>Transcribe Audio</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-whisper</div>
+                    <div class="command-body">
+                        <code>cc-whisper meeting.mp3 -o transcript.txt -t</code>
+                    </div>
+                </div>
+
+                <h3>Extract Video Screenshots</h3>
+                <div class="command-block">
+                    <div class="command-header">cc-video</div>
+                    <div class="command-body">
+                        <code>cc-video screenshots presentation.mp4 -o ./slides</code>
+                    </div>
+                </div>
+
+                <h2 id="agentic-use">Using with AI Assistants</h2>
+                <p>CC Tools are designed for use by AI coding assistants (Claude, GPT, etc.). The tools follow consistent patterns:</p>
+
+                <ul>
+                    <li><strong>Clear exit codes:</strong> 0 for success, non-zero for errors</li>
+                    <li><strong>Structured output:</strong> Consistent format for parsing</li>
+                    <li><strong>File-based I/O:</strong> Input and output via files, not stdin/stdout</li>
+                    <li><strong>Helpful errors:</strong> Descriptive error messages with suggested fixes</li>
+                </ul>
+
+                <div class="alert alert-success">
+                    <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                        <path d="M22 4L12 14.01l-3-3"/>
+                    </svg>
+                    <div>
+                        <strong>MCP Integration:</strong> CC Tools can be exposed as MCP (Model Context Protocol) tools for seamless integration with Claude and other AI assistants.
+                    </div>
+                </div>
+
+                <h2 id="support">Getting Help</h2>
+                <p>Need help? Here are some resources:</p>
+
+                <ul>
+                    <li><a href="https://github.com/CenterConsulting/cc-tools/issues">GitHub Issues</a> - Report bugs or request features</li>
+                    <li><a href="https://github.com/CenterConsulting/cc-tools/discussions">GitHub Discussions</a> - Ask questions and share ideas</li>
+                    <li><a href="https://github.com/CenterConsulting/cc-tools">Source Code</a> - Browse the codebase</li>
+                </ul>
+
+                <p>Each tool also has a <code>--help</code> flag for quick reference:</p>
+
+                <div class="command-block">
+                    <div class="command-header">Built-in help</div>
+                    <div class="command-body">
+                        <code>cc-markdown --help<br>cc-transcribe --help<br>cc-image --help<br>cc-voice --help<br>cc-whisper --help<br>cc-video --help</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-logo">CC Tools</div>
+                <div class="footer-links">
+                    <a href="https://github.com/CenterConsulting/cc-tools">GitHub</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/releases">Releases</a>
+                    <a href="https://github.com/CenterConsulting/cc-tools/issues">Issues</a>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem; font-size: 0.875rem;">
+                MIT License - Built by CenterConsulting Inc.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
