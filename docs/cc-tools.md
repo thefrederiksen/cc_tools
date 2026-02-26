@@ -33,6 +33,7 @@ Command-line tools for document conversion, media processing, email, and AI work
 | cc-vault | Secure credential and data storage | None |
 | cc-video | Video utilities | FFmpeg |
 | cc-voice | Text-to-speech | OpenAI API key |
+| cc-websiteaudit | Comprehensive website SEO/security/AI audit | Node.js, Chrome |
 | cc-whisper | Audio transcription | OpenAI API key |
 | cc-youtube-info | YouTube transcript/metadata extraction | None |
 
@@ -109,7 +110,7 @@ cc-markdown --themes
 
 ## cc-excel
 
-Convert CSV, JSON, and Markdown tables to formatted Excel workbooks with themes.
+Convert CSV, JSON, and Markdown tables to formatted Excel workbooks with themes. Generate complex multi-sheet workbooks with formulas from JSON spec files.
 
 ```bash
 # CSV to Excel
@@ -134,6 +135,22 @@ cc-excel from-markdown report.md -o report.xlsx --table-index 2
 cc-excel from-csv sales.csv -o chart.xlsx --chart bar --chart-x 0 --chart-y 1
 cc-excel from-csv sales.csv -o chart.xlsx --chart line --chart-x Quarter --chart-y Revenue --chart-y Profit
 
+# Summary rows (formula rows at bottom)
+cc-excel from-csv sales.csv -o report.xlsx --summary sum
+cc-excel from-csv sales.csv -o report.xlsx --summary avg
+cc-excel from-csv sales.csv -o report.xlsx --summary all    # SUM + AVG + MIN + MAX
+
+# Conditional highlighting
+cc-excel from-csv sales.csv -o report.xlsx --highlight best-worst  # green MIN, red MAX
+cc-excel from-csv sales.csv -o report.xlsx --highlight scale       # 2-color gradient
+
+# Combined
+cc-excel from-csv sales.csv -o report.xlsx --summary all --highlight scale --theme boardroom
+
+# Multi-sheet workbook from JSON spec (formulas, merges, named ranges)
+cc-excel from-spec workbook.json -o output.xlsx
+cc-excel from-spec workbook.json -o output.xlsx --theme boardroom
+
 # Global options
 cc-excel --version
 cc-excel --themes
@@ -143,6 +160,7 @@ cc-excel --themes
 - `from-csv` - Convert CSV to Excel
 - `from-json` - Convert JSON to Excel
 - `from-markdown` - Convert Markdown pipe tables to Excel
+- `from-spec` - Generate multi-sheet workbook from JSON specification
 
 **Features:**
 - Auto-detects column types (integer, float, percentage, currency, date, boolean)
@@ -150,15 +168,20 @@ cc-excel --themes
 - Auto-sized columns based on content
 - Alternating row shading from theme
 - Optional charts (bar, line, pie, column)
+- Summary formula rows (SUM, AVG, MIN, MAX) for numeric columns
+- Conditional formatting (best-worst highlighting, color scales)
+- Multi-sheet workbooks with formulas, merged cells, named ranges (via from-spec)
 
 **Themes:** boardroom, paper (default), terminal, spark, thesis, obsidian, blueprint
 
-**Shared options (all subcommands):**
+**Shared options (from-csv, from-json, from-markdown):**
 - `-o, --output` - Output .xlsx file path (required)
 - `--theme, -t` - Theme name (default: paper)
 - `--sheet-name` - Worksheet tab name
 - `--no-autofilter` - Disable autofilter
 - `--no-freeze` - Disable freeze panes
+- `--summary` - Add summary rows: sum, avg, or all (sum+avg+min+max)
+- `--highlight` - Conditional formatting: best-worst or scale
 
 **from-csv options:**
 - `--delimiter` - CSV delimiter (default: ,)
@@ -176,6 +199,46 @@ cc-excel --themes
 - `--chart` - Chart type: bar, line, pie, column
 - `--chart-x` - Column name or index for categories
 - `--chart-y` - Column name(s) or index(es) for values (repeatable)
+
+**from-spec options:**
+- `-o, --output` - Output .xlsx file path (required)
+- `--theme, -t` - Theme (overrides spec theme; default: paper)
+
+**JSON Spec Format (from-spec):**
+
+The spec is a JSON file describing a complete multi-sheet workbook declaratively. Designed to be LLM-friendly.
+
+```json
+{
+  "theme": "boardroom",
+  "named_ranges": {"annual_km": "INPUT!$B$5"},
+  "sheets": [
+    {
+      "name": "Sheet1",
+      "columns": [30, 15, 20],
+      "freeze": [1, 0],
+      "rows": [
+        {"merge": 3, "value": "Title", "style": "title"},
+        {"style": "header", "cells": ["Name", "Value", "Unit"]},
+        {"cells": ["Param", {"v": 100, "fmt": "#,##0", "style": "input"}, "units"]},
+        {"style": "total", "cells": ["Total", {"f": "=SUM(B3:B3)"}, null]}
+      ],
+      "conditional_formats": [
+        {"range": "B4:C4", "type": "color_scale", "min_color": "#63BE7B", "max_color": "#F8696B"}
+      ]
+    }
+  ]
+}
+```
+
+Cell values: string, number, boolean, null (empty), or object with keys:
+- `v` - static value, `f` - Excel formula, `fmt` - number format
+- `style` - input/total/best/worst/accent, `merge` - span N columns
+- `comment` - cell note
+
+Row styles: header, subheader, title, subtitle, total
+
+See `samples/workbook-spec.json` for a complete vehicle comparison example.
 
 ---
 
@@ -886,6 +949,7 @@ set OPENAI_API_KEY=your-key-here
 |------|--------------|
 | cc-browser | Node.js, Playwright |
 | cc-click | Windows, .NET runtime |
+| cc-brandingrecommendations | Node.js, cc-websiteaudit JSON output |
 | cc-comm-queue | None |
 | cc-computer | Windows, .NET runtime, OPENAI_API_KEY |
 | cc-crawl4ai | `playwright install chromium` |
@@ -906,8 +970,61 @@ set OPENAI_API_KEY=your-key-here
 | cc-vault | None |
 | cc-video | FFmpeg in PATH |
 | cc-voice | OPENAI_API_KEY |
+| cc-websiteaudit | Node.js, Chrome/Chromium |
 | cc-whisper | OPENAI_API_KEY |
 | cc-youtube-info | None |
+
+---
+
+## cc-websiteaudit
+
+Comprehensive website auditing tool that crawls sites and grades them across technical SEO, on-page SEO, security, structured data, and AI readiness. Produces reports in console, JSON, HTML, Markdown, and PDF formats.
+
+```bash
+# Basic audit (console output)
+cc-websiteaudit https://example.com
+
+# Save as PDF report
+cc-websiteaudit example.com -o report.pdf
+
+# JSON output (for cc-brandingrecommendations)
+cc-websiteaudit example.com --format json -o audit.json
+
+# Markdown report
+cc-websiteaudit example.com --format markdown -o audit.md
+
+# Custom crawl settings
+cc-websiteaudit example.com --pages 50 --depth 4 --verbose
+
+# Run specific modules only
+cc-websiteaudit example.com --modules technical-seo,security
+
+# Quiet mode (grade only)
+cc-websiteaudit example.com --quiet
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `<url>` | Website URL to audit (required) | - |
+| `-o, --output <path>` | Output file path (format auto-detected from extension) | stdout |
+| `--format <type>` | Output format: console, json, html, markdown, pdf | console |
+| `--modules <list>` | Comma-separated modules to run | all |
+| `--pages <number>` | Max pages to crawl | 25 |
+| `--depth <number>` | Max crawl depth | 3 |
+| `--verbose` | Show detailed progress | false |
+| `--quiet` | Only show final grade | false |
+
+**Analyzer modules:**
+
+- **technical-seo** (20%) - robots.txt, sitemaps, canonicals, HTTPS, redirects, status codes, crawl depth, URL structure
+- **on-page-seo** (20%) - title tags, meta descriptions, heading hierarchy, image alt text, internal linking, content length, duplicate content, Open Graph
+- **security** (10%) - HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
+- **structured-data** (10%) - JSON-LD, Organization/Article/FAQ/Breadcrumb schemas, validity
+- **ai-readiness** (20%) - /llms.txt, AI crawler access, content citability, passage structure, semantic HTML, entity clarity, question coverage
+
+**Grades:** A+ (97+) through F (<60). Auto-detects Cloudflare/SPA sites and switches to browser rendering.
 
 ---
 
