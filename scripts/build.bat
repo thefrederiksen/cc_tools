@@ -25,7 +25,7 @@ REM ============================================
 REM Python tools (built with PyInstaller)
 REM Directory names use underscores, exe names use dashes
 REM ============================================
-set "PYTHON_TOOLS=cc-comm-queue cc-crawl4ai cc-gmail cc-hardware cc-image cc-linkedin cc-markdown cc-outlook cc-photos cc-reddit cc-setup cc-transcribe cc-vault cc-video cc-voice cc-whisper cc-youtube-info"
+set "PYTHON_TOOLS=cc-comm-queue cc-crawl4ai cc-gmail cc-hardware cc-image cc-linkedin cc-markdown cc-outlook cc-photos cc-powerpoint cc-reddit cc-setup cc-transcribe cc-vault cc-video cc-voice cc-whisper cc-youtube-info"
 
 for %%T in (%PYTHON_TOOLS%) do (
     echo.
@@ -118,6 +118,55 @@ if exist "%BROWSER_SRC%\build.ps1" (
     popd
 ) else (
     echo [SKIP] No build.ps1 found for cc-browser
+)
+
+REM ============================================
+REM Node.js tools (cc-brandingrecommendations)
+REM ============================================
+echo.
+echo --------------------------------------------
+echo Building cc-brandingrecommendations (Node.js)...
+echo --------------------------------------------
+
+set "BRANDREC_SRC=%REPO_DIR%\src\cc-brandingrecommendations"
+set "BRANDREC_DEST=%INSTALL_DIR%\cc-brandingrecommendations"
+
+if exist "%BRANDREC_SRC%\build.ps1" (
+    pushd "%BRANDREC_SRC%"
+    powershell -ExecutionPolicy Bypass -File build.ps1
+
+    if !errorlevel! equ 0 (
+        REM Create destination directory
+        if not exist "%BRANDREC_DEST%" mkdir "%BRANDREC_DEST%"
+        if not exist "%BRANDREC_DEST%\src" mkdir "%BRANDREC_DEST%\src"
+        if not exist "%BRANDREC_DEST%\src\generators" mkdir "%BRANDREC_DEST%\src\generators"
+        if not exist "%BRANDREC_DEST%\src\formatters" mkdir "%BRANDREC_DEST%\src\formatters"
+        if not exist "%BRANDREC_DEST%\src\data" mkdir "%BRANDREC_DEST%\src\data"
+
+        REM Copy built files from dist
+        copy /Y "dist\package.json" "%BRANDREC_DEST%\" >nul
+        copy /Y "dist\src\*.mjs" "%BRANDREC_DEST%\src\" >nul
+        copy /Y "dist\src\generators\*.mjs" "%BRANDREC_DEST%\src\generators\" >nul
+        copy /Y "dist\src\formatters\*.mjs" "%BRANDREC_DEST%\src\formatters\" >nul
+        copy /Y "dist\src\data\*.mjs" "%BRANDREC_DEST%\src\data\" >nul
+
+        REM Copy node_modules
+        if exist "%BRANDREC_DEST%\node_modules" rmdir /S /Q "%BRANDREC_DEST%\node_modules"
+        xcopy /E /I /Q /Y "dist\node_modules" "%BRANDREC_DEST%\node_modules" >nul
+
+        REM Create launcher script in install dir
+        echo @node "%%~dp0cc-brandingrecommendations\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-brandingrecommendations.cmd"
+
+        echo [OK] cc-brandingrecommendations installed to %BRANDREC_DEST%
+        set /a SUCCESS_COUNT+=1
+    ) else (
+        echo [FAIL] Build failed for cc-brandingrecommendations
+        set "FAILED=!FAILED! cc-brandingrecommendations"
+        set /a FAIL_COUNT+=1
+    )
+    popd
+) else (
+    echo [SKIP] No build.ps1 found for cc-brandingrecommendations
 )
 
 REM ============================================

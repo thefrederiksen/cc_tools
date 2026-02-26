@@ -10,21 +10,27 @@ Command-line tools for document conversion, media processing, email, and AI work
 
 | Tool | Description | Requirements |
 |------|-------------|--------------|
+| cc-brandingrecommendations | Branding recommendations from website audit | Node.js |
 | cc-browser | Persistent browser automation with profiles | Node.js, Playwright |
 | cc-click | Windows UI automation (click, type, inspect) | Windows, .NET |
 | cc-comm-queue | Communication Manager queue CLI | None |
 | cc-computer | AI desktop automation agent with TriSight detection | Windows, .NET, OPENAI_API_KEY |
 | cc-crawl4ai | AI-ready web crawler to clean markdown | Playwright browsers |
+| cc-docgen | C4 architecture diagram generator from YAML | Graphviz |
+| cc-excel | CSV/JSON/Markdown to formatted Excel workbooks | None |
 | cc-gmail | Gmail CLI: read, send, search emails | Google OAuth |
 | cc-hardware | System hardware info (RAM, CPU, GPU, disk) | None (NVIDIA for GPU) |
 | cc-image | Image generation/analysis/OCR | OpenAI API key |
 | cc-linkedin | LinkedIn automation | Playwright browsers |
 | cc-markdown | Markdown to PDF/Word/HTML | Chrome/Chromium |
 | cc-outlook | Outlook CLI: email + calendar | Azure OAuth |
+| cc-powerpoint | Markdown to PowerPoint presentations | None |
 | cc-photos | Photo organization: duplicates, screenshots, AI | OpenAI API key |
 | cc-reddit | Reddit automation | Playwright browsers |
+| cc-setup | Windows installer for cc-tools suite | None |
 | cc-transcribe | Video/audio transcription with screenshots | FFmpeg, OpenAI API key |
 | cc-trisight | Windows screen detection and automation | Windows, .NET |
+| cc-vault | Secure credential and data storage | None |
 | cc-video | Video utilities | FFmpeg |
 | cc-voice | Text-to-speech | OpenAI API key |
 | cc-whisper | Audio transcription | OpenAI API key |
@@ -98,6 +104,106 @@ cc-markdown --themes
 - `--css` - Custom CSS file
 - `--page-size` - a4 or letter (default: a4)
 - `--margin` - Page margin (default: 1in)
+
+---
+
+## cc-excel
+
+Convert CSV, JSON, and Markdown tables to formatted Excel workbooks with themes.
+
+```bash
+# CSV to Excel
+cc-excel from-csv sales.csv -o sales.xlsx
+cc-excel from-csv sales.csv -o sales.xlsx --theme boardroom
+cc-excel from-csv data.csv -o report.xlsx --delimiter ";" --encoding utf-8
+cc-excel from-csv data.csv -o report.xlsx --no-header
+cc-excel from-csv data.csv -o report.xlsx --sheet-name "Q4 Sales"
+
+# JSON to Excel
+cc-excel from-json api-response.json -o report.xlsx
+cc-excel from-json data.json -o report.xlsx --theme terminal
+cc-excel from-json nested.json -o report.xlsx --json-path "$.results"
+
+# Markdown tables to Excel
+cc-excel from-markdown report.md -o report.xlsx
+cc-excel from-markdown report.md -o report.xlsx --theme boardroom
+cc-excel from-markdown report.md -o report.xlsx --all-tables
+cc-excel from-markdown report.md -o report.xlsx --table-index 2
+
+# Charts
+cc-excel from-csv sales.csv -o chart.xlsx --chart bar --chart-x 0 --chart-y 1
+cc-excel from-csv sales.csv -o chart.xlsx --chart line --chart-x Quarter --chart-y Revenue --chart-y Profit
+
+# Global options
+cc-excel --version
+cc-excel --themes
+```
+
+**Subcommands:**
+- `from-csv` - Convert CSV to Excel
+- `from-json` - Convert JSON to Excel
+- `from-markdown` - Convert Markdown pipe tables to Excel
+
+**Features:**
+- Auto-detects column types (integer, float, percentage, currency, date, boolean)
+- Autofilter and freeze panes enabled by default
+- Auto-sized columns based on content
+- Alternating row shading from theme
+- Optional charts (bar, line, pie, column)
+
+**Themes:** boardroom, paper (default), terminal, spark, thesis, obsidian, blueprint
+
+**Shared options (all subcommands):**
+- `-o, --output` - Output .xlsx file path (required)
+- `--theme, -t` - Theme name (default: paper)
+- `--sheet-name` - Worksheet tab name
+- `--no-autofilter` - Disable autofilter
+- `--no-freeze` - Disable freeze panes
+
+**from-csv options:**
+- `--delimiter` - CSV delimiter (default: ,)
+- `--encoding` - File encoding (default: utf-8)
+- `--no-header` - First row is data, not headers
+
+**from-json options:**
+- `--json-path` - Dot-path to data array (e.g. "data" or "$.results")
+
+**from-markdown options:**
+- `--table-index` - Which table to extract (0-based, default: 0)
+- `--all-tables` - Extract all tables as separate sheets
+
+**Chart options (from-csv, from-json):**
+- `--chart` - Chart type: bar, line, pie, column
+- `--chart-x` - Column name or index for categories
+- `--chart-y` - Column name(s) or index(es) for values (repeatable)
+
+---
+
+## cc-powerpoint
+
+Convert Markdown to PowerPoint presentations with built-in themes.
+
+```bash
+# Convert to PPTX
+cc-powerpoint slides.md -o presentation.pptx
+
+# Use a theme
+cc-powerpoint slides.md -o deck.pptx --theme boardroom
+
+# Default output (same name as input, .pptx extension)
+cc-powerpoint slides.md
+
+# List themes
+cc-powerpoint --themes
+```
+
+**Slide syntax:** Use `---` to separate slides. First slide with `# Title` and optional `## Subtitle` becomes the title slide. Subsequent slides auto-detect layout from content (bullets, tables, code fences, images). Speaker notes use blockquotes (`> note text`) at the end of a slide.
+
+**Themes:** boardroom, paper (default), terminal, spark, thesis, obsidian, blueprint
+
+**Options:**
+- `-o, --output` - Output .pptx file path
+- `--theme` - Theme name (default: paper)
 
 ---
 
@@ -615,6 +721,156 @@ cc-video info video.mp4
 
 ---
 
+## cc-docgen
+
+Generate C4 architecture diagrams from YAML manifest files.
+
+```bash
+# Generate diagrams
+cc-docgen generate
+cc-docgen generate --manifest ./docs/cencon/architecture_manifest.yaml
+cc-docgen generate --output ./docs/ --format svg
+
+# Validate manifest only
+cc-docgen validate
+```
+
+**Output:** context.png and container.png (C4 Level 1 and Level 2 diagrams)
+
+**Options:**
+- `-m, --manifest` - Path to architecture_manifest.yaml
+- `-o, --output` - Output directory
+- `-f, --format` - png or svg (default: png)
+- `-v, --verbose` - Verbose output
+
+**Requires:** Graphviz installed and on PATH
+
+---
+
+## cc-linkedin
+
+LinkedIn automation CLI with human-like delays. Communicates through cc-browser daemon.
+
+```bash
+# Status
+cc-linkedin status
+cc-linkedin whoami
+
+# Feed
+cc-linkedin feed --limit 10
+cc-linkedin post URL
+
+# Profile
+cc-linkedin profile username
+cc-linkedin connections --limit 20
+
+# Messages
+cc-linkedin messages --unread
+cc-linkedin message username --text "Hello"
+
+# Search
+cc-linkedin search "query" --type people
+cc-linkedin search "query" --type companies
+
+# Post creation
+cc-linkedin create "Post content here"
+cc-linkedin create "Post with image" --image photo.png
+```
+
+**Note:** NEVER use cc-browser directly with LinkedIn. Always use cc-linkedin which has human-like delays built in.
+
+---
+
+## cc-reddit
+
+Reddit automation CLI with human-like delays. Uses browser automation with random jitter.
+
+```bash
+# Status
+cc-reddit status
+cc-reddit whoami
+
+# Your content
+cc-reddit me --posts
+cc-reddit me --comments
+cc-reddit saved
+cc-reddit karma
+
+# Browse
+cc-reddit feed
+cc-reddit post URL
+
+# Interact
+cc-reddit comment URL "Comment text"
+cc-reddit reply URL "Reply text"
+```
+
+**Note:** NEVER use cc-browser directly with Reddit. Always use cc-reddit.
+
+---
+
+## cc-setup
+
+Windows installer for the cc-tools suite.
+
+```bash
+# Run installer (no arguments)
+cc-tools-setup
+```
+
+Downloads tools from GitHub releases, configures PATH, installs Claude Code skill. No admin privileges required.
+
+---
+
+## cc-trisight
+
+Three-tier UI element detection for Windows. Combines UI Automation + OCR + pixel analysis.
+
+```bash
+# Full detection pipeline
+trisight detect --window "Notepad" --annotate --output annotated.png
+
+# UIA only
+trisight uia --window "Notepad"
+
+# OCR only
+trisight ocr --screenshot page.png
+
+# Annotate existing screenshot
+trisight annotate --screenshot page.png --window "Notepad" --output annotated.png
+```
+
+**Options:**
+- `--window, -w` - Target window title (substring match)
+- `--tiers` - Detection tiers: uia,ocr,pixel (default: all)
+- `--depth, -d` - Max UIA tree depth (default: 15)
+- `--annotate` - Generate annotated screenshot with numbered boxes
+- `--output, -o` - Output path for annotated image
+
+---
+
+## cc-vault
+
+Secure credential and data storage for cc-tools.
+
+```bash
+# Store a value
+cc-vault set mykey "myvalue"
+
+# Retrieve a value
+cc-vault get mykey
+
+# List stored keys
+cc-vault list
+
+# Delete a key
+cc-vault delete mykey
+```
+
+**Storage:** `%LOCALAPPDATA%\cc-myvault` or `D:/Vault` (legacy)
+
+---
+
 ## Environment Variables
 
 ```bash
@@ -633,18 +889,76 @@ set OPENAI_API_KEY=your-key-here
 | cc-comm-queue | None |
 | cc-computer | Windows, .NET runtime, OPENAI_API_KEY |
 | cc-crawl4ai | `playwright install chromium` |
+| cc-docgen | Graphviz (`dot` on PATH) |
+| cc-excel | None |
 | cc-gmail | OAuth credentials from Google Cloud Console |
 | cc-hardware | None (NVIDIA drivers for GPU info) |
 | cc-image | OPENAI_API_KEY |
+| cc-linkedin | Playwright browsers, cc-browser |
 | cc-markdown | Chrome/Chromium (auto-detected) |
 | cc-outlook | Azure App Registration with OAuth |
 | cc-photos | OPENAI_API_KEY (for AI analysis) |
+| cc-powerpoint | None |
+| cc-reddit | Playwright browsers, cc-browser |
+| cc-setup | None (internet for GitHub downloads) |
 | cc-transcribe | FFmpeg in PATH, OPENAI_API_KEY |
 | cc-trisight | Windows, .NET runtime |
+| cc-vault | None |
 | cc-video | FFmpeg in PATH |
 | cc-voice | OPENAI_API_KEY |
 | cc-whisper | OPENAI_API_KEY |
 | cc-youtube-info | None |
+
+---
+
+## cc-brandingrecommendations
+
+Reads cc-websiteaudit JSON output and produces a prioritized, week-by-week action plan with research-backed recommendations across SEO, security, structured data, AI readiness, content strategy, social media, and backlinks.
+
+```bash
+# Basic usage (console output)
+cc-brandingrecommendations --audit report.json
+
+# JSON output
+cc-brandingrecommendations --audit report.json --format json
+
+# Markdown report (auto-detected from .md extension)
+cc-brandingrecommendations --audit report.json -o plan.md
+
+# With context options
+cc-brandingrecommendations --audit report.json --budget high --industry saas --keywords "project management,team collaboration" --competitors "asana.com,monday.com"
+
+# Verbose mode
+cc-brandingrecommendations --audit report.json --verbose
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--audit <path>` | Path to cc-websiteaudit JSON report (required) | - |
+| `-o, --output <path>` | Output file path (auto-detects format from extension) | stdout |
+| `--format <type>` | Output format: console, json, markdown | console |
+| `--budget <level>` | Weekly budget: low (5h), medium (10h), high (20h) | medium |
+| `--industry <type>` | Industry vertical for tailored recommendations | - |
+| `--keywords <list>` | Comma-separated target keywords | - |
+| `--competitors <list>` | Comma-separated competitor domains | - |
+| `--verbose` | Show detailed progress | false |
+
+**Priority classification (Eisenhower matrix):**
+
+- **Quick Win**: High impact (4-5), low effort (1-2) -> Weeks 1-2
+- **Strategic**: High impact (4-5), high effort (3-5) -> Weeks 5-8
+- **Easy Fill**: Low impact (1-3), low effort (1-2) -> Weeks 3-4
+- **Deprioritize**: Low impact (1-3), high effort (3-5) -> Weeks 9-12
+
+**Workflow:** Run cc-websiteaudit first, then feed its JSON output to cc-brandingrecommendations:
+
+```bash
+cc-websiteaudit example.com --format json -o audit.json
+cc-brandingrecommendations --audit audit.json -o plan.md
+cc-markdown plan.md -o plan.pdf --theme boardroom
+```
 
 ---
 
