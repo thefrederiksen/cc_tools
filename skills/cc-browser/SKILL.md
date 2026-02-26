@@ -78,7 +78,7 @@ cc-browser profiles --browser edge
 cc-browser start
 cc-browser start --headless
 cc-browser start --browser edge
-cc-browser start --browser chrome --profile personal
+cc-browser start --browser chrome --workspace personal
 
 # Stop browser
 cc-browser stop
@@ -216,16 +216,16 @@ cc-browser click --ref e1
 
 ---
 
-## Multi-Profile Usage
+## Multi-Workspace Usage
 
 ```bash
-# Start daemons for different profiles (separate terminals)
-cc-browser daemon --browser edge --profile work       # Port 9280
-cc-browser daemon --browser chrome --profile personal # Port 9282
+# Start daemons for different workspaces (separate terminals)
+cc-browser daemon --browser edge --workspace work       # Port 9280
+cc-browser daemon --browser chrome --workspace personal # Port 9282
 
-# Commands auto-detect daemon port from profile
-cc-browser start --browser edge --profile work
-cc-browser start --browser chrome --profile personal
+# Commands auto-detect daemon port from workspace
+cc-browser start --browser edge --workspace work
+cc-browser start --browser chrome --workspace personal
 ```
 
 ---
@@ -239,7 +239,7 @@ cc-browser start --browser chrome --profile personal
 | `--tab <targetId>` | Target specific tab |
 | `--timeout <ms>` | Action timeout |
 | `--browser <name>` | Browser: chrome, edge, brave |
-| `--profile <name>` | Profile name |
+| `--workspace <name>` | Workspace name |
 | `--headless` | Run headless |
 
 ---

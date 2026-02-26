@@ -14,8 +14,8 @@ Use cc-linkedin when the user wants to:
 
 ## Prerequisites
 
-1. **cc-browser daemon must be running** with a LinkedIn profile logged in
-2. Start with: `cc-browser daemon --profile linkedin`
+1. **cc-browser daemon must be running** with a LinkedIn workspace logged in
+2. Start with: `cc-browser daemon --workspace linkedin`
 3. User must be logged into LinkedIn in that browser session
 
 ## Commands
@@ -185,7 +185,7 @@ cc-linkedin profile johndoe --format markdown
 ## Troubleshooting
 
 ### "Cannot connect to cc-browser daemon"
-- Start the daemon: `cc-browser daemon --profile linkedin`
+- Start the daemon: `cc-browser daemon --workspace linkedin`
 
 ### "Not logged in"
 - Open LinkedIn in the browser and log in

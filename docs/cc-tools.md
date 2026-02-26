@@ -326,11 +326,11 @@ cc-crawl4ai crawl URL --session mysite
 
 ## cc-browser
 
-Persistent browser automation with profile management.
+Persistent browser automation with workspace management.
 
 ```bash
-# Launch browser with profile
-cc-browser launch --profile myprofile
+# Launch browser with workspace
+cc-browser start --workspace myworkspace
 
 # Navigate
 cc-browser navigate "https://example.com"
