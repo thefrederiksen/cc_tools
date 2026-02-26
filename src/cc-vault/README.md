@@ -25,20 +25,20 @@ pip install -e ".[full]"
 
 ```powershell
 .\build.ps1
-copy dist\cc-vault.exe C:\cc-tools\
+copy dist\cc-vault.exe %LOCALAPPDATA%\cc-tools\bin\
 ```
 
 ## Configuration
 
-Set the vault path (optional, defaults to ~/Vault):
+Set the vault path (optional, defaults to `%LOCALAPPDATA%\cc-myvault`):
 
 ```bash
 # Environment variable
-set CC_VAULT_PATH=D:\Vault
+set CC_VAULT_PATH=%LOCALAPPDATA%\cc-myvault
 
 # Or config file: ~/.cc-vault/config.json
 {
-    "vault_path": "D:\\Vault"
+    "vault_path": "%LOCALAPPDATA%\\cc-myvault"
 }
 ```
 
@@ -168,7 +168,7 @@ cc-vault search "project requirements" --hybrid
 ## Architecture
 
 ```
-~/Vault/
+%LOCALAPPDATA%\cc-myvault\
     vault.db              # SQLite database
     chroma/               # ChromaDB vector store
     documents/

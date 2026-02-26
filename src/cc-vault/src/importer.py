@@ -610,7 +610,7 @@ class VaultImporter:
 
     def import_from_staging(self) -> Dict[str, Any]:
         """
-        Import all files from the D:\Vault\imports staging directory.
+        Import all files from the vault imports staging directory.
 
         Files should be organized by type:
         imports/

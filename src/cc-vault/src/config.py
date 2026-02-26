@@ -4,9 +4,10 @@ Vault Configuration Module
 Central configuration for the Vault 2.0 personal data platform.
 Supports configuration via (in priority order):
 1. CC_VAULT_PATH environment variable
-2. Shared ~/.cc-tools/config.json (preferred)
+2. Shared cc-tools config (from cc_shared)
 3. Legacy ~/.cc-vault/config.json (deprecated)
-4. Default: D:/Vault
+4. %LOCALAPPDATA%\\cc-myvault (new default, no admin needed)
+5. D:/Vault (legacy, if exists)
 """
 
 import json
@@ -50,9 +51,10 @@ def get_vault_path() -> Path:
     """
     Get the vault path from (in order of priority):
     1. CC_VAULT_PATH environment variable
-    2. Shared ~/.cc-tools/config.json (preferred)
+    2. Shared cc-tools config (from cc_shared)
     3. Legacy ~/.cc-vault/config.json (deprecated)
-    4. Default to D:/Vault
+    4. %LOCALAPPDATA%\\cc-myvault (new default, no admin needed)
+    5. D:/Vault (legacy, if exists)
     """
     # 1. Check environment variable first (highest priority)
     env_path = os.environ.get("CC_VAULT_PATH")
@@ -83,7 +85,21 @@ def get_vault_path() -> Path:
             import logging
             logging.getLogger(__name__).warning(f"Could not read config file: {e}")
 
-    # 4. Default to D:/Vault (NOT ~/Vault)
+    # 4. New default: %LOCALAPPDATA%\cc-myvault
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        local_vault = Path(local) / "cc-myvault"
+        if local_vault.exists():
+            return local_vault.resolve()
+
+    # 5. Legacy fallback: D:/Vault (if it exists)
+    legacy_vault = Path("D:/Vault")
+    if legacy_vault.exists():
+        return legacy_vault
+
+    # Final default: prefer LOCALAPPDATA location for new installs
+    if local:
+        return Path(local) / "cc-myvault"
     return Path("D:/Vault")
 
 

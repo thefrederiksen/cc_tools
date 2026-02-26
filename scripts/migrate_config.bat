@@ -1,6 +1,6 @@
 @echo off
 REM CC Tools Configuration Migration Script
-REM Migrates tokens and config from user profile to C:\cc-tools\data
+REM Migrates tokens and config from user profile to %LOCALAPPDATA%\cc-tools\data
 REM This allows Windows services (running as SYSTEM) to access the tokens
 
 echo.
@@ -17,7 +17,7 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-set DATA_DIR=C:\cc-tools\data
+set DATA_DIR=%LOCALAPPDATA%\cc-tools\data
 set USER_HOME=%USERPROFILE%
 
 echo Source locations:
@@ -83,7 +83,7 @@ echo Migration complete!
 echo.
 echo Next steps:
 echo   1. Rebuild cc-gmail and cc-outlook (run build scripts)
-echo   2. Copy new executables to C:\cc-tools\
+echo   2. Copy new executables to %LOCALAPPDATA%\cc-tools\bin\
 echo   3. Restart cc-director service
 echo   4. Test: cc-gmail list
 echo   5. Test: cc-outlook list

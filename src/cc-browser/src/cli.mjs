@@ -228,6 +228,7 @@ BROWSER LIFECYCLE:
   cc-browser start --workspace mindzie      Start using workspace alias
   cc-browser start --browser chrome --workspace personal  Start Chrome with workspace
   cc-browser start --profileDir "Profile 1" Use existing system Chrome profile
+  cc-browser start --no-indicator           Start without automation info bar
   cc-browser stop                           Stop browser
 
 NAVIGATION:
@@ -273,6 +274,7 @@ OPTIONS:
   --cdpPort <port>    Chrome CDP port (default: 9222)
   --browser <name>    Browser to use: chrome, edge, brave
   --workspace <name>  Named workspace for isolated sessions (persists logins)
+  --no-indicator      Hide the automation info bar (shown by default)
   --tab <targetId>    Target specific tab
   --timeout <ms>      Action timeout
 
@@ -449,6 +451,7 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       workspace: args.workspace,
       profileDir: args.profileDir,
       useSystemProfile: args.profileDir ? true : args.systemProfile,
+      noIndicator: args['no-indicator'] || false,
     }, port);
     output(result);
   },

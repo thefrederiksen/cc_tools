@@ -308,6 +308,7 @@ export async function launchChrome(opts = {}) {
     workspaceName = 'default',
     useSystemProfile = false,
     profileDir = null,
+    indicator = true,
   } = opts;
 
   // Find Chrome
@@ -389,6 +390,11 @@ export async function launchChrome(opts = {}) {
     args.push('--disable-sync');
   }
 
+  // Show automation info bar as visual workspace indicator (default on)
+  if (indicator) {
+    args.push('--enable-automation');
+  }
+
   args.push(
     '--disable-features=TranslateUI',
     '--disable-background-networking',
@@ -447,6 +453,7 @@ export async function launchChrome(opts = {}) {
           browserKind,
           userDataDir,
           profileDir: profileDirArg,
+          indicator,
           tabs: pageTabs.map((t) => ({
             targetId: t.id,
             title: t.title,

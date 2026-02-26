@@ -53,7 +53,7 @@ function resolveAlias(alias) {
   }
   return null;
 }
-import { connectBrowser, disconnectBrowser, getCachedBrowser, getPageState } from './session.mjs';
+import { connectBrowser, disconnectBrowser, getCachedBrowser, getPageState, setWorkspaceIndicator } from './session.mjs';
 import {
   listPagesViaPlaywright,
   createPageViaPlaywright,
@@ -270,16 +270,25 @@ const routes = {
     const workspaceName = body.workspace || defaultDaemonWorkspace || 'default';
     const browserKind = body.browser || defaultDaemonBrowser || 'chrome';
 
-    // Read workspace.json to get cdpPort - priority: explicit body.port > workspace.json > default
-    let cdpPort = body.port; // Only use if explicitly provided
-    if (!cdpPort) {
-      const workspaceConfig = readWorkspaceConfig(browserKind, workspaceName);
-      if (workspaceConfig && workspaceConfig.cdpPort) {
-        cdpPort = workspaceConfig.cdpPort;
-      }
+    // Read workspace config once for cdpPort and indicator settings
+    const workspaceConfig = readWorkspaceConfig(browserKind, workspaceName);
+
+    // CDP port priority: explicit body.port > workspace.json > default
+    let cdpPort = body.port;
+    if (!cdpPort && workspaceConfig?.cdpPort) {
+      cdpPort = workspaceConfig.cdpPort;
     }
     if (!cdpPort) {
       cdpPort = DEFAULT_CDP_PORT;
+    }
+
+    // Indicator setting: --no-indicator flag > workspace.json > default (true)
+    let indicator = true;
+    if (workspaceConfig?.indicator === false) {
+      indicator = false;
+    }
+    if (body.noIndicator) {
+      indicator = false;
     }
 
     const result = await ensureChromeAvailable({
@@ -290,10 +299,16 @@ const routes = {
       workspaceName: workspaceName,
       useSystemProfile: body.systemProfile || body.useSystemProfile,
       profileDir: body.profileDir,
+      indicator,
     });
 
     // Connect Playwright
     await connectBrowser(result.cdpUrl);
+
+    // Show workspace indicator bar on all pages
+    if (indicator) {
+      await setWorkspaceIndicator(workspaceName);
+    }
 
     // Track this as the active session
     setActiveSession(cdpPort, result.browserKind, workspaceName);

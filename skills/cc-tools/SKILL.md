@@ -455,7 +455,7 @@ Download individual tools from [GitHub Releases](https://github.com/CenterConsul
 - `cc-transcribe.exe`
 - `cc-youtube-info.exe`
 
-Place in a directory in your PATH (e.g., `C:\cc-tools`).
+Place in a directory in your PATH (e.g., `%LOCALAPPDATA%\cc-tools\bin`).
 
 ---
 

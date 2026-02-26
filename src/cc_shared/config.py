@@ -1,9 +1,11 @@
 """Shared configuration for cc-tools.
 
-Configuration is stored in the cc-tools data directory:
-- C:\\cc-tools\\data\\ (if exists, for service access)
-- CC_TOOLS_DATA env var (if set)
-- ~/.cc-tools/ (fallback for user-only use)
+Configuration is stored in the cc-tools data directory.
+Resolution order:
+1. CC_TOOLS_DATA environment variable (if set)
+2. %LOCALAPPDATA%\\cc-tools\\data (preferred, no admin needed)
+3. C:\\cc-tools\\data (legacy, for backward compat during transition)
+4. ~/.cc-tools/ (final fallback)
 """
 
 import json
@@ -21,8 +23,9 @@ def get_data_dir() -> Path:
 
     Priority:
     1. CC_TOOLS_DATA environment variable
-    2. C:\\cc-tools\\data (if exists - for Windows service access)
-    3. ~/.cc-tools (fallback for user-only use)
+    2. %LOCALAPPDATA%\\cc-tools\\data (preferred, no admin needed)
+    3. C:\\cc-tools\\data (legacy, backward compat during transition)
+    4. ~/.cc-tools (final fallback)
 
     Returns:
         Path to the data directory
@@ -31,13 +34,32 @@ def get_data_dir() -> Path:
     if env_path := os.environ.get("CC_TOOLS_DATA"):
         return Path(env_path)
 
-    # 2. Check system-wide location (for Windows services)
+    # 2. Check %LOCALAPPDATA%\cc-tools\data (new default)
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        local_path = Path(local) / "cc-tools" / "data"
+        if local_path.exists():
+            return local_path
+
+    # 3. Check legacy system-wide location
     system_path = Path(r"C:\cc-tools\data")
     if system_path.exists():
         return system_path
 
-    # 3. Fallback to user home directory
+    # 4. Fallback to user home directory
     return Path.home() / ".cc-tools"
+
+
+def get_install_dir() -> Path:
+    """Get the cc-tools installation directory (where executables live).
+
+    Returns:
+        Path to the bin directory containing cc-tools executables.
+    """
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        return Path(local) / "cc-tools" / "bin"
+    return Path("C:/cc-tools")  # legacy fallback
 
 
 def get_config_path() -> Path:
@@ -106,17 +128,43 @@ class PhotoSource:
         )
 
 
+def _default_vault_path() -> str:
+    """Compute the default vault path.
+
+    Checks existence so tools keep working during transition:
+    - If %LOCALAPPDATA%\\cc-myvault exists, use it (post-migration)
+    - If D:/Vault exists, use it (pre-migration, legacy)
+    - Otherwise, prefer %LOCALAPPDATA%\\cc-myvault (new installs)
+    """
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        new_path = Path(local) / "cc-myvault"
+        if new_path.exists():
+            return local.replace("\\", "/") + "/cc-myvault"
+    legacy = Path("D:/Vault")
+    if legacy.exists():
+        return "D:/Vault"
+    # No vault exists yet; prefer new location for fresh installs
+    if local:
+        return local.replace("\\", "/") + "/cc-myvault"
+    return "D:/Vault"
+
+
 @dataclass
 class VaultConfig:
     """Vault configuration."""
-    vault_path: str = "D:/Vault"  # Default to D:\Vault
+    vault_path: str = ""
+
+    def __post_init__(self):
+        if not self.vault_path:
+            self.vault_path = _default_vault_path()
 
     def to_dict(self) -> Dict[str, Any]:
         return {"vault_path": self.vault_path}
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "VaultConfig":
-        return cls(vault_path=data.get("vault_path", "D:/Vault"))
+        return cls(vault_path=data.get("vault_path", _default_vault_path()))
 
 
 @dataclass

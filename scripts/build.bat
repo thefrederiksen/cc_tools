@@ -1,5 +1,5 @@
 @echo off
-REM Build all cc-tools and copy to C:\cc-tools
+REM Build all cc-tools and copy to %LOCALAPPDATA%\cc-tools\bin
 REM Usage: scripts\build.bat
 
 setlocal enabledelayedexpansion
@@ -10,7 +10,7 @@ echo ============================================
 echo.
 
 set "REPO_DIR=%~dp0.."
-set "INSTALL_DIR=C:\cc-tools"
+set "INSTALL_DIR=%LOCALAPPDATA%\cc-tools\bin"
 set "FAILED="
 set "SUCCESS_COUNT=0"
 set "FAIL_COUNT=0"
@@ -105,7 +105,7 @@ if exist "%BROWSER_SRC%\build.ps1" (
         if exist "%BROWSER_DEST%\node_modules" rmdir /S /Q "%BROWSER_DEST%\node_modules"
         xcopy /E /I /Q /Y "dist\node_modules" "%BROWSER_DEST%\node_modules" >nul
 
-        REM Create launcher script in C:\cc-tools
+        REM Create launcher script in install dir
         echo @node "%%~dp0cc-browser\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-browser.cmd"
 
         echo [OK] cc-browser installed to %BROWSER_DEST%

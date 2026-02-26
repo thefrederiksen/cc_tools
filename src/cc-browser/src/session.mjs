@@ -79,6 +79,15 @@ let cached = null;
 /** @type {Promise<{browser: object, cdpUrl: string}> | null} */
 let connecting = null;
 
+/** @type {WeakSet<object>} Track contexts with webdriver masking applied */
+const maskedContexts = new WeakSet();
+
+/** @type {WeakSet<object>} Track contexts with workspace indicator applied */
+const indicatedContexts = new WeakSet();
+
+/** @type {string|null} Active workspace name for indicator bar */
+let indicatorWorkspace = null;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -238,6 +247,92 @@ export function getPageState(page) {
 }
 
 // ---------------------------------------------------------------------------
+// Webdriver Masking
+// ---------------------------------------------------------------------------
+
+// --enable-automation sets navigator.webdriver = true, which anti-bot systems
+// check. We mask it back to undefined using addInitScript (runs before any
+// page scripts) so websites cannot detect the automation info bar.
+
+const WEBDRIVER_MASK_SCRIPT = `
+  Object.defineProperty(navigator, 'webdriver', {
+    get: () => undefined,
+  });
+`;
+
+async function applyWebdriverMask(context) {
+  if (maskedContexts.has(context)) return;
+  maskedContexts.add(context);
+
+  // For future navigations in this context
+  await context.addInitScript(WEBDRIVER_MASK_SCRIPT);
+
+  // For already-loaded pages
+  for (const page of context.pages()) {
+    await page.evaluate(WEBDRIVER_MASK_SCRIPT).catch(() => {});
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Workspace Indicator Bar
+// ---------------------------------------------------------------------------
+
+// Injects a thin fixed bar at the top of every page showing the workspace name.
+// Uses addInitScript so it runs before page scripts on every navigation.
+
+function generateIndicatorScript(workspaceName) {
+  const name = JSON.stringify(workspaceName);
+  return `(function() {
+  if (document.getElementById('cc-bws')) return;
+  function inject() {
+    if (document.getElementById('cc-bws')) return;
+    var b = document.createElement('div');
+    b.id = 'cc-bws';
+    b.textContent = 'cc-browser // ' + ${name};
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;height:24px;'
+      + 'background:linear-gradient(90deg,#1565c0,#1976d2);color:#fff;'
+      + 'font:600 11px/24px -apple-system,system-ui,sans-serif;'
+      + 'text-align:center;z-index:2147483647;letter-spacing:1px;'
+      + 'text-transform:uppercase;box-shadow:0 1px 3px rgba(0,0,0,0.3);'
+      + 'pointer-events:none;';
+    document.documentElement.style.setProperty('margin-top','24px','important');
+    document.documentElement.appendChild(b);
+  }
+  if (document.body) inject();
+  else document.addEventListener('DOMContentLoaded', inject);
+})();`;
+}
+
+async function applyWorkspaceIndicator(context, workspaceName) {
+  if (indicatedContexts.has(context)) return;
+  indicatedContexts.add(context);
+
+  const script = generateIndicatorScript(workspaceName);
+
+  // For future navigations
+  await context.addInitScript(script);
+
+  // For already-loaded pages
+  for (const page of context.pages()) {
+    await page.evaluate(script).catch(() => {});
+  }
+}
+
+/**
+ * Enable workspace indicator on all browser contexts.
+ * Call after connectBrowser() to show the workspace name bar on every page.
+ * @param {string} workspaceName
+ */
+export async function setWorkspaceIndicator(workspaceName) {
+  indicatorWorkspace = workspaceName;
+  if (!cached?.browser) return;
+
+  for (const context of cached.browser.contexts()) {
+    await applyWorkspaceIndicator(context, workspaceName);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Browser Connection
 // ---------------------------------------------------------------------------
 
@@ -286,8 +381,9 @@ export async function connectBrowser(cdpUrl) {
         const connected = { browser, cdpUrl: normalized };
         cached = connected;
 
-        // Observe all pages
+        // Mask navigator.webdriver and observe all pages
         for (const context of browser.contexts()) {
+          await applyWebdriverMask(context);
           for (const page of context.pages()) {
             ensurePageState(page);
           }
@@ -478,6 +574,10 @@ export async function createPageViaPlaywright(opts) {
   const { cdpUrl, url } = opts;
   const { browser } = await connectBrowser(cdpUrl);
   const context = browser.contexts()[0] || (await browser.newContext());
+  await applyWebdriverMask(context);
+  if (indicatorWorkspace) {
+    await applyWorkspaceIndicator(context, indicatorWorkspace);
+  }
   const page = await context.newPage();
   ensurePageState(page);
 

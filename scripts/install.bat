@@ -1,10 +1,10 @@
 @echo off
-REM Add C:\cc-tools to user PATH (one-time setup)
+REM Add %LOCALAPPDATA%\cc-tools\bin to user PATH (one-time setup)
 REM Usage: scripts\install.bat
 
 setlocal
 
-set "INSTALL_DIR=C:\cc-tools"
+set "INSTALL_DIR=%LOCALAPPDATA%\cc-tools\bin"
 
 echo ============================================
 echo cc-tools PATH Installation
@@ -27,7 +27,7 @@ if %errorlevel% equ 0 (
 REM Add to user PATH using PowerShell
 echo Adding %INSTALL_DIR% to user PATH...
 
-powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if($p -notlike '*C:\cc-tools*'){[Environment]::SetEnvironmentVariable('Path',$p+';C:\cc-tools','User'); Write-Host '[OK] Added C:\cc-tools to user PATH'}else{Write-Host '[OK] C:\cc-tools already in PATH'}"
+powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); $old='C:\cc-tools'; $new=$env:LOCALAPPDATA+'\cc-tools\bin'; $parts=$p -split ';' | Where-Object {$_ -ne $old -and $_ -ne ''}; if($parts -notcontains $new){$parts+=$new}; [Environment]::SetEnvironmentVariable('Path',($parts -join ';'),'User'); Write-Host '[OK] PATH updated: removed legacy C:\cc-tools, added' $new"
 
 if %errorlevel% neq 0 (
     echo [FAIL] Could not add to PATH

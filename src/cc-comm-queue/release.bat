@@ -1,6 +1,6 @@
 @echo off
 REM Release script for cc-comm-queue
-REM Builds and deploys to C:\cc-tools
+REM Builds and deploys to %LOCALAPPDATA%\cc-tools\bin
 
 setlocal
 
@@ -10,7 +10,7 @@ echo ============================================
 echo.
 
 set "SCRIPT_DIR=%~dp0"
-set "INSTALL_DIR=C:\cc-tools"
+set "INSTALL_DIR=%LOCALAPPDATA%\cc-tools\bin"
 
 REM Check for Python
 where python >nul 2>&1

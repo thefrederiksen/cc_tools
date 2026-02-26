@@ -2,7 +2,7 @@
 
 Command-line tools for document conversion, media processing, email, and AI workflows.
 
-**Install location:** `C:\cc-tools\`
+**Install location:** `%LOCALAPPDATA%\cc-tools\bin\` (tools are on PATH)
 
 ---
 
@@ -545,7 +545,7 @@ cc-computer-gui
     "ApiKey": "your-key-or-set-OPENAI_API_KEY"
   },
   "Desktop": {
-    "CcClickPath": "C:\\cc-tools\\cc-click\\cc-click.exe"
+    "CcClickPath": "cc-click\\cc-click.exe"
   }
 }
 ```

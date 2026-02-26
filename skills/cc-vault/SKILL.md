@@ -12,7 +12,7 @@ Interact with the Vault 2.0 personal data platform. Import documents, ask questi
 
 ## Tool Location
 
-`C:\cc-tools\cc-vault.exe`
+`cc-vault` (on PATH, installed to `%LOCALAPPDATA%\cc-tools\bin\`)
 
 ## Quick Reference
 
@@ -137,12 +137,12 @@ cc-vault health insights -q "sleep patterns"
 cc-vault config show
 
 # Set config
-cc-vault config set vault_path D:\Vault
+cc-vault config set vault_path %LOCALAPPDATA%\cc-myvault
 ```
 
 ## Environment Variables
 
-- `CC_VAULT_PATH`: Vault directory path (default: ~/Vault)
+- `CC_VAULT_PATH`: Vault directory path (default: `%LOCALAPPDATA%\cc-myvault`)
 - `OPENAI_API_KEY`: Required for RAG features
 
 ## Notes
