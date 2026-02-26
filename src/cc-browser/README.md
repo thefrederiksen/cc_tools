@@ -22,7 +22,7 @@ Chrome/Edge/Brave
 - **No MCP overhead** - Direct CLI, no MCP protocol latency
 - **Persistent connection** - Daemon keeps Playwright/CDP connection warm
 - **Fast commands** - ~20-50ms per command vs 500-800ms for cold start
-- **Uses existing logins** - Isolated profile but real Chrome
+- **Uses existing logins** - Isolated workspace but real Chrome
 - **No dependencies on pi-agent-core** - Standalone module
 
 ## Quick Start
@@ -54,12 +54,13 @@ node src/cli.mjs stop                            # Close browser
 | Command | Description |
 |---------|-------------|
 | `browsers` | List available browsers |
-| `profiles [--browser edge]` | List Chrome/Edge profiles with emails |
-| `favorites --profile work` | Get favorites from profile.json |
-| `start [--headless]` | Launch with isolated profile |
+| `profiles [--browser edge]` | List Chrome/Edge built-in profiles with emails |
+| `workspaces` | List configured cc-browser workspaces |
+| `favorites --workspace work` | Get favorites from workspace.json |
+| `start [--headless]` | Launch with isolated workspace |
 | `start --browser edge` | Launch Edge instead of Chrome |
-| `start --browser edge --profile work` | Launch Edge with named profile |
-| `start --browser chrome --profile personal` | Launch Chrome with named profile |
+| `start --workspace mindzie` | Launch using workspace alias |
+| `start --browser chrome --workspace personal` | Launch Chrome with named workspace |
 | `start --profileDir "Profile 1"` | Use existing Chrome profile (requires Chrome closed) |
 | `stop` | Close browser |
 
@@ -134,6 +135,7 @@ node src/cli.mjs click --ref e1
 |--------|-------------|
 | `--port <port>` | Daemon port (default: 9280) |
 | `--cdpPort <port>` | Chrome CDP port (default: 9222) |
+| `--workspace <name>` | Named workspace for isolated sessions |
 | `--tab <targetId>` | Target specific tab |
 | `--timeout <ms>` | Action timeout |
 
@@ -144,6 +146,7 @@ cc-browser/
   src/
     daemon.mjs        # HTTP server
     cli.mjs           # CLI client
+    main.mjs          # Combined CLI+daemon for .exe
     session.mjs       # Playwright connection & page state
     interactions.mjs  # Click, type, hover, drag, etc.
     snapshot.mjs      # Page snapshots & ref generation
@@ -152,75 +155,79 @@ cc-browser/
   cc-browser.cmd      # Windows launcher
 ```
 
-## Profile Configuration
+## Workspace Configuration
 
-Profiles provide isolated browser sessions with persistent logins. Each profile has its own data directory and port configuration.
+Workspaces provide isolated browser sessions with persistent logins. Each workspace has its own data directory and port configuration.
 
-### Profile Location
+### Workspace Location
 
 ```
-%LOCALAPPDATA%\cc-browser\{browser}-{profile}\profile.json
+%LOCALAPPDATA%\cc-browser\{browser}-{workspace}\workspace.json
 ```
 
-### Configured Profiles
+### Configured Workspaces
 
-| Profile | Browser | Daemon Port | CDP Port | Purpose |
-|---------|---------|-------------|----------|---------|
+| Workspace | Browser | Daemon Port | CDP Port | Purpose |
+|-----------|---------|-------------|----------|---------|
 | edge-work | Edge | 9280 | 9222 | Work accounts |
 | chrome-work | Chrome | 9281 | 9223 | Work accounts |
 | chrome-personal | Chrome | 9282 | 9224 | Personal accounts |
 
-### Profile JSON Structure
+### Workspace JSON Structure
 
 ```json
 {
   "name": "Edge Work",
   "browser": "edge",
+  "workspace": "work",
   "cdpPort": 9222,
   "daemonPort": 9280,
   "purpose": "Work accounts",
+  "aliases": ["mindzie", "work"],
   "favorites": ["https://example.com"],
   "accounts": []
 }
 ```
 
-### Multi-Profile Usage
+### Multi-Workspace Usage
 
-Run multiple browser profiles simultaneously, each on its own ports:
+Run multiple browser workspaces simultaneously, each on its own ports:
 
 ```bash
 # Start daemons (each in separate terminal)
-cc-browser daemon --browser edge --profile work         # Port 9280
-cc-browser daemon --browser chrome --profile work       # Port 9281
-cc-browser daemon --browser chrome --profile personal   # Port 9282
+cc-browser daemon --workspace mindzie                     # Port 9280
+cc-browser daemon --browser chrome --workspace work       # Port 9281
+cc-browser daemon --browser chrome --workspace personal   # Port 9282
 
-# Commands auto-detect daemon port from profile.json
-cc-browser start --browser edge --profile work
-cc-browser start --browser chrome --profile work
-cc-browser start --browser chrome --profile personal
+# Commands auto-detect daemon port from workspace.json
+cc-browser start --workspace mindzie
+cc-browser start --browser chrome --workspace work
+cc-browser start --browser chrome --workspace personal
 ```
 
 ### How It Works
 
-1. **Daemon reads profile config** - Uses `daemonPort` and `cdpPort` from profile.json
-2. **CLI auto-discovers daemon port** - Reads profile.json to find which port the daemon is on
-3. **No explicit --port flag needed** - Just specify `--browser` and `--profile`
+1. **Daemon reads workspace config** - Uses `daemonPort` and `cdpPort` from workspace.json
+2. **CLI auto-discovers daemon port** - Reads workspace.json to find which port the daemon is on
+3. **No explicit --port flag needed** - Just specify `--workspace`
 
-### Creating a New Profile
+### Creating a New Workspace
 
-1. Create the profile directory:
+1. Create the workspace directory:
    ```bash
    mkdir %LOCALAPPDATA%\cc-browser\chrome-test
    ```
 
-2. Create profile.json with unique ports:
+2. Create workspace.json with unique ports:
    ```json
    {
      "name": "Chrome Test",
      "browser": "chrome",
+     "workspace": "test",
      "cdpPort": 9225,
      "daemonPort": 9283,
      "purpose": "Testing",
+     "aliases": ["test"],
      "favorites": [],
      "accounts": []
    }
@@ -228,7 +235,7 @@ cc-browser start --browser chrome --profile personal
 
 3. Start the daemon:
    ```bash
-   cc-browser daemon --browser chrome --profile test
+   cc-browser daemon --browser chrome --workspace test
    ```
 
 ## Ports

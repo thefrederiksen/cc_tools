@@ -14,10 +14,10 @@ from pathlib import Path
 from urllib.parse import quote
 
 try:
-    from .browser_client import BrowserClient, BrowserError, ProfileError
+    from .browser_client import BrowserClient, BrowserError, WorkspaceError
     from .linkedin_selectors import LinkedInURLs, LinkedIn
 except ImportError:
-    from browser_client import BrowserClient, BrowserError, ProfileError
+    from browser_client import BrowserClient, BrowserError, WorkspaceError
     from linkedin_selectors import LinkedInURLs, LinkedIn
 
 app = typer.Typer(
@@ -34,11 +34,11 @@ def get_config_dir() -> Path:
     return Path.home() / ".cc-linkedin"
 
 
-def load_default_profile() -> str:
-    """Load default profile from config.json.
+def load_default_workspace() -> str:
+    """Load default workspace from config.json.
 
     Returns:
-        Default profile name from config, or 'linkedin' if not configured.
+        Default workspace name from config, or 'linkedin' if not configured.
 
     Raises:
         typer.Exit: If config file is invalid.
@@ -48,15 +48,15 @@ def load_default_profile() -> str:
     if not config_file.exists():
         console.print(
             f"[yellow]WARNING:[/yellow] Config file not found: {config_file}\n"
-            "Using default profile: linkedin\n"
-            "Create config.json with: {\"default_profile\": \"linkedin\"}"
+            "Using default workspace: linkedin\n"
+            "Create config.json with: {\"default_workspace\": \"linkedin\"}"
         )
         return "linkedin"
 
     try:
         with open(config_file, "r") as f:
             data = json.load(f)
-        return data.get("default_profile", "linkedin")
+        return data.get("default_workspace", "linkedin")
     except json.JSONDecodeError as e:
         console.print(f"[red]ERROR:[/red] Invalid JSON in {config_file}: {e}")
         raise typer.Exit(1)
@@ -67,7 +67,7 @@ def load_default_profile() -> str:
 
 # Global options stored in context
 class Config:
-    profile: str = ""
+    workspace: str = ""
     format: str = "text"
     delay: float = 1.0
     verbose: bool = False
@@ -77,10 +77,10 @@ config = Config()
 
 
 def get_client() -> BrowserClient:
-    """Get browser client instance for configured profile."""
+    """Get browser client instance for configured workspace."""
     try:
-        return BrowserClient(profile=config.profile)
-    except ProfileError as e:
+        return BrowserClient(workspace=config.workspace)
+    except WorkspaceError as e:
         console.print(f"[red]ERROR:[/red] {e}")
         raise typer.Exit(1)
 
@@ -169,7 +169,7 @@ def find_element_ref_near_text(snapshot_text: str, near_text: str, keywords: lis
 
 @app.callback()
 def main(
-    profile: Optional[str] = typer.Option(None, "--profile", "-p", help="cc-browser profile name or alias"),
+    workspace: Optional[str] = typer.Option(None, "--workspace", "-w", help="cc-browser workspace name or alias"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
     delay: float = typer.Option(1.0, help="Delay between actions (seconds)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
@@ -177,13 +177,13 @@ def main(
     """LinkedIn CLI via browser automation.
 
     Requires cc-browser daemon to be running.
-    Start it with: cc-browser daemon --profile linkedin
+    Start it with: cc-browser daemon --workspace linkedin
     """
-    # Load default profile from config if not specified
-    if profile is None:
-        profile = load_default_profile()
+    # Load default workspace from config if not specified
+    if workspace is None:
+        workspace = load_default_workspace()
 
-    config.profile = profile
+    config.workspace = workspace
     config.format = format
     config.delay = delay
     config.verbose = verbose

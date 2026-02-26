@@ -52,17 +52,17 @@ const DEFAULT_DAEMON_PORT = 9280;
 const DEFAULT_CDP_PORT = 9222;
 
 // ---------------------------------------------------------------------------
-// Profile Configuration
+// Workspace Configuration
 // ---------------------------------------------------------------------------
 
-function getProfileDir(browser, profile) {
+function getWorkspaceDir(browser, workspace) {
   const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
-  return join(localAppData, 'cc-browser', `${browser}-${profile}`);
+  return join(localAppData, 'cc-browser', `${browser}-${workspace}`);
 }
 
-function readProfileConfig(browser, profile) {
-  const profileDir = getProfileDir(browser, profile);
-  const configPath = join(profileDir, 'profile.json');
+function readWorkspaceConfig(browser, workspace) {
+  const workspaceDir = getWorkspaceDir(browser, workspace);
+  const configPath = join(workspaceDir, 'workspace.json');
 
   if (!existsSync(configPath)) {
     return null;
@@ -80,13 +80,13 @@ function resolveAlias(alias) {
 
   const dirs = readdirSync(ccBrowserDir);
   for (const dir of dirs) {
-    const configPath = join(ccBrowserDir, dir, 'profile.json');
+    const configPath = join(ccBrowserDir, dir, 'workspace.json');
     if (existsSync(configPath)) {
       const config = JSON.parse(readFileSync(configPath, 'utf8'));
       if (config.aliases && config.aliases.includes(alias)) {
-        const [browser, ...profileParts] = dir.split('-');
-        const profile = profileParts.join('-');
-        return { browser, profile, config };
+        const [browser, ...workspaceParts] = dir.split('-');
+        const workspace = workspaceParts.join('-');
+        return { browser, workspace, config };
       }
     }
   }
@@ -96,14 +96,14 @@ function resolveAlias(alias) {
 function getDaemonPort(args) {
   if (args.port) return args.port;
 
-  if (args.browser && args.profile) {
-    const config = readProfileConfig(args.browser, args.profile);
+  if (args.browser && args.workspace) {
+    const config = readWorkspaceConfig(args.browser, args.workspace);
     if (config && config.daemonPort) return config.daemonPort;
-  } else if (args.profile && !args.browser) {
-    const resolved = resolveAlias(args.profile);
+  } else if (args.workspace && !args.browser) {
+    const resolved = resolveAlias(args.workspace);
     if (resolved) {
       args.browser = resolved.browser;
-      args.profile = resolved.profile;
+      args.workspace = resolved.workspace;
       if (resolved.config.daemonPort) return resolved.config.daemonPort;
     }
   }
@@ -184,11 +184,11 @@ function outputError(message) {
 
 let actualDaemonPort = DEFAULT_DAEMON_PORT;
 let defaultDaemonBrowser = null;
-let defaultDaemonProfile = null;
+let defaultDaemonWorkspace = null;
 let defaultDaemonCdpPort = null;
 let activeCdpPort = null;
 let activeBrowserKind = null;
-let activeProfile = null;
+let activeWorkspace = null;
 
 function getActiveCdpPort() {
   if (activeCdpPort) return activeCdpPort;
@@ -196,18 +196,18 @@ function getActiveCdpPort() {
   return DEFAULT_CDP_PORT;
 }
 
-function setActiveSession(cdpPort, browserKind, profile) {
+function setActiveSession(cdpPort, browserKind, workspace) {
   activeCdpPort = cdpPort;
   activeBrowserKind = browserKind;
-  activeProfile = profile;
-  console.log(`[cc-browser] Active session: ${browserKind}-${profile} on port ${cdpPort}`);
+  activeWorkspace = workspace;
+  console.log(`[cc-browser] Active session: ${browserKind}-${workspace} on port ${cdpPort}`);
 }
 
 function clearActiveSession() {
-  console.log(`[cc-browser] Session cleared (was: ${activeBrowserKind}-${activeProfile} on port ${activeCdpPort})`);
+  console.log(`[cc-browser] Session cleared (was: ${activeBrowserKind}-${activeWorkspace} on port ${activeCdpPort})`);
   activeCdpPort = null;
   activeBrowserKind = null;
-  activeProfile = null;
+  activeWorkspace = null;
 }
 
 function validateSession(body) {
@@ -217,8 +217,8 @@ function validateSession(body) {
   if (body.browser && body.browser !== activeBrowserKind) {
     return { valid: false, error: `Browser mismatch: requested "${body.browser}" but active is "${activeBrowserKind}"` };
   }
-  if (body.profile && body.profile !== activeProfile) {
-    return { valid: false, error: `Profile mismatch: requested "${body.profile}" but active is "${activeProfile}"` };
+  if (body.workspace && body.workspace !== activeWorkspace) {
+    return { valid: false, error: `Workspace mismatch: requested "${body.workspace}" but active is "${activeWorkspace}"` };
   }
   return { valid: true };
 }
@@ -283,7 +283,7 @@ const routes = {
       cdpUrl: status.cdpUrl,
       cdpPort,
       browserKind: activeBrowserKind,
-      profile: activeProfile,
+      workspace: activeWorkspace,
       tabs: status.tabs || [],
       activeTab: status.activeTab,
       playwrightConnected: !!cached,
@@ -291,13 +291,13 @@ const routes = {
   },
 
   'POST /start': async (req, res, params, body) => {
-    const profileName = body.profile || defaultDaemonProfile || 'default';
+    const workspaceName = body.workspace || defaultDaemonWorkspace || 'default';
     const browserKind = body.browser || defaultDaemonBrowser || 'chrome';
 
     let cdpPort = body.port;
     if (!cdpPort) {
-      const profileConfig = readProfileConfig(browserKind, profileName);
-      if (profileConfig && profileConfig.cdpPort) cdpPort = profileConfig.cdpPort;
+      const workspaceConfig = readWorkspaceConfig(browserKind, workspaceName);
+      if (workspaceConfig && workspaceConfig.cdpPort) cdpPort = workspaceConfig.cdpPort;
     }
     if (!cdpPort) cdpPort = DEFAULT_CDP_PORT;
 
@@ -306,20 +306,20 @@ const routes = {
       headless: body.headless,
       executablePath: body.exe,
       browser: body.browser,
-      profileName: profileName,
+      workspaceName: workspaceName,
       useSystemProfile: body.systemProfile || body.useSystemProfile,
       profileDir: body.profileDir,
     });
 
     await connectBrowser(result.cdpUrl);
-    setActiveSession(cdpPort, result.browserKind, profileName);
+    setActiveSession(cdpPort, result.browserKind, workspaceName);
 
     jsonSuccess(res, {
       started: result.started,
       cdpUrl: result.cdpUrl,
       cdpPort,
       browserKind: result.browserKind,
-      profile: profileName,
+      workspace: workspaceName,
       tabs: result.tabs,
       activeTab: result.activeTab,
     });
@@ -651,25 +651,25 @@ async function handleRequest(req, res) {
 function startDaemon(args) {
   let daemonPort = args.port || DEFAULT_DAEMON_PORT;
 
-  // If profile is specified without browser, try to resolve as alias
-  if (args.profile && !args.browser) {
-    const resolved = resolveAlias(args.profile);
+  // If workspace is specified without browser, try to resolve as alias
+  if (args.workspace && !args.browser) {
+    const resolved = resolveAlias(args.workspace);
     if (resolved) {
-      console.log(`[cc-browser] Alias "${args.profile}" resolved to ${resolved.browser}-${resolved.profile}`);
+      console.log(`[cc-browser] Alias "${args.workspace}" resolved to ${resolved.browser}-${resolved.workspace}`);
       args.browser = resolved.browser;
-      args.profile = resolved.profile;
+      args.workspace = resolved.workspace;
     }
   }
 
-  // If browser and profile are set, try to read ports from profile.json
-  if (args.browser && args.profile) {
-    const config = readProfileConfig(args.browser, args.profile);
+  // If browser and workspace are set, try to read ports from workspace.json
+  if (args.browser && args.workspace) {
+    const config = readWorkspaceConfig(args.browser, args.workspace);
     if (config) {
       if (!args.port && config.daemonPort) daemonPort = config.daemonPort;
       if (config.cdpPort) defaultDaemonCdpPort = config.cdpPort;
     }
     defaultDaemonBrowser = args.browser;
-    defaultDaemonProfile = args.profile;
+    defaultDaemonWorkspace = args.workspace;
   }
 
   actualDaemonPort = daemonPort;
@@ -678,10 +678,10 @@ function startDaemon(args) {
 
   server.listen(daemonPort, '127.0.0.1', () => {
     console.log(`[cc-browser] Daemon listening on http://127.0.0.1:${daemonPort}`);
-    if (args.browser && args.profile) {
-      const config = readProfileConfig(args.browser, args.profile);
+    if (args.browser && args.workspace) {
+      const config = readWorkspaceConfig(args.browser, args.workspace);
       const cdpPort = config?.cdpPort || DEFAULT_CDP_PORT;
-      console.log(`[cc-browser] Profile: ${args.browser}-${args.profile} (CDP: ${cdpPort})`);
+      console.log(`[cc-browser] Workspace: ${args.browser}-${args.workspace} (CDP: ${cdpPort})`);
     }
     console.log('[cc-browser] Ready for commands');
   });
@@ -718,7 +718,10 @@ DAEMON:
   cc-browser status              Check daemon and browser status
 
 BROWSER LIFECYCLE:
-  cc-browser start --browser chrome --profile personal
+  cc-browser start --workspace mindzie
+  cc-browser start --browser chrome --workspace personal
+  cc-browser workspaces                    List configured workspaces
+  cc-browser profiles [--browser chrome]   List Chrome built-in profiles
   cc-browser stop
 
 NAVIGATION:
@@ -728,13 +731,13 @@ NAVIGATION:
   cc-browser type --ref <e1> --text "hello"
 
 OPTIONS:
-  --port <port>     Daemon port (default: from profile.json)
-  --browser <name>  Browser: chrome, edge, brave
-  --profile <name>  Named profile
+  --port <port>       Daemon port (default: from workspace.json)
+  --browser <name>    Browser: chrome, edge, brave
+  --workspace <name>  Named workspace
 
 EXAMPLES:
-  cc-browser daemon --browser chrome --profile personal
-  cc-browser start --browser chrome --profile personal
+  cc-browser daemon --workspace mindzie
+  cc-browser start --workspace mindzie
   cc-browser navigate --url "https://example.com"
 `);
   },
@@ -762,28 +765,63 @@ EXAMPLES:
     output(result);
   },
 
+  // List configured cc-browser workspaces
+  workspaces: async (args) => {
+    const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
+    const ccBrowserDir = join(localAppData, 'cc-browser');
+
+    if (!existsSync(ccBrowserDir)) {
+      output({ success: true, workspaces: [] });
+      return;
+    }
+
+    const workspaces = [];
+    const dirs = readdirSync(ccBrowserDir);
+    for (const dir of dirs) {
+      const configPath = join(ccBrowserDir, dir, 'workspace.json');
+      if (existsSync(configPath)) {
+        try {
+          const config = JSON.parse(readFileSync(configPath, 'utf8'));
+          workspaces.push({
+            directory: dir,
+            name: config.name || dir,
+            browser: config.browser || 'unknown',
+            workspace: config.workspace || dir,
+            daemonPort: config.daemonPort || null,
+            cdpPort: config.cdpPort || null,
+            aliases: config.aliases || [],
+            purpose: config.purpose || '',
+          });
+        } catch {
+          // Skip invalid configs
+        }
+      }
+    }
+    output({ success: true, workspaces });
+  },
+
   favorites: async (args) => {
     const browser = args.browser || 'edge';
-    const profile = args.profile;
+    const workspace = args.workspace;
 
-    if (!profile) {
-      output({ success: false, error: 'Profile name required' });
+    if (!workspace) {
+      output({ success: false, error: 'Workspace name required. Use --workspace <name>' });
       return;
     }
 
-    const profileDir = getProfileDir(browser, profile);
-    const profileJsonPath = join(profileDir, 'profile.json');
+    const workspaceDir = getWorkspaceDir(browser, workspace);
+    const workspaceJsonPath = join(workspaceDir, 'workspace.json');
 
-    if (!existsSync(profileJsonPath)) {
-      output({ success: false, error: `Profile not found: ${profileJsonPath}` });
+    if (!existsSync(workspaceJsonPath)) {
+      output({ success: false, error: `Workspace not found: ${workspaceJsonPath}` });
       return;
     }
 
-    const data = JSON.parse(readFileSync(profileJsonPath, 'utf8'));
+    const data = JSON.parse(readFileSync(workspaceJsonPath, 'utf8'));
     output({
       success: true,
       browser,
-      profile,
+      workspace,
       favorites: data.favorites || [],
       name: data.name,
       purpose: data.purpose,
@@ -797,7 +835,7 @@ EXAMPLES:
       port: args.cdpPort,
       exe: args.exe,
       browser: args.browser,
-      profile: args.profile,
+      workspace: args.workspace,
       profileDir: args.profileDir,
       useSystemProfile: args.profileDir ? true : args.systemProfile,
     }, port);

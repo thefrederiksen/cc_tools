@@ -12,117 +12,117 @@ class BrowserError(Exception):
     pass
 
 
-class ProfileError(Exception):
-    """Error resolving browser profile."""
+class WorkspaceError(Exception):
+    """Error resolving browser workspace."""
     pass
 
 
-def get_cc-browser_dir() -> Path:
-    """Get cc-browser profiles directory."""
+def get_cc_browser_dir() -> Path:
+    """Get cc-browser workspaces directory."""
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     if not local_app_data:
-        raise ProfileError(
+        raise WorkspaceError(
             "LOCALAPPDATA environment variable not set. "
-            "Cannot locate cc-browser profiles."
+            "Cannot locate cc-browser workspaces."
         )
     return Path(local_app_data) / "cc-browser"
 
 
-def resolve_profile(profile_name: str) -> dict:
-    """Resolve profile name or alias to profile config.
+def resolve_workspace(workspace_name: str) -> dict:
+    """Resolve workspace name or alias to workspace config.
 
-    Scans all cc-browser profile directories for matching profile name or alias.
+    Scans all cc-browser workspace directories for matching workspace name or alias.
 
     Args:
-        profile_name: Profile name or alias (e.g., "linkedin", "work", "chrome-work")
+        workspace_name: Workspace name or alias (e.g., "linkedin", "work", "chrome-work")
 
     Returns:
-        Profile config dict with browser, profile, daemonPort, etc.
+        Workspace config dict with browser, workspace, daemonPort, etc.
 
     Raises:
-        ProfileError: If profile cannot be found or resolved.
+        WorkspaceError: If workspace cannot be found or resolved.
     """
-    cc-browser_dir = get_cc-browser_dir()
+    cc_browser_dir = get_cc_browser_dir()
 
-    if not cc-browser_dir.exists():
-        raise ProfileError(
-            f"cc-browser directory not found: {cc-browser_dir}\n"
-            "Install cc-browser and create a profile first.\n"
-            "Run: cc-browser profile create linkedin"
+    if not cc_browser_dir.exists():
+        raise WorkspaceError(
+            f"cc-browser directory not found: {cc_browser_dir}\n"
+            "Install cc-browser and create a workspace first.\n"
+            "Run: cc-browser start --workspace linkedin"
         )
 
-    # Scan all profile directories
-    for profile_dir in cc-browser_dir.iterdir():
-        if not profile_dir.is_dir():
+    # Scan all workspace directories
+    for workspace_dir in cc_browser_dir.iterdir():
+        if not workspace_dir.is_dir():
             continue
 
-        profile_json = profile_dir / "profile.json"
-        if not profile_json.exists():
+        workspace_json = workspace_dir / "workspace.json"
+        if not workspace_json.exists():
             continue
 
         try:
-            with open(profile_json, "r") as f:
+            with open(workspace_json, "r") as f:
                 config = json.load(f)
         except (json.JSONDecodeError, IOError):
             continue
 
-        # Check if profile name matches directory name
-        if profile_dir.name == profile_name:
+        # Check if workspace name matches directory name
+        if workspace_dir.name == workspace_name:
             return config
 
-        # Check if profile name matches browser-profile combo
+        # Check if workspace name matches browser-workspace combo
         browser = config.get("browser", "")
-        profile = config.get("profile", "")
-        if f"{browser}-{profile}" == profile_name:
+        workspace = config.get("workspace", "")
+        if f"{browser}-{workspace}" == workspace_name:
             return config
 
         # Check aliases
         aliases = config.get("aliases", [])
-        if profile_name in aliases:
+        if workspace_name in aliases:
             return config
 
-    # Profile not found - provide helpful error
+    # Workspace not found - provide helpful error
     available = []
-    for profile_dir in cc-browser_dir.iterdir():
-        if profile_dir.is_dir():
-            profile_json = profile_dir / "profile.json"
-            if profile_json.exists():
+    for workspace_dir in cc_browser_dir.iterdir():
+        if workspace_dir.is_dir():
+            workspace_json = workspace_dir / "workspace.json"
+            if workspace_json.exists():
                 try:
-                    with open(profile_json, "r") as f:
+                    with open(workspace_json, "r") as f:
                         config = json.load(f)
                     aliases = config.get("aliases", [])
-                    available.append(f"{profile_dir.name} (aliases: {', '.join(aliases)})")
+                    available.append(f"{workspace_dir.name} (aliases: {', '.join(aliases)})")
                 except (json.JSONDecodeError, IOError):
-                    available.append(profile_dir.name)
+                    available.append(workspace_dir.name)
 
     available_str = "\n  - ".join(available) if available else "(none found)"
-    raise ProfileError(
-        f"Profile '{profile_name}' not found.\n\n"
-        f"Available profiles:\n  - {available_str}\n\n"
-        "To add 'linkedin' as an alias to an existing profile, edit its profile.json "
+    raise WorkspaceError(
+        f"Workspace '{workspace_name}' not found.\n\n"
+        f"Available workspaces:\n  - {available_str}\n\n"
+        "To add 'linkedin' as an alias to an existing workspace, edit its workspace.json "
         "and add 'linkedin' to the aliases array."
     )
 
 
-def get_port_for_profile(profile_name: str) -> int:
-    """Get daemon port for a profile name or alias.
+def get_port_for_workspace(workspace_name: str) -> int:
+    """Get daemon port for a workspace name or alias.
 
     Args:
-        profile_name: Profile name or alias
+        workspace_name: Workspace name or alias
 
     Returns:
         Daemon port number
 
     Raises:
-        ProfileError: If profile not found or has no daemonPort.
+        WorkspaceError: If workspace not found or has no daemonPort.
     """
-    config = resolve_profile(profile_name)
+    config = resolve_workspace(workspace_name)
 
     port = config.get("daemonPort")
     if not port:
-        raise ProfileError(
-            f"Profile '{profile_name}' has no daemonPort configured.\n"
-            "Edit the profile.json and add a daemonPort field."
+        raise WorkspaceError(
+            f"Workspace '{workspace_name}' has no daemonPort configured.\n"
+            "Edit the workspace.json and add a daemonPort field."
         )
 
     return port
@@ -132,21 +132,22 @@ class BrowserClient:
     """HTTP client for cc-browser daemon.
 
     Communicates with the cc-browser daemon on localhost.
-    Profile is resolved to get the daemon port.
+    Workspace is resolved to get the daemon port.
     """
 
-    def __init__(self, profile: str, timeout: float = 30.0):
-        """Initialize browser client for a profile.
+    def __init__(self, workspace: str = None, profile: str = None, timeout: float = 30.0):
+        """Initialize browser client for a workspace.
 
         Args:
-            profile: Profile name or alias (e.g., "linkedin", "work")
+            workspace: Workspace name or alias (e.g., "linkedin", "work")
+            profile: Deprecated alias for workspace (for backward compat during transition)
             timeout: HTTP request timeout in seconds
 
         Raises:
-            ProfileError: If profile cannot be resolved.
+            WorkspaceError: If workspace cannot be resolved.
         """
-        self.profile = profile
-        self.port = get_port_for_profile(profile)
+        self.workspace = workspace or profile
+        self.port = get_port_for_workspace(self.workspace)
         self.base_url = f"http://localhost:{self.port}"
         self.timeout = timeout
         self._client = httpx.Client(timeout=timeout)
@@ -167,7 +168,7 @@ class BrowserClient:
         except httpx.ConnectError:
             raise BrowserError(
                 f"Cannot connect to cc-browser daemon on port {self.port}.\n"
-                f"Start it with: cc-browser daemon --profile {self.profile}"
+                f"Start it with: cc-browser daemon --workspace {self.workspace}"
             )
         except httpx.TimeoutException:
             raise BrowserError(f"Request timed out after {self.timeout}s")
@@ -185,7 +186,7 @@ class BrowserClient:
         except httpx.ConnectError:
             raise BrowserError(
                 f"Cannot connect to cc-browser daemon on port {self.port}.\n"
-                f"Start it with: cc-browser daemon --profile {self.profile}"
+                f"Start it with: cc-browser daemon --workspace {self.workspace}"
             )
         except httpx.TimeoutException:
             raise BrowserError(f"Request timed out after {self.timeout}s")
@@ -325,6 +326,6 @@ class BrowserClient:
 
 
 # Convenience function for quick operations
-def get_client(profile: str) -> BrowserClient:
-    """Get a browser client instance for a profile."""
-    return BrowserClient(profile=profile)
+def get_client(workspace: str) -> BrowserClient:
+    """Get a browser client instance for a workspace."""
+    return BrowserClient(workspace=workspace)

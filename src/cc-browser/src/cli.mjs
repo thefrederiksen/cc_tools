@@ -38,16 +38,16 @@ function readLockfile() {
   }
 }
 
-// Get profile directory path
-function getProfileDir(browser, profile) {
+// Get workspace directory path
+function getWorkspaceDir(browser, workspace) {
   const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local');
-  return join(localAppData, 'cc-browser', `${browser}-${profile}`);
+  return join(localAppData, 'cc-browser', `${browser}-${workspace}`);
 }
 
-// Read profile.json configuration
-function readProfileConfig(browser, profile) {
-  const profileDir = getProfileDir(browser, profile);
-  const configPath = join(profileDir, 'profile.json');
+// Read workspace.json configuration
+function readWorkspaceConfig(browser, workspace) {
+  const workspaceDir = getWorkspaceDir(browser, workspace);
+  const configPath = join(workspaceDir, 'workspace.json');
 
   if (!existsSync(configPath)) {
     return null;
@@ -57,7 +57,7 @@ function readProfileConfig(browser, profile) {
   return JSON.parse(content);
 }
 
-// Resolve alias to browser+profile
+// Resolve alias to browser+workspace
 function resolveAlias(alias) {
   const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local');
   const ccBrowserDir = join(localAppData, 'cc-browser');
@@ -66,20 +66,20 @@ function resolveAlias(alias) {
 
   const dirs = readdirSync(ccBrowserDir);
   for (const dir of dirs) {
-    const configPath = join(ccBrowserDir, dir, 'profile.json');
+    const configPath = join(ccBrowserDir, dir, 'workspace.json');
     if (existsSync(configPath)) {
       const config = JSON.parse(readFileSync(configPath, 'utf8'));
       if (config.aliases && config.aliases.includes(alias)) {
-        const [browser, ...profileParts] = dir.split('-');
-        const profile = profileParts.join('-');
-        return { browser, profile, config };
+        const [browser, ...workspaceParts] = dir.split('-');
+        const workspace = workspaceParts.join('-');
+        return { browser, workspace, config };
       }
     }
   }
   return null;
 }
 
-// Get daemon port from profile.json, lockfile, or default
+// Get daemon port from workspace.json, lockfile, or default
 function getDaemonPort(args) {
   // If port is explicitly provided, use it
   if (args.port) {
@@ -87,36 +87,36 @@ function getDaemonPort(args) {
     return args.port;
   }
 
-  // If browser and profile are specified, try to read from profile.json
-  if (args.browser && args.profile) {
-    console.error(`[DEBUG] Looking for ${args.browser}-${args.profile} config`);
-    const config = readProfileConfig(args.browser, args.profile);
+  // If browser and workspace are specified, try to read from workspace.json
+  if (args.browser && args.workspace) {
+    console.error(`[DEBUG] Looking for ${args.browser}-${args.workspace} config`);
+    const config = readWorkspaceConfig(args.browser, args.workspace);
     if (config && config.daemonPort) {
       console.error(`[DEBUG] Found daemonPort: ${config.daemonPort}`);
       return config.daemonPort;
     }
     console.error(`[DEBUG] No config or daemonPort found`);
-  } else if (args.profile && !args.browser) {
-    // Profile specified without browser - try to resolve as alias
-    console.error(`[DEBUG] Resolving alias: ${args.profile}`);
-    const resolved = resolveAlias(args.profile);
+  } else if (args.workspace && !args.browser) {
+    // Workspace specified without browser - try to resolve as alias
+    console.error(`[DEBUG] Resolving alias: ${args.workspace}`);
+    const resolved = resolveAlias(args.workspace);
     if (resolved) {
-      console.error(`[DEBUG] Alias resolved: ${resolved.browser}-${resolved.profile}`);
-      // Update args with resolved browser/profile for downstream use
+      console.error(`[DEBUG] Alias resolved: ${resolved.browser}-${resolved.workspace}`);
+      // Update args with resolved browser/workspace for downstream use
       args.browser = resolved.browser;
-      args.profile = resolved.profile;
+      args.workspace = resolved.workspace;
       if (resolved.config.daemonPort) {
         console.error(`[DEBUG] Found daemonPort: ${resolved.config.daemonPort}`);
         return resolved.config.daemonPort;
       }
     }
-    console.error(`[DEBUG] Alias not found: ${args.profile}`);
+    console.error(`[DEBUG] Alias not found: ${args.workspace}`);
   } else {
-    // No browser/profile specified - check lockfile for running daemon
-    console.error(`[DEBUG] No browser/profile specified, checking lockfile...`);
+    // No browser/workspace specified - check lockfile for running daemon
+    console.error(`[DEBUG] No browser/workspace specified, checking lockfile...`);
     const lockData = readLockfile();
     if (lockData && lockData.port) {
-      console.error(`[DEBUG] Found running daemon via lockfile: port=${lockData.port}, browser=${lockData.browser}, profile=${lockData.profile}`);
+      console.error(`[DEBUG] Found running daemon via lockfile: port=${lockData.port}, browser=${lockData.browser}, workspace=${lockData.workspace}`);
       return lockData.port;
     }
     console.error(`[DEBUG] No lockfile found`);
@@ -219,15 +219,16 @@ DAEMON:
   cc-browser status              Check daemon and browser status
 
 BROWSER LIFECYCLE:
-  cc-browser browsers                     List available browsers
-  cc-browser profiles [--browser chrome]  List Chrome/Edge profiles (with emails)
-  cc-browser favorites --profile work     Get favorites from profile.json
-  cc-browser start                        Start with default isolated profile
-  cc-browser start --browser edge         Start Edge (default profile)
-  cc-browser start --browser edge --profile work  Start Edge with 'work' profile
-  cc-browser start --browser chrome --profile personal  Start Chrome with 'personal' profile
-  cc-browser start --profileDir "Profile 1"  Use existing system Chrome profile
-  cc-browser stop                         Stop browser
+  cc-browser browsers                       List available browsers
+  cc-browser profiles [--browser chrome]    List Chrome/Edge built-in profiles (with emails)
+  cc-browser workspaces                     List configured cc-browser workspaces
+  cc-browser favorites --workspace work     Get favorites from workspace.json
+  cc-browser start                          Start with default isolated workspace
+  cc-browser start --browser edge           Start Edge (default workspace)
+  cc-browser start --workspace mindzie      Start using workspace alias
+  cc-browser start --browser chrome --workspace personal  Start Chrome with workspace
+  cc-browser start --profileDir "Profile 1" Use existing system Chrome profile
+  cc-browser stop                           Stop browser
 
 NAVIGATION:
   cc-browser navigate --url <url>              Go to URL
@@ -268,28 +269,29 @@ ADVANCED:
   cc-browser upload --ref <e1> --path <file>   Upload file
 
 OPTIONS:
-  --port <port>     Daemon port (default: 9280)
-  --cdpPort <port>  Chrome CDP port (default: 9222)
-  --browser <name>  Browser to use: chrome, edge, brave
-  --profile <name>  Named profile for isolated sessions (persists logins)
-  --tab <targetId>  Target specific tab
-  --timeout <ms>    Action timeout
+  --port <port>       Daemon port (default: 9280)
+  --cdpPort <port>    Chrome CDP port (default: 9222)
+  --browser <name>    Browser to use: chrome, edge, brave
+  --workspace <name>  Named workspace for isolated sessions (persists logins)
+  --tab <targetId>    Target specific tab
+  --timeout <ms>      Action timeout
 
 EXAMPLES:
   # Start daemon (run in background terminal)
   cc-browser daemon
 
-  # List available browsers and profiles
+  # List available browsers and Chrome profiles
   cc-browser browsers
-  cc-browser profiles                    # List system Chrome profiles
-  cc-browser profiles --browser edge     # List system Edge profiles
+  cc-browser profiles                      # List system Chrome profiles
+  cc-browser profiles --browser edge       # List system Edge profiles
+  cc-browser workspaces                    # List cc-browser workspaces
 
-  # Named profiles (recommended - persistent logins, isolated sessions)
-  cc-browser start --browser edge --profile work      # Edge for work
-  cc-browser start --browser chrome --profile personal  # Chrome personal account
-  cc-browser start --browser chrome --profile business  # Chrome business account
+  # Named workspaces (recommended - persistent logins, isolated sessions)
+  cc-browser start --workspace mindzie              # Use alias
+  cc-browser start --browser edge --workspace work  # Edge for work
+  cc-browser start --browser chrome --workspace personal  # Chrome personal
 
-  # Simple start (default profile)
+  # Simple start (default workspace)
   cc-browser start --browser edge
   cc-browser start --browser chrome
 
@@ -299,7 +301,7 @@ EXAMPLES:
   cc-browser start --browser edge --profileDir "Default"
 
   # Basic workflow
-  cc-browser start --browser edge --profile work
+  cc-browser start --workspace mindzie
   cc-browser navigate --url "https://example.com"
   cc-browser snapshot --interactive
   cc-browser click --ref e3
@@ -307,23 +309,23 @@ EXAMPLES:
   cc-browser screenshot
   cc-browser stop
 
-  # Profile data stored at: %LOCALAPPDATA%\\cc-browser\\<browser>-<profile>\\
+  # Workspace data stored at: %LOCALAPPDATA%\\cc-browser\\<browser>-<workspace>\\
 
-MULTI-PROFILE (SIMULTANEOUS BROWSERS):
-  Each profile has its own ports defined in profile.json:
+MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
+  Each workspace has its own ports defined in workspace.json:
   - edge-work: daemon=9280, cdp=9222
   - chrome-work: daemon=9281, cdp=9223
   - chrome-personal: daemon=9282, cdp=9224
 
-  # Start daemons for each profile (in separate terminals):
-  cc-browser daemon --browser edge --profile work         # Port 9280
-  cc-browser daemon --browser chrome --profile work       # Port 9281
-  cc-browser daemon --browser chrome --profile personal   # Port 9282
+  # Start daemons for each workspace (in separate terminals):
+  cc-browser daemon --workspace mindzie                     # Port 9280
+  cc-browser daemon --browser chrome --workspace work       # Port 9281
+  cc-browser daemon --browser chrome --workspace personal   # Port 9282
 
-  # Commands auto-detect daemon port from profile.json:
-  cc-browser start --browser edge --profile work
-  cc-browser start --browser chrome --profile work
-  cc-browser start --browser chrome --profile personal
+  # Commands auto-detect daemon port from workspace.json:
+  cc-browser start --workspace mindzie
+  cc-browser start --browser chrome --workspace work
+  cc-browser start --browser chrome --workspace personal
 `);
   },
 
@@ -334,7 +336,7 @@ MULTI-PROFILE (SIMULTANEOUS BROWSERS):
 
     const daemonArgs = ['--port', String(port)];
     if (args.browser) daemonArgs.push('--browser', args.browser);
-    if (args.profile) daemonArgs.push('--profile', args.profile);
+    if (args.workspace) daemonArgs.push('--workspace', args.workspace);
 
     console.log(`Starting cc-browser daemon on port ${port}...`);
     const child = spawn(process.execPath, [daemonPath, ...daemonArgs], {
@@ -368,36 +370,71 @@ MULTI-PROFILE (SIMULTANEOUS BROWSERS):
     output(result);
   },
 
-  // Get favorites from profile.json
-  favorites: async (args) => {
-    const browser = args.browser || 'edge';
-    const profile = args.profile;
+  // List configured cc-browser workspaces
+  workspaces: async (args) => {
+    const localAppData = process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local');
+    const ccBrowserDir = join(localAppData, 'cc-browser');
 
-    if (!profile) {
-      output({ success: false, error: 'Profile name required. Use --profile <name>' });
+    if (!existsSync(ccBrowserDir)) {
+      output({ success: true, workspaces: [] });
       return;
     }
 
-    const profileDir = getProfileDir(browser, profile);
-    const profileJsonPath = join(profileDir, 'profile.json');
+    const workspaces = [];
+    const dirs = readdirSync(ccBrowserDir);
+    for (const dir of dirs) {
+      const configPath = join(ccBrowserDir, dir, 'workspace.json');
+      if (existsSync(configPath)) {
+        try {
+          const config = JSON.parse(readFileSync(configPath, 'utf8'));
+          workspaces.push({
+            directory: dir,
+            name: config.name || dir,
+            browser: config.browser || 'unknown',
+            workspace: config.workspace || dir,
+            daemonPort: config.daemonPort || null,
+            cdpPort: config.cdpPort || null,
+            aliases: config.aliases || [],
+            purpose: config.purpose || '',
+          });
+        } catch {
+          // Skip invalid configs
+        }
+      }
+    }
+    output({ success: true, workspaces });
+  },
 
-    if (!existsSync(profileJsonPath)) {
-      output({ success: false, error: `Profile not found: ${profileJsonPath}` });
+  // Get favorites from workspace.json
+  favorites: async (args) => {
+    const browser = args.browser || 'edge';
+    const workspace = args.workspace;
+
+    if (!workspace) {
+      output({ success: false, error: 'Workspace name required. Use --workspace <name>' });
+      return;
+    }
+
+    const workspaceDir = getWorkspaceDir(browser, workspace);
+    const workspaceJsonPath = join(workspaceDir, 'workspace.json');
+
+    if (!existsSync(workspaceJsonPath)) {
+      output({ success: false, error: `Workspace not found: ${workspaceJsonPath}` });
       return;
     }
 
     try {
-      const data = JSON.parse(readFileSync(profileJsonPath, 'utf8'));
+      const data = JSON.parse(readFileSync(workspaceJsonPath, 'utf8'));
       output({
         success: true,
         browser,
-        profile,
+        workspace,
         favorites: data.favorites || [],
         name: data.name,
         purpose: data.purpose,
       });
     } catch (err) {
-      output({ success: false, error: `Failed to read profile: ${err.message}` });
+      output({ success: false, error: `Failed to read workspace: ${err.message}` });
     }
   },
 
@@ -409,7 +446,7 @@ MULTI-PROFILE (SIMULTANEOUS BROWSERS):
       port: args.cdpPort,
       exe: args.exe,
       browser: args.browser,
-      profile: args.profile,
+      workspace: args.workspace,
       profileDir: args.profileDir,
       useSystemProfile: args.profileDir ? true : args.systemProfile,
     }, port);
@@ -421,7 +458,7 @@ MULTI-PROFILE (SIMULTANEOUS BROWSERS):
     const port = getDaemonPort(args);
     const result = await request('POST', '/stop', {
       browser: args.browser,
-      profile: args.profile,
+      workspace: args.workspace,
     }, port);
     output(result);
   },

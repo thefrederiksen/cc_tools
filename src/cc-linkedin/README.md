@@ -22,8 +22,8 @@ cc-linkedin enables programmatic LinkedIn interactions through browser automatio
 ## Quick Start
 
 ```bash
-# Start cc-browser daemon with a LinkedIn profile
-cc-browser daemon --profile linkedin
+# Start cc-browser daemon with a LinkedIn workspace
+cc-browser daemon --workspace linkedin
 
 # Check LinkedIn login status
 cc-linkedin status
@@ -108,17 +108,17 @@ cc-linkedin search "software engineer" --type people
 ## Global Options
 
 ```
---port INT      cc-browser daemon port (default: 9280)
---format TEXT   Output format: text, json, markdown
---delay FLOAT   Delay between actions (seconds)
---verbose       Detailed output for debugging
+--workspace TEXT  cc-browser workspace name or alias (default: from config.json)
+--format TEXT     Output format: text, json, markdown
+--delay FLOAT     Delay between actions (seconds)
+--verbose         Detailed output for debugging
 ```
 
 ## Browser Setup
 
-1. Start cc-browser daemon with a profile for LinkedIn:
+1. Start cc-browser daemon with a workspace for LinkedIn:
    ```bash
-   cc-browser daemon --profile linkedin
+   cc-browser daemon --workspace linkedin
    ```
 
 2. Log into LinkedIn in the browser window that opens

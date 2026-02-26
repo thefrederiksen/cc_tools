@@ -9,7 +9,7 @@ import re
 import time
 import random
 
-from .browser_client import BrowserClient, BrowserError, ProfileError
+from .browser_client import BrowserClient, BrowserError, WorkspaceError
 from .selectors import RedditURLs, NewReddit
 
 app = typer.Typer(
@@ -22,7 +22,7 @@ console = Console()
 
 # Global options stored in context
 class Config:
-    profile: str = "chrome-work"
+    workspace: str = "chrome-work"
     format: str = "text"
     delay: float = 1.0
     verbose: bool = False
@@ -56,8 +56,8 @@ def type_slowly(client: "BrowserClient", ref: str, text: str, delay_ms: int = 75
 
 
 def get_client() -> BrowserClient:
-    """Get browser client instance for the configured profile."""
-    return BrowserClient(profile=config.profile)
+    """Get browser client instance for the configured workspace."""
+    return BrowserClient(workspace=config.workspace)
 
 
 def output(data: dict, message: str = ""):
@@ -91,17 +91,17 @@ def warn(msg: str):
 
 @app.callback()
 def main(
-    profile: str = typer.Option("chrome-work", "--profile", "-p", help="Browser profile name or alias"),
+    workspace: str = typer.Option("chrome-work", "--workspace", "-w", help="Browser workspace name or alias"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
     delay: float = typer.Option(1.0, help="Delay between actions (seconds)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
     """Reddit CLI via browser automation.
 
-    Requires cc-browser daemon to be running with the specified profile.
-    Start it with: cc-browser daemon --profile chrome-work
+    Requires cc-browser daemon to be running with the specified workspace.
+    Start it with: cc-browser daemon --workspace chrome-work
     """
-    config.profile = profile
+    config.workspace = workspace
     config.format = format
     config.delay = delay
     config.verbose = verbose

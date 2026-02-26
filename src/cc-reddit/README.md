@@ -24,7 +24,7 @@ cc-reddit enables programmatic Reddit interactions through browser automation, a
 
 ```bash
 # Start cc-browser daemon
-cc-browser start --profile reddit
+cc-browser start --workspace reddit
 
 # Check Reddit login status
 cc-reddit status
@@ -101,7 +101,7 @@ cc-reddit upvote abc123
 ## Options
 
 ```
---profile TEXT    Browser profile (default: reddit)
+--workspace TEXT  Browser workspace (default: chrome-work)
 --format TEXT     Output: text, json, markdown
 --delay FLOAT     Delay between actions (seconds)
 --verbose         Detailed output
@@ -109,9 +109,9 @@ cc-reddit upvote abc123
 
 ## Browser Setup
 
-1. Start cc-browser with a profile for Reddit:
+1. Start cc-browser with a workspace for Reddit:
    ```bash
-   cc-browser start --profile reddit
+   cc-browser start --workspace reddit
    ```
 
 2. Log into Reddit in the browser window that opens

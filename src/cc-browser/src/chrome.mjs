@@ -279,19 +279,19 @@ export function listChromeProfiles(browserKind = 'chrome') {
   return profiles;
 }
 
-export function getChromeUserDataDir(browserKind = 'chrome', profileName = 'default') {
+export function getChromeUserDataDir(browserKind = 'chrome', workspaceName = 'default') {
   // Use LocalAppData for persistent storage (survives reboots, keeps logins)
   const appData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
   const base = join(appData, 'cc-browser');
-  const dir = join(base, `${browserKind}-${profileName}`);
+  const dir = join(base, `${browserKind}-${workspaceName}`);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
   return dir;
 }
 
-export function resetChromeUserDataDir(browserKind = 'chrome', profileName = 'default') {
-  const dir = getChromeUserDataDir(browserKind, profileName);
+export function resetChromeUserDataDir(browserKind = 'chrome', workspaceName = 'default') {
+  const dir = getChromeUserDataDir(browserKind, workspaceName);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -305,7 +305,7 @@ export async function launchChrome(opts = {}) {
     headless = false,
     executablePath,
     browser,
-    profileName = 'default',
+    workspaceName = 'default',
     useSystemProfile = false,
     profileDir = null,
   } = opts;
@@ -346,8 +346,8 @@ export async function launchChrome(opts = {}) {
       );
     }
   } else {
-    // Use isolated persistent profile
-    userDataDir = getChromeUserDataDir(browserKind, profileName);
+    // Use isolated persistent workspace
+    userDataDir = getChromeUserDataDir(browserKind, workspaceName);
   }
 
   // Check if CDP port is available
