@@ -8,6 +8,7 @@ import json
 import re
 import time
 import random
+from pathlib import Path
 
 from .browser_client import BrowserClient, BrowserError, WorkspaceError
 from .selectors import RedditURLs, NewReddit
@@ -20,9 +21,46 @@ app = typer.Typer(
 
 console = Console()
 
+
+def get_config_dir() -> Path:
+    """Get cc-reddit config directory."""
+    return Path.home() / ".cc-reddit"
+
+
+def load_default_workspace() -> str:
+    """Load default workspace from config.json.
+
+    Returns:
+        Default workspace name from config, or 'reddit' if not configured.
+
+    Raises:
+        typer.Exit: If config file is invalid.
+    """
+    config_file = get_config_dir() / "config.json"
+
+    if not config_file.exists():
+        console.print(
+            f"[yellow]WARNING:[/yellow] Config file not found: {config_file}\n"
+            "Using default workspace: reddit\n"
+            'Create config.json with: {"default_workspace": "reddit"}'
+        )
+        return "reddit"
+
+    try:
+        with open(config_file, "r") as f:
+            data = json.load(f)
+        return data.get("default_workspace", "reddit")
+    except json.JSONDecodeError as e:
+        console.print(f"[red]ERROR:[/red] Invalid JSON in {config_file}: {e}")
+        raise typer.Exit(1)
+    except IOError as e:
+        console.print(f"[red]ERROR:[/red] Cannot read {config_file}: {e}")
+        raise typer.Exit(1)
+
+
 # Global options stored in context
 class Config:
-    workspace: str = "chrome-work"
+    workspace: str = ""
     format: str = "text"
     delay: float = 1.0
     verbose: bool = False
@@ -56,8 +94,12 @@ def type_slowly(client: "BrowserClient", ref: str, text: str, delay_ms: int = 75
 
 
 def get_client() -> BrowserClient:
-    """Get browser client instance for the configured workspace."""
-    return BrowserClient(workspace=config.workspace)
+    """Get browser client instance for configured workspace."""
+    try:
+        return BrowserClient(workspace=config.workspace)
+    except WorkspaceError as e:
+        console.print(f"[red]ERROR:[/red] {e}")
+        raise typer.Exit(1)
 
 
 def output(data: dict, message: str = ""):
@@ -91,16 +133,20 @@ def warn(msg: str):
 
 @app.callback()
 def main(
-    workspace: str = typer.Option("chrome-work", "--workspace", "-w", help="Browser workspace name or alias"),
+    workspace: Optional[str] = typer.Option(None, "--workspace", "-w", help="cc-browser workspace name or alias"),
     format: str = typer.Option("text", help="Output format: text, json, markdown"),
     delay: float = typer.Option(1.0, help="Delay between actions (seconds)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
 ):
     """Reddit CLI via browser automation.
 
-    Requires cc-browser daemon to be running with the specified workspace.
-    Start it with: cc-browser daemon --workspace chrome-work
+    Requires cc-browser daemon to be running.
+    Start it with: cc-browser daemon --workspace reddit
     """
+    # Load default workspace from config if not specified
+    if workspace is None:
+        workspace = load_default_workspace()
+
     config.workspace = workspace
     config.format = format
     config.delay = delay

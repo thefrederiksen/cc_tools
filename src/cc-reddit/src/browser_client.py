@@ -135,18 +135,17 @@ class BrowserClient:
     Workspace is resolved to get the daemon port.
     """
 
-    def __init__(self, workspace: str = None, profile: str = None, timeout: float = 30.0):
+    def __init__(self, workspace: str = None, timeout: float = 30.0):
         """Initialize browser client for a workspace.
 
         Args:
             workspace: Workspace name or alias (e.g., "reddit", "work", "chrome-work")
-            profile: Deprecated alias for workspace (for backward compat during transition)
             timeout: HTTP request timeout in seconds
 
         Raises:
             WorkspaceError: If workspace cannot be resolved.
         """
-        self.workspace = workspace or profile
+        self.workspace = workspace
         self.port = get_port_for_workspace(self.workspace)
         self.base_url = f"http://localhost:{self.port}"
         self.timeout = timeout

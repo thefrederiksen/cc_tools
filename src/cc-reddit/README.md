@@ -16,15 +16,18 @@ cc-reddit enables programmatic Reddit interactions through browser automation, a
 
 ## Requirements
 
-- cc-browser daemon running (port 9280)
+- cc-browser daemon running (workspace resolved via `~/.cc-reddit/config.json`)
 - Chrome/Edge browser
 - Logged into Reddit in the browser
 
 ## Quick Start
 
 ```bash
-# Start cc-browser daemon
+# First time: open browser UI to log into Reddit
 cc-browser start --workspace reddit
+
+# Start cc-browser daemon (for automation)
+cc-browser daemon --workspace reddit
 
 # Check Reddit login status
 cc-reddit status
@@ -101,7 +104,7 @@ cc-reddit upvote abc123
 ## Options
 
 ```
---workspace TEXT  Browser workspace (default: chrome-work)
+--workspace TEXT  Browser workspace (default from ~/.cc-reddit/config.json, or "reddit")
 --format TEXT     Output: text, json, markdown
 --delay FLOAT     Delay between actions (seconds)
 --verbose         Detailed output
@@ -109,21 +112,26 @@ cc-reddit upvote abc123
 
 ## Browser Setup
 
-1. Start cc-browser with a workspace for Reddit:
+1. Start cc-browser to open the browser UI and log into Reddit:
    ```bash
    cc-browser start --workspace reddit
    ```
 
 2. Log into Reddit in the browser window that opens
 
-3. Your session persists - cc-reddit uses the same browser session
+3. Start the daemon for automation:
+   ```bash
+   cc-browser daemon --workspace reddit
+   ```
+
+4. Your session persists - cc-reddit uses the same browser session
 
 ## How It Works
 
 ```
 cc-reddit (Python CLI)
     |
-    | HTTP requests to localhost:9280
+    | HTTP requests to localhost:<daemonPort>
     v
 cc-browser daemon (Node.js)
     |

@@ -64,7 +64,7 @@ Chrome (logged into Reddit)
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-AUTH-1 | Check if logged into Reddit | P0 |
-| FR-AUTH-2 | Support multiple Reddit accounts via browser profiles | P0 |
+| FR-AUTH-2 | Support multiple Reddit accounts via browser workspaces | P0 |
 | FR-AUTH-3 | Show current logged-in username | P0 |
 
 ### Reading Content
@@ -176,7 +176,7 @@ Chrome (logged into Reddit)
 
 ### Global Options
 ```
---profile TEXT    Browser profile to use (default: "reddit")
+--workspace TEXT    Browser workspace to use (default: "reddit")
 --format TEXT     Output format: text, json, markdown (default: text)
 --delay FLOAT     Seconds to wait between actions (default: 1.0)
 --verbose         Show detailed output
