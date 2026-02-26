@@ -39,6 +39,19 @@ class LLMProvider(ABC):
         """
         pass
 
+    @abstractmethod
+    def extract_text(self, image_path: Path, prompt: Optional[str] = None) -> str:
+        """Extract text from an image (OCR).
+
+        Args:
+            image_path: Path to the image file
+            prompt: Optional custom prompt
+
+        Returns:
+            Extracted text
+        """
+        pass
+
     @property
     @abstractmethod
     def name(self) -> str:
@@ -134,6 +147,57 @@ class OpenAIProvider(LLMProvider):
 
         return response.choices[0].message.content
 
+    def extract_text(self, image_path: Path, prompt: Optional[str] = None) -> str:
+        """Extract text from image using OpenAI Vision API (OCR)."""
+        import base64
+
+        try:
+            import openai
+        except ImportError:
+            raise ImportError("openai package not installed. Run: pip install openai")
+
+        # Read and encode image
+        with open(image_path, "rb") as f:
+            image_data = base64.b64encode(f.read()).decode("utf-8")
+
+        # Determine mime type
+        suffix = image_path.suffix.lower()
+        mime_types = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+        }
+        mime_type = mime_types.get(suffix, "image/jpeg")
+
+        default_prompt = (
+            "Extract and return all text visible in this image. "
+            "Return only the text, nothing else."
+        )
+
+        client = openai.OpenAI(api_key=self.api_key)
+        response = client.chat.completions.create(
+            model=self.vision_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt or default_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{image_data}",
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=1000,
+        )
+
+        return response.choices[0].message.content
+
 
 class ClaudeCodeProvider(LLMProvider):
     """Claude Code CLI provider.
@@ -200,6 +264,42 @@ class ClaudeCodeProvider(LLMProvider):
                     "--print",
                     "--dangerously-skip-permissions",
                     prompt,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+
+            if result.returncode != 0:
+                raise RuntimeError(f"Claude Code failed: {result.stderr}")
+
+            return result.stdout.strip()
+
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code"
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Claude Code timed out")
+
+    def extract_text(self, image_path: Path, prompt: Optional[str] = None) -> str:
+        """Extract text from image using Claude Code CLI (OCR)."""
+        import subprocess
+
+        default_prompt = (
+            "Extract and return all text visible in this image. "
+            "Return only the text, nothing else. No preamble, no explanation."
+        )
+
+        full_prompt = f"Read this image: {image_path}. {prompt or default_prompt}"
+
+        try:
+            result = subprocess.run(
+                [
+                    "claude",
+                    "--print",
+                    "--dangerously-skip-permissions",
+                    full_prompt,
                 ],
                 capture_output=True,
                 text=True,

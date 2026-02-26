@@ -1,18 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec file for cc-image."""
 
+import os
 from pathlib import Path
 
 block_cipher = None
 
 # Get the spec file directory
 spec_path = Path(SPECPATH)
+cc_shared_path = os.path.abspath('../cc_shared')
+venv_site_packages = os.path.join(SPECPATH, 'venv', 'Lib', 'site-packages')
 
 a = Analysis(
     [str(spec_path / 'main.py')],
-    pathex=[SPECPATH, str(spec_path / 'src')],
+    pathex=[SPECPATH, str(spec_path / 'src'), cc_shared_path],
     binaries=[],
-    datas=[],
+    datas=[
+        (cc_shared_path + '/*.py', 'cc_shared'),
+        (cc_shared_path + '/providers/*.py', 'cc_shared/providers'),
+        (os.path.join(venv_site_packages, 'rich', '_unicode_data', '*.py'), 'rich/_unicode_data'),
+    ],
     hiddenimports=[
         'typer',
         'rich',
@@ -20,13 +27,20 @@ a = Analysis(
         'rich.table',
         'rich.panel',
         'rich.text',
+        'rich._unicode_data',
         'PIL',
         'PIL.Image',
         'requests',
+        'openai',
+        'tzdata',
         'cli',
         'generation',
         'vision',
         'manipulation',
+        'cc_shared',
+        'cc_shared.llm',
+        'cc_shared.config',
+        'cc_shared.providers',
     ],
     hookspath=[],
     hooksconfig={},

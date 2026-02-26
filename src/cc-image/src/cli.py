@@ -121,40 +121,52 @@ def convert_cmd(
 @app.command("describe")
 def describe_cmd(
     image: Path = typer.Argument(..., help="Image to analyze", exists=True),
+    engine: str = typer.Option(
+        "claude_code",
+        "--engine", "-e",
+        help="LLM engine: claude_code (default) or openai",
+    ),
 ):
     """Get AI description of an image."""
     try:
-        console.print("[blue]Analyzing image...[/blue]")
-        result = describe(image)
+        engine_display = "Claude Code" if engine == "claude_code" else "OpenAI"
+        console.print(f"[blue]Analyzing image with {engine_display}...[/blue]")
+        result = describe(image, engine=engine)
         console.print(f"\n{result}")
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
     except RuntimeError as e:
-        console.print(f"[red]API error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except requests.RequestException as e:
-        console.print(f"[red]Network error:[/red] {e}")
+    except ValueError as e:
+        console.print(f"[red]Configuration error:[/red] {e}")
         raise typer.Exit(1)
 
 
 @app.command("ocr")
 def ocr_cmd(
     image: Path = typer.Argument(..., help="Image with text", exists=True),
+    engine: str = typer.Option(
+        "claude_code",
+        "--engine", "-e",
+        help="LLM engine: claude_code (default) or openai",
+    ),
 ):
     """Extract text from image (OCR)."""
     try:
-        console.print("[blue]Extracting text...[/blue]")
-        result = extract_text(image)
+        engine_display = "Claude Code" if engine == "claude_code" else "OpenAI"
+        console.print(f"[blue]Extracting text with {engine_display}...[/blue]")
+        result = extract_text(image, engine=engine)
         console.print(f"\n{result}")
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
     except RuntimeError as e:
-        console.print(f"[red]API error:[/red] {e}")
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except requests.RequestException as e:
-        console.print(f"[red]Network error:[/red] {e}")
+    except ValueError as e:
+        console.print(f"[red]Configuration error:[/red] {e}")
         raise typer.Exit(1)
 
 
