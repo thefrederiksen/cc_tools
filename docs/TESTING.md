@@ -8,16 +8,30 @@ This document describes the testing infrastructure, test coverage, and validatio
 
 | Tool | Unit Tests | Integration Tests | Status |
 |------|------------|-------------------|--------|
-| cc-markdown | 13 | 12 | PASS |
-| cc-transcribe | 33 | - | PASS |
+| cc_shared | 42 | - | PASS |
+| cc-click | 11 | - | NEW |
+| cc-comm-queue | 101 | - | PASS |
+| cc-computer | 35 | - | NEW |
+| cc-crawl4ai | 141 | - | PASS |
+| cc-docgen | 6 | - | NEW |
+| cc-gmail | 49 | - | PASS |
+| cc-hardware | 18 | - | PASS |
 | cc-image | 38 | - | PASS |
-| cc-voice | 21 | - | PASS |
-| cc-whisper | 9 | - | PASS |
+| cc-linkedin | 28 | - | PASS |
+| cc-markdown | 13 | 12 | PASS |
+| cc-outlook | 51 | - | PASS |
+| cc-photos | 33 | - | PASS |
+| cc-setup | 6 | - | NEW |
+| cc-transcribe | 33 | - | PASS |
+| cc-trisight | 19 | - | NEW |
 | cc-video | 24 | - | PASS |
-| **Total** | **138** | **12** | **ALL PASS** |
+| cc-voice | 21 | - | PASS |
+| cc-websiteaudit | 59 | - | PASS |
+| cc-whisper | 9 | - | PASS |
+| **Total** | **737** | **12** | **ALL PASS** |
 
-**Last Tested:** February 16, 2026
-**Platform:** Windows 10, Python 3.11.6
+**Last Tested:** February 26, 2026
+**Platform:** Windows 11, Python 3.11.6, .NET 10.0, Node.js 18+
 
 ---
 
