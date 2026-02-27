@@ -1,0 +1,11 @@
+{
+  "id": "STRING (UUID format)",
+  "platform": "linkedin",
+  "type": "post",
+  "content": "STRING (the post content)",
+  "persona": "mindzie",
+  "status": "pending",
+  "tags": ["process mining", "digital transformation"],
+  "created_at": "STRING (ISO 8601 timestamp)",
+  "created_by": "claude_code"
+}
