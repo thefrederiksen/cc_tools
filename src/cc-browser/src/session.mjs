@@ -96,6 +96,9 @@ let cached = null;
 /** @type {Promise<{browser: object, cdpUrl: string}> | null} */
 let connecting = null;
 
+/** @type {string | null} The targetId of the most recently focused tab */
+let activeTargetId = null;
+
 /** @type {WeakSet<object>} Track contexts with webdriver masking applied */
 const maskedContexts = new WeakSet();
 
@@ -564,6 +567,7 @@ export async function connectBrowser(cdpUrl) {
 export async function disconnectBrowser() {
   const cur = cached;
   cached = null;
+  activeTargetId = null;
   if (cur?.browser) {
     await cur.browser.close().catch(() => {});
   }
@@ -640,13 +644,20 @@ export async function getPageForTargetId(opts) {
     throw new Error('No pages available in the connected browser.');
   }
 
-  if (!targetId) {
+  const resolvedId = targetId || activeTargetId;
+
+  if (!resolvedId) {
     return pages[0];
   }
 
-  const found = await findPageByTargetId(browser, targetId, cdpUrl);
+  const found = await findPageByTargetId(browser, resolvedId, cdpUrl);
   if (!found) {
+    // If the active tab was closed/gone, clear it and fall back
+    if (!targetId && activeTargetId) {
+      activeTargetId = null;
+    }
     if (pages.length === 1) return pages[0];
+    if (!targetId) return pages[0];
     throw new Error('Tab not found');
   }
   return found;
@@ -739,6 +750,8 @@ export async function createPageViaPlaywright(opts) {
     throw new Error('Failed to get targetId for new page');
   }
 
+  activeTargetId = tid;
+
   return {
     targetId: tid,
     title: await page.title().catch(() => ''),
@@ -754,6 +767,9 @@ export async function closePageByTargetIdViaPlaywright(opts) {
   if (!page) {
     throw new Error('Tab not found');
   }
+  if (activeTargetId === targetId) {
+    activeTargetId = null;
+  }
   await page.close();
 }
 
@@ -765,4 +781,5 @@ export async function focusPageByTargetIdViaPlaywright(opts) {
     throw new Error('Tab not found');
   }
   await page.bringToFront();
+  activeTargetId = targetId;
 }
