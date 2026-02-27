@@ -285,8 +285,9 @@ const routes = {
       cdpPort = DEFAULT_CDP_PORT;
     }
 
-    // Indicator setting: --no-indicator flag > workspace.json > default (true)
-    // Stealth mode: NEVER use --enable-automation (it's the #1 bot detection signal)
+    // Indicator bar: shows "cc-browser // workspace" bar at top of pages
+    // Controlled by: --no-indicator flag > workspace.json > default (true)
+    // Stealth mode also disables the bar automatically
     const requestedMode = body.mode || (workspaceConfig && workspaceConfig.mode);
     let indicator = true;
     if (requestedMode === 'stealth') {
@@ -307,13 +308,12 @@ const routes = {
       workspaceName: workspaceName,
       useSystemProfile: body.systemProfile || body.useSystemProfile,
       profileDir: body.profileDir,
-      indicator,
     });
 
     // Connect Playwright
     await connectBrowser(result.cdpUrl);
 
-    // Show workspace indicator bar on all pages
+    // Show workspace indicator bar on all pages (JS-injected, no --enable-automation)
     if (indicator) {
       await setWorkspaceIndicator(workspaceName);
     }

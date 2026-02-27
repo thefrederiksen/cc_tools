@@ -308,7 +308,6 @@ export async function launchChrome(opts = {}) {
     workspaceName = 'default',
     useSystemProfile = false,
     profileDir = null,
-    indicator = true,
   } = opts;
 
   // Find Chrome
@@ -390,10 +389,9 @@ export async function launchChrome(opts = {}) {
     args.push('--disable-sync');
   }
 
-  // Show automation info bar as visual workspace indicator (default on)
-  if (indicator) {
-    args.push('--enable-automation');
-  }
+  // Never use --enable-automation: it sets navigator.webdriver=true which is
+  // the #1 bot detection signal. The cc-browser indicator bar (injected via JS
+  // in session.mjs) provides the visual workspace indicator instead.
 
   args.push(
     '--disable-features=TranslateUI',
@@ -453,7 +451,6 @@ export async function launchChrome(opts = {}) {
           browserKind,
           userDataDir,
           profileDir: profileDirArg,
-          indicator,
           tabs: pageTabs.map((t) => ({
             targetId: t.id,
             title: t.title,
