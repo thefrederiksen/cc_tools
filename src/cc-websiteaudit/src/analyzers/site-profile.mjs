@@ -25,6 +25,11 @@ const HOSTING_HEADERS = [
   { header: 'x-served-by',         hosting: 'Fastly', match: /cache-/i },
   { header: 'fly-request-id',      hosting: 'Fly.io' },
   { header: 'x-render-origin-server', hosting: 'Render' },
+  { header: 'x-kinsta-cache',       hosting: 'Kinsta' },
+  { header: 'ki-edge',              hosting: 'Kinsta' },
+  { header: 'ki-cache-type',        hosting: 'Kinsta' },
+  { header: 'ki-cf-cache-status',   hosting: 'Kinsta' },
+  { header: 'ki-origin',            hosting: 'Kinsta' },
 ];
 
 const HOSTING_SERVER_VALUES = [

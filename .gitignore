@@ -98,3 +98,5 @@ bin/
 
 # Transcripts and temp files
 *_transcript.txt
+.temp/
+src/cc-image/.claude/sounds/.current_session
