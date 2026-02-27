@@ -1,9 +1,15 @@
-"""CLI for cc-gmail - Gmail from the command line with multi-account support."""
+"""CLI for cc-gmail - Gmail from the command line with multi-account support.
+
+Supports two authentication methods:
+  - App Password (IMAP/SMTP) -- Quick Setup, works for most accounts
+  - OAuth (Gmail API) -- Full Setup, required when IMAP is blocked
+"""
 
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 # Suppress Google's file_cache warning before importing googleapiclient
 logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
@@ -32,9 +38,23 @@ try:
         delete_account,
         resolve_account,
         get_account_dir,
+        get_auth_method,
+        get_account_email,
+        get_app_password,
+        store_app_password,
+        delete_app_password,
+        save_account_config,
+        load_account_config,
+        test_imap_connection,
+        test_smtp_connection,
     )
     from .gmail_api import GmailClient
+    from .imap_client import ImapClient
+    from .smtp_client import SmtpClient
+    from .calendar_api import CalendarClient
+    from .contacts_api import ContactsClient
     from .utils import format_timestamp, truncate, format_message_summary
+    from .auth import check_token_scopes
 except ImportError:
     from src import __version__
     from src.auth import (
@@ -50,8 +70,22 @@ except ImportError:
         delete_account,
         resolve_account,
         get_account_dir,
+        get_auth_method,
+        get_account_email,
+        get_app_password,
+        store_app_password,
+        delete_app_password,
+        save_account_config,
+        load_account_config,
+        test_imap_connection,
+        test_smtp_connection,
+        check_token_scopes,
     )
     from src.gmail_api import GmailClient
+    from src.imap_client import ImapClient
+    from src.smtp_client import SmtpClient
+    from src.calendar_api import CalendarClient
+    from src.contacts_api import ContactsClient
     from src.utils import format_timestamp, truncate, format_message_summary
 
 # Configure logging for library modules
@@ -65,6 +99,12 @@ app = typer.Typer(
 accounts_app = typer.Typer(help="Manage Gmail accounts")
 app.add_typer(accounts_app, name="accounts")
 
+calendar_app = typer.Typer(help="Google Calendar operations (OAuth only)")
+app.add_typer(calendar_app, name="calendar")
+
+contacts_app = typer.Typer(help="Google Contacts operations (OAuth only)")
+app.add_typer(contacts_app, name="contacts")
+
 # Configure console to handle Unicode safely on Windows
 # This prevents UnicodeEncodeError when emails contain emoji
 if sys.platform == "win32":
@@ -77,23 +117,9 @@ console = Console()
 
 
 def handle_api_error(error: Exception, account: str) -> None:
-    """
-    Parse Gmail API errors and provide user-friendly guidance.
-
-    Handles common OAuth and API errors with specific instructions:
-    - Gmail API not enabled
-    - OAuth redirect mismatch (wrong client type)
-    - App not verified / test user not added
-    - Token expired or revoked
-    - Invalid credentials file
-
-    Args:
-        error: The exception that was raised
-        account: Account name for context in error messages
-    """
+    """Parse Gmail API errors and provide user-friendly guidance."""
     error_str = str(error)
 
-    # Gmail API not enabled
     if "Gmail API has not been used in project" in error_str or "accessNotConfigured" in error_str:
         console.print("[red]Error:[/red] Gmail API is not enabled for your Google Cloud project.")
         console.print("\n[yellow]To fix this:[/yellow]")
@@ -103,7 +129,6 @@ def handle_api_error(error: Exception, account: str) -> None:
         console.print("4. Wait a minute, then try again")
         return
 
-    # OAuth redirect mismatch
     if "redirect_uri_mismatch" in error_str:
         console.print("[red]Error:[/red] OAuth client type is incorrect.")
         console.print("\n[yellow]To fix this:[/yellow]")
@@ -114,7 +139,6 @@ def handle_api_error(error: Exception, account: str) -> None:
         console.print(f"5. Replace: {get_credentials_path(account)}")
         return
 
-    # App not verified / test user not added
     if "access_denied" in error_str or "has not completed the Google verification" in error_str:
         console.print("[red]Error:[/red] Your Google account is not authorized to use this app.")
         console.print("\n[yellow]To fix this:[/yellow]")
@@ -124,14 +148,12 @@ def handle_api_error(error: Exception, account: str) -> None:
         console.print("4. Try again")
         return
 
-    # Token expired or revoked
     if "invalid_grant" in error_str or "Token has been expired or revoked" in error_str:
         console.print("[red]Error:[/red] Your authentication token has expired or been revoked.")
         console.print("\n[yellow]To fix this:[/yellow]")
         console.print(f"  cc-gmail --account {account} auth --force")
         return
 
-    # Invalid credentials file
     if "invalid_client" in error_str:
         console.print("[red]Error:[/red] The credentials.json file is invalid or corrupted.")
         console.print("\n[yellow]To fix this:[/yellow]")
@@ -140,9 +162,137 @@ def handle_api_error(error: Exception, account: str) -> None:
         console.print(f"3. Replace: {get_credentials_path(account)}")
         return
 
-    # Generic error - show the error and point to README
     console.print(f"[red]Error:[/red] {error}")
     console.print(f"\nSee README for troubleshooting: {get_readme_path()}")
+
+
+def handle_calendar_api_error(error: Exception, account: str) -> None:
+    """Parse Calendar API errors and provide user-friendly guidance."""
+    error_str = str(error)
+
+    if "Calendar API has not been used" in error_str or "calendar-json.googleapis.com" in error_str:
+        console.print("[red]Error:[/red] Google Calendar API is not enabled for your project.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Open this link in your browser:")
+        console.print("   https://console.cloud.google.com/apis/library/calendar-json.googleapis.com")
+        console.print("2. Make sure your project is selected at the top")
+        console.print("3. Click 'Enable'")
+        console.print("4. Wait 1-2 minutes for the change to propagate")
+        console.print("5. Try again")
+        return
+
+    if "insufficient" in error_str.lower() or "scope" in error_str.lower():
+        console.print("[red]Error:[/red] Your OAuth token is missing calendar permissions.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print(f"  cc-gmail -a {account} auth --force")
+        console.print("\nThis will open a browser to re-authorize with calendar access.")
+        console.print("You only need to do this once.")
+        return
+
+    handle_api_error(error, account)
+
+
+def handle_contacts_api_error(error: Exception, account: str) -> None:
+    """Parse People API errors and provide user-friendly guidance."""
+    error_str = str(error)
+
+    if "People API has not been used" in error_str or "people.googleapis.com" in error_str:
+        console.print("[red]Error:[/red] Google People API is not enabled for your project.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print("1. Open this link in your browser:")
+        console.print("   https://console.cloud.google.com/apis/library/people.googleapis.com")
+        console.print("2. Make sure your project is selected at the top")
+        console.print("3. Click 'Enable'")
+        console.print("4. Wait 1-2 minutes for the change to propagate")
+        console.print("5. Try again")
+        return
+
+    if "insufficient" in error_str.lower() or "scope" in error_str.lower():
+        console.print("[red]Error:[/red] Your OAuth token is missing contacts permissions.")
+        console.print("\n[yellow]To fix this:[/yellow]")
+        console.print(f"  cc-gmail -a {account} auth --force")
+        console.print("\nThis will open a browser to re-authorize with contacts access.")
+        console.print("You only need to do this once.")
+        return
+
+    handle_api_error(error, account)
+
+
+def _require_oauth(acct: str, auth_method: str, feature: str) -> None:
+    """Exit with guidance if user is on app_password for an OAuth-only feature."""
+    if auth_method != "oauth":
+        console.print(f"[red]Error:[/red] {feature} requires OAuth authentication.")
+        console.print("\nApp Password (IMAP/SMTP) does not support this feature.")
+        console.print("Google Calendar and Contacts require the OAuth (API) path.")
+        console.print("\n[yellow]To switch to OAuth:[/yellow]")
+        console.print(f"  cc-gmail -a {acct} auth --method oauth")
+        console.print("\nThis will walk you through Google Cloud Console setup.")
+        raise typer.Exit(1)
+
+
+def _require_calendar_scopes(acct: str) -> None:
+    """Check that the current token has calendar scopes, guide upgrade if not."""
+    scope_status = check_token_scopes(acct)
+    if not scope_status["calendar"]:
+        console.print("[yellow]Notice:[/yellow] Your OAuth token does not include calendar permissions.")
+        console.print("\nThis happens if you set up OAuth before calendar support was added.")
+        console.print("\n[yellow]To fix this (one-time):[/yellow]")
+        console.print(f"  cc-gmail -a {acct} auth --force")
+        console.print("\nThis will open a browser to re-authorize with the new permissions.")
+        raise typer.Exit(1)
+
+
+def _require_contacts_scopes(acct: str) -> None:
+    """Check that the current token has contacts scopes, guide upgrade if not."""
+    scope_status = check_token_scopes(acct)
+    if not scope_status["contacts"]:
+        console.print("[yellow]Notice:[/yellow] Your OAuth token does not include contacts permissions.")
+        console.print("\nThis happens if you set up OAuth before contacts support was added.")
+        console.print("\n[yellow]To fix this (one-time):[/yellow]")
+        console.print(f"  cc-gmail -a {acct} auth --force")
+        console.print("\nThis will open a browser to re-authorize with the new permissions.")
+        raise typer.Exit(1)
+
+
+def _get_calendar_client(account: Optional[str] = None) -> Tuple[str, CalendarClient]:
+    """Get authenticated CalendarClient. Returns (account_name, client)."""
+    acct, auth_method = _resolve_and_get_auth(account)
+    _require_oauth(acct, auth_method, "Calendar")
+    _require_calendar_scopes(acct)
+
+    try:
+        creds = authenticate(acct)
+        return acct, CalendarClient(creds)
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+def _get_contacts_client(account: Optional[str] = None) -> Tuple[str, ContactsClient]:
+    """Get authenticated ContactsClient. Returns (account_name, client)."""
+    acct, auth_method = _resolve_and_get_auth(account)
+    _require_oauth(acct, auth_method, "Contacts")
+    _require_contacts_scopes(acct)
+
+    try:
+        creds = authenticate(acct)
+        return acct, ContactsClient(creds)
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
+        raise typer.Exit(1)
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
 
 # Global state for account selection
 class State:
@@ -158,8 +308,30 @@ def version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _get_imap_client(account: str) -> ImapClient:
+    """Get an IMAP client for an app_password account."""
+    email_addr = get_account_email(account)
+    password = get_app_password(account)
+    if not email_addr or not password:
+        console.print(f"[red]Error:[/red] App password not configured for account '{account}'")
+        console.print(f"\nRun: cc-gmail accounts add {account}")
+        raise typer.Exit(1)
+    return ImapClient(email_addr, password)
+
+
+def _get_smtp_client(account: str) -> SmtpClient:
+    """Get an SMTP client for an app_password account."""
+    email_addr = get_account_email(account)
+    password = get_app_password(account)
+    if not email_addr or not password:
+        console.print(f"[red]Error:[/red] App password not configured for account '{account}'")
+        console.print(f"\nRun: cc-gmail accounts add {account}")
+        raise typer.Exit(1)
+    return SmtpClient(email_addr, password)
+
+
 def get_client(account: Optional[str] = None) -> GmailClient:
-    """Get authenticated Gmail client for the specified or default account."""
+    """Get authenticated Gmail API client (OAuth path only)."""
     try:
         acct = resolve_account(account or state.account)
     except ValueError as e:
@@ -190,6 +362,21 @@ def get_client(account: Optional[str] = None) -> GmailClient:
         raise typer.Exit(1)
 
 
+def _resolve_and_get_auth(account: Optional[str] = None):
+    """Resolve the account and return (account_name, auth_method).
+
+    Returns:
+        Tuple of (account_name, auth_method).
+    """
+    try:
+        acct = resolve_account(account or state.account)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    auth_method = get_auth_method(acct) or "oauth"
+    return acct, auth_method
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -210,7 +397,6 @@ def main(
 ):
     """Gmail CLI: read, send, search, and manage emails."""
     state.account = account
-    # Show help if no command provided
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
@@ -234,15 +420,20 @@ def accounts_list() -> None:
     table = Table(title="Gmail Accounts")
     table.add_column("Account", style="cyan")
     table.add_column("Default")
-    table.add_column("Credentials")
-    table.add_column("Authenticated")
+    table.add_column("Auth Method")
+    table.add_column("Email")
+    table.add_column("Status")
 
     for acct in accts:
+        method = acct.get("auth_method", "unknown")
+        method_display = "App Password" if method == "app_password" else "OAuth" if method == "oauth" else method
+
         table.add_row(
             acct["name"],
             "[green]*[/green]" if acct["is_default"] else "",
-            "[green]OK[/green]" if acct["credentials_exists"] else "[red]Missing[/red]",
-            "[green]Yes[/green]" if acct["authenticated"] else "[yellow]No[/yellow]",
+            method_display,
+            acct.get("email", ""),
+            "[green]Ready[/green]" if acct["authenticated"] else "[yellow]Setup needed[/yellow]",
         )
 
     console.print(table)
@@ -253,20 +444,103 @@ def accounts_add(
     name: str = typer.Argument(..., help="Account name (e.g., 'personal', 'work')"),
     set_as_default: bool = typer.Option(False, "--default", "-d", help="Set as default account"),
 ):
-    """Add a new Gmail account."""
-    creds_path = get_credentials_path(name)
+    """Add a new Gmail account with interactive setup."""
     account_dir = get_account_dir(name)
 
-    console.print(f"[cyan]Setting up account:[/cyan] {name}")
-    console.print(f"[cyan]Account directory:[/cyan] {account_dir}")
+    # Check if account already exists
+    existing_config = load_account_config(name)
+    if existing_config.get("auth_method"):
+        console.print(f"[yellow]Account '{name}' already exists.[/yellow]")
+        console.print(f"  Auth method: {existing_config.get('auth_method')}")
+        console.print(f"  Email: {existing_config.get('email', 'not set')}")
+        console.print(f"\nTo re-authenticate: cc-gmail -a {name} auth --force")
+        console.print(f"To remove: cc-gmail accounts remove {name}")
+        return
+
+    console.print(f"\n[cyan]Setting up account:[/cyan] {name}")
+    console.print()
+
+    # Get email address
+    email_addr = typer.prompt("Email address")
+
+    console.print()
+    console.print("[bold]-- Quick Setup (App Password) --[/bold]")
+    console.print("Works with most Gmail accounts. Takes 2 minutes.")
+    console.print()
+    console.print("Steps:")
+    console.print("  1. Enable 2-Step Verification (if not already on)")
+    console.print("     https://myaccount.google.com/security")
+    console.print("  2. Create an App Password")
+    console.print("     https://myaccount.google.com/apppasswords")
+    console.print('     Name it "cc-gmail", copy the 16-character password')
+    console.print()
+
+    password_input = typer.prompt(
+        "App Password (or 'oauth' for advanced setup)",
+        hide_input=True,
+    )
+
+    if password_input.strip().lower() == "oauth":
+        # OAuth path
+        _setup_oauth_account(name, email_addr, set_as_default)
+        return
+
+    # App Password path -- test the connection
+    # Strip spaces from app password (Google shows it as "xxxx xxxx xxxx xxxx")
+    password = password_input.replace(" ", "")
+
+    console.print()
+    console.print("Testing connection...")
+
+    try:
+        test_imap_connection(email_addr, password)
+        console.print("  [green][OK][/green] IMAP login successful (imap.gmail.com)")
+    except ConnectionError as e:
+        console.print(f"  [red][FAILED][/red] IMAP login failed")
+        console.print()
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        test_smtp_connection(email_addr, password)
+        console.print("  [green][OK][/green] SMTP login successful (smtp.gmail.com)")
+    except ConnectionError as e:
+        console.print(f"  [red][FAILED][/red] SMTP login failed")
+        console.print()
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+    # Store credentials
+    store_app_password(name, password)
+    save_account_config(name, {
+        "email": email_addr,
+        "auth_method": "app_password",
+    })
+
+    if set_as_default or not get_default_account():
+        set_default_account(name)
+
+    console.print()
+    console.print(f"[green]Account '{name}' ready![/green] Auth method: app_password")
+
+
+def _setup_oauth_account(name: str, email_addr: str, set_as_default: bool) -> None:
+    """Set up an account with OAuth authentication."""
+    creds_path = get_credentials_path(name)
+
+    save_account_config(name, {
+        "email": email_addr,
+        "auth_method": "oauth",
+    })
+
+    console.print()
+    console.print("[bold]-- OAuth Setup (Advanced) --[/bold]")
     console.print()
 
     if creds_path.exists():
-        console.print(f"[yellow]Credentials already exist for '{name}'[/yellow]")
-        console.print("Run 'cc-gmail auth' to re-authenticate.")
+        console.print(f"[yellow]Credentials file already exists for '{name}'[/yellow]")
+        console.print(f"Run 'cc-gmail -a {name} auth' to authenticate.")
     else:
-        console.print("[yellow]OAuth credentials needed.[/yellow]")
-        console.print()
         console.print("To complete setup:")
         console.print()
         console.print("1. Go to Google Cloud Console:")
@@ -274,22 +548,34 @@ def accounts_add(
         console.print()
         console.print("2. Create or select a project")
         console.print()
-        console.print("3. Enable the Gmail API:")
-        console.print("   - Go to 'APIs & Services' -> 'Library'")
-        console.print("   - Search for 'Gmail API'")
-        console.print("   - Click 'Enable'")
+        console.print("3. Enable these APIs (click each link, select your project, click Enable):")
         console.print()
-        console.print("4. Create OAuth credentials:")
-        console.print("   - Go to 'APIs & Services' -> 'Credentials'")
+        console.print("   Gmail API (required for email):")
+        console.print("   https://console.cloud.google.com/apis/library/gmail.googleapis.com")
+        console.print()
+        console.print("   Google Calendar API (for calendar commands):")
+        console.print("   https://console.cloud.google.com/apis/library/calendar-json.googleapis.com")
+        console.print()
+        console.print("   People API (for contacts commands):")
+        console.print("   https://console.cloud.google.com/apis/library/people.googleapis.com")
+        console.print()
+        console.print("4. Set up OAuth consent screen:")
+        console.print("   https://console.cloud.google.com/apis/credentials/consent")
+        console.print("   - Select 'External' user type (or 'Internal' for Workspace)")
+        console.print("   - Fill in app name (e.g., 'cc-gmail') and your email")
+        console.print("   - Under 'Test users', add your Gmail address")
+        console.print()
+        console.print("5. Create OAuth credentials:")
+        console.print("   https://console.cloud.google.com/apis/credentials")
         console.print("   - Click 'Create Credentials' -> 'OAuth client ID'")
         console.print("   - Select 'Desktop app' as application type")
         console.print("   - Download the JSON file")
         console.print()
-        console.print("5. Save the downloaded file as:")
+        console.print("6. Save the downloaded file as:")
         console.print(f"   [green]{creds_path}[/green]")
         console.print()
-        console.print("6. Run authentication:")
-        console.print(f"   cc-gmail --account {name} auth")
+        console.print("7. Run authentication:")
+        console.print(f"   cc-gmail -a {name} auth")
 
     if set_as_default or not get_default_account():
         set_default_account(name)
@@ -359,14 +645,24 @@ def accounts_status(
     table.add_column("Value")
 
     table.add_row("Account Directory", info["account_dir"])
-    table.add_row(
-        "Credentials File",
-        "[green]Found[/green]" if info["credentials_exists"] else "[red]Missing[/red]",
-    )
-    table.add_row(
-        "Token File",
-        "[green]Found[/green]" if info["token_exists"] else "[yellow]Not created[/yellow]",
-    )
+    table.add_row("Auth Method", info.get("auth_method", "unknown"))
+    table.add_row("Email", info.get("email") or "not set")
+
+    if info.get("auth_method") == "app_password":
+        table.add_row(
+            "App Password",
+            "[green]Stored[/green]" if info["credentials_exists"] else "[red]Missing[/red]",
+        )
+    else:
+        table.add_row(
+            "Credentials File",
+            "[green]Found[/green]" if info["credentials_exists"] else "[red]Missing[/red]",
+        )
+        table.add_row(
+            "Token File",
+            "[green]Found[/green]" if info.get("token_exists") else "[yellow]Not created[/yellow]",
+        )
+
     table.add_row(
         "Authenticated",
         "[green]Yes[/green]" if info["authenticated"] else "[red]No[/red]",
@@ -376,10 +672,29 @@ def accounts_status(
         "[green]Yes[/green]" if info["is_default"] else "No",
     )
 
+    # Show scope status for OAuth accounts
+    if info.get("auth_method") == "oauth" and info["authenticated"]:
+        scope_status = check_token_scopes(acct)
+        table.add_row(
+            "Gmail Scopes",
+            "[green]OK[/green]" if scope_status["gmail"] else "[red]Missing[/red]",
+        )
+        table.add_row(
+            "Calendar Scopes",
+            "[green]OK[/green]" if scope_status["calendar"] else "[yellow]Not granted[/yellow] (run auth --force)",
+        )
+        table.add_row(
+            "Contacts Scopes",
+            "[green]OK[/green]" if scope_status["contacts"] else "[yellow]Not granted[/yellow] (run auth --force)",
+        )
+
     console.print(table)
 
-    if not info["credentials_exists"]:
-        console.print(f"\n[yellow]Setup needed.[/yellow] See: {get_readme_path()}")
+    if not info["authenticated"]:
+        if info.get("auth_method") == "app_password":
+            console.print(f"\n[yellow]Setup needed.[/yellow] Run: cc-gmail accounts add {acct}")
+        else:
+            console.print(f"\n[yellow]Setup needed.[/yellow] See: {get_readme_path()}")
 
 
 # =============================================================================
@@ -389,7 +704,8 @@ def accounts_status(
 @app.command()
 def auth(
     force: bool = typer.Option(False, "--force", "-f", help="Force re-authentication"),
-    revoke: bool = typer.Option(False, "--revoke", help="Revoke current token"),
+    revoke: bool = typer.Option(False, "--revoke", help="Revoke current token / delete app password"),
+    method: Optional[str] = typer.Option(None, "--method", "-m", help="Auth method: app_password or oauth"),
 ):
     """Authenticate with Gmail."""
     try:
@@ -398,41 +714,98 @@ def auth(
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
+    auth_method = method or get_auth_method(acct) or "oauth"
+
     if revoke:
-        if revoke_token(acct):
-            console.print(f"[green]Token revoked for '{acct}'.[/green]")
-            console.print("Run 'cc-gmail auth' to re-authenticate.")
+        if auth_method == "app_password":
+            if delete_app_password(acct):
+                console.print(f"[green]App password removed for '{acct}'.[/green]")
+                console.print(f"Run 'cc-gmail accounts add {acct}' to set up again.")
+            else:
+                console.print("[yellow]No app password to remove.[/yellow]")
         else:
-            console.print("[yellow]No token to revoke.[/yellow]")
+            if revoke_token(acct):
+                console.print(f"[green]Token revoked for '{acct}'.[/green]")
+                console.print("Run 'cc-gmail auth' to re-authenticate.")
+            else:
+                console.print("[yellow]No token to revoke.[/yellow]")
         return
 
-    if not credentials_exist(acct):
-        console.print(f"[red]Error:[/red] OAuth credentials not found for account '{acct}'")
-        console.print(f"\nExpected location: {get_credentials_path(acct)}")
-        console.print(f"\nRun 'cc-gmail accounts add {acct}' for setup instructions.")
-        console.print(f"Or see README: {get_readme_path()}")
-        raise typer.Exit(1)
+    # If method is specified and different from current, switch
+    if method and method != get_auth_method(acct):
+        console.print(f"[blue]Switching auth method to '{method}' for account '{acct}'...[/blue]")
+        acct_config = load_account_config(acct)
+        acct_config["auth_method"] = method
+        save_account_config(acct, acct_config)
+        auth_method = method
 
-    try:
-        console.print(f"[blue]Authenticating account '{acct}'...[/blue]")
-        console.print("A browser window will open for authentication.")
-        creds = authenticate(acct, force=force)
+    if auth_method == "app_password":
+        # App password auth flow
+        email_addr = get_account_email(acct)
+        if not email_addr:
+            email_addr = typer.prompt("Email address")
 
-        client = GmailClient(creds)
-        profile = client.get_profile()
+        if force or not get_app_password(acct):
+            console.print()
+            console.print("Create an App Password at:")
+            console.print("  https://myaccount.google.com/apppasswords")
+            console.print()
+            password = typer.prompt("App Password", hide_input=True).replace(" ", "")
 
-        console.print(f"\n[green]Authenticated as:[/green] {profile.get('emailAddress')}")
-    except HttpError as e:
-        handle_api_error(e, acct)
-        raise typer.Exit(1)
-    except (ValueError, OSError) as e:
-        logger.error(f"Auth error: {e}")
-        console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+            console.print("Testing connection...")
+            try:
+                test_imap_connection(email_addr, password)
+                console.print("  [green][OK][/green] IMAP login successful")
+            except ConnectionError as e:
+                console.print(f"  [red][FAILED][/red] {e}")
+                raise typer.Exit(1)
+
+            try:
+                test_smtp_connection(email_addr, password)
+                console.print("  [green][OK][/green] SMTP login successful")
+            except ConnectionError as e:
+                console.print(f"  [red][FAILED][/red] {e}")
+                raise typer.Exit(1)
+
+            store_app_password(acct, password)
+            save_account_config(acct, {
+                "email": email_addr,
+                "auth_method": "app_password",
+            })
+            console.print(f"\n[green]Authenticated as:[/green] {email_addr}")
+        else:
+            console.print(f"[green]Already authenticated as:[/green] {email_addr}")
+            console.print("Use --force to re-authenticate.")
+
+    else:
+        # OAuth flow (existing behavior)
+        if not credentials_exist(acct):
+            console.print(f"[red]Error:[/red] OAuth credentials not found for account '{acct}'")
+            console.print(f"\nExpected location: {get_credentials_path(acct)}")
+            console.print(f"\nRun 'cc-gmail accounts add {acct}' for setup instructions.")
+            console.print(f"Or see README: {get_readme_path()}")
+            raise typer.Exit(1)
+
+        try:
+            console.print(f"[blue]Authenticating account '{acct}'...[/blue]")
+            console.print("A browser window will open for authentication.")
+            creds = authenticate(acct, force=force)
+
+            client = GmailClient(creds)
+            profile = client.get_profile()
+
+            console.print(f"\n[green]Authenticated as:[/green] {profile.get('emailAddress')}")
+        except HttpError as e:
+            handle_api_error(e, acct)
+            raise typer.Exit(1)
+        except (ValueError, OSError) as e:
+            logger.error(f"Auth error: {e}")
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
 
 
 # =============================================================================
-# Email Commands
+# Email Commands -- dual-path routing
 # =============================================================================
 
 @app.command("list")
@@ -443,32 +816,41 @@ def list_emails(
     include_spam: bool = typer.Option(False, "--include-spam", help="Include messages from spam and trash"),
 ):
     """List recent emails from a label/folder."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     label_ids = [label.upper()]
     if unread:
         label_ids.append("UNREAD")
 
     try:
-        messages = client.list_messages(
-            label_ids=label_ids,
-            max_results=count,
-            include_spam_trash=include_spam,
-        )
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            messages = client.list_messages(
+                label_ids=label_ids,
+                max_results=count,
+                include_spam_trash=include_spam,
+            )
+        else:
+            api_client = get_client()
+            messages = api_client.list_messages(
+                label_ids=label_ids,
+                max_results=count,
+                include_spam_trash=include_spam,
+            )
 
         if not messages:
             console.print(f"[yellow]No messages in {label}[/yellow]")
             return
 
-        # Show which account
-        acct = resolve_account(state.account)
         console.print(f"\n[cyan]Messages in {label} ({acct})[/cyan]\n")
 
         for msg_summary in messages:
-            msg = client.get_message_details(msg_summary["id"])
+            if auth_method == "app_password":
+                msg = client.get_message_details(msg_summary["id"])
+            else:
+                msg = api_client.get_message_details(msg_summary["id"])
             summary = format_message_summary(msg)
 
-            # Highlight unread
             is_unread = "UNREAD" in msg.get("labels", [])
             style = "bold" if is_unread else ""
             marker = "[*]" if is_unread else "[ ]"
@@ -483,8 +865,8 @@ def list_emails(
         logger.error(f"Gmail API error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
-        logger.error(f"Invalid parameter: {e}")
+    except (ValueError, ConnectionError, OSError) as e:
+        logger.error(f"Error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
@@ -495,13 +877,20 @@ def read(
     raw: bool = typer.Option(False, "--raw", help="Show raw message data"),
 ):
     """Read a specific email."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        msg = client.get_message_details(message_id)
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            msg = client.get_message_details(message_id)
+            client.mark_as_read(message_id)
+        else:
+            api_client = get_client()
+            msg = api_client.get_message_details(message_id)
+            api_client.mark_as_read(message_id)
+
         summary = format_message_summary(msg)
 
-        # Header panel
         header_text = Text()
         header_text.append(f"From: ", style="cyan")
         header_text.append(f"{summary['from']}\n")
@@ -514,22 +903,18 @@ def read(
 
         console.print(Panel(header_text, title=f"Message {message_id[:16]}"))
 
-        # Body
         body = msg.get("body", "(No body)")
         if raw:
             console.print(body)
         else:
             console.print("\n" + body)
 
-        # Mark as read
-        client.mark_as_read(message_id)
-
     except HttpError as e:
         logger.error(f"Gmail API error reading message: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
-        logger.error(f"Invalid message: {e}")
+    except (ValueError, ConnectionError, OSError) as e:
+        logger.error(f"Error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
@@ -546,7 +931,7 @@ def send(
     attach: Optional[list[Path]] = typer.Option(None, "--attach", help="Attachments"),
 ):
     """Send an email."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     # Get body content
     if body_file:
@@ -559,22 +944,35 @@ def send(
         raise typer.Exit(1)
 
     try:
-        result = client.send_message(
-            to=to,
-            subject=subject,
-            body=body,
-            cc=cc,
-            bcc=bcc,
-            html=html,
-            attachments=attach,
-        )
+        if auth_method == "app_password":
+            client = _get_smtp_client(acct)
+            result = client.send_message(
+                to=to,
+                subject=subject,
+                body=body,
+                cc=cc,
+                bcc=bcc,
+                html=html,
+                attachments=attach,
+            )
+        else:
+            api_client = get_client()
+            result = api_client.send_message(
+                to=to,
+                subject=subject,
+                body=body,
+                cc=cc,
+                bcc=bcc,
+                html=html,
+                attachments=attach,
+            )
         console.print(f"[green]Message sent.[/green] ID: {result.get('id')}")
 
     except HttpError as e:
         logger.error(f"Gmail API error sending: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Send error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -590,7 +988,7 @@ def draft(
     html: bool = typer.Option(False, "--html", help="Body is HTML"),
 ):
     """Create a draft email."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     # Get body content
     if body_file:
@@ -603,20 +1001,31 @@ def draft(
         raise typer.Exit(1)
 
     try:
-        result = client.create_draft(
-            to=to,
-            subject=subject,
-            body=body,
-            cc=cc,
-            html=html,
-        )
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            result = client.create_draft(
+                to=to,
+                subject=subject,
+                body=body,
+                cc=cc,
+                html=html,
+            )
+        else:
+            api_client = get_client()
+            result = api_client.create_draft(
+                to=to,
+                subject=subject,
+                body=body,
+                cc=cc,
+                html=html,
+            )
         console.print(f"[green]Draft created.[/green] ID: {result.get('id')}")
 
     except HttpError as e:
         logger.error(f"Gmail API error creating draft: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Draft error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -630,7 +1039,7 @@ def reply(
     reply_all: bool = typer.Option(False, "--all", help="Reply to all recipients"),
 ):
     """Create a draft reply to an existing email."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     # Get body content
     if body_file:
@@ -643,16 +1052,29 @@ def reply(
         raise typer.Exit(1)
 
     try:
-        # Get original message info for display
-        original = client.get_message_details(message_id)
-        original_from = original.get("headers", {}).get("from", "unknown")
-        original_subject = original.get("headers", {}).get("subject", "")
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            original = client.get_message_details(message_id)
+            original_from = original.get("headers", {}).get("from", "unknown")
+            original_subject = original.get("headers", {}).get("subject", "")
 
-        result = client.create_reply_draft(
-            message_id=message_id,
-            body=body,
-            reply_all=reply_all,
-        )
+            result = client.create_reply_draft(
+                message_uid=message_id,
+                body=body,
+                reply_all=reply_all,
+            )
+        else:
+            api_client = get_client()
+            original = api_client.get_message_details(message_id)
+            original_from = original.get("headers", {}).get("from", "unknown")
+            original_subject = original.get("headers", {}).get("subject", "")
+
+            result = api_client.create_reply_draft(
+                message_id=message_id,
+                body=body,
+                reply_all=reply_all,
+            )
+
         console.print(f"[green]Reply draft created.[/green]")
         console.print(f"  To: {original_from}")
         console.print(f"  Subject: Re: {original_subject}" if not original_subject.lower().startswith("re:") else f"  Subject: {original_subject}")
@@ -662,7 +1084,7 @@ def reply(
         logger.error(f"Gmail API error creating reply: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Reply error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -673,23 +1095,30 @@ def drafts(
     count: int = typer.Option(10, "-n", "--count", help="Number of drafts to show"),
 ):
     """List draft emails."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        draft_list = client.list_drafts(max_results=count)
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            draft_list = client.list_drafts(max_results=count)
+        else:
+            api_client = get_client()
+            draft_list = api_client.list_drafts(max_results=count)
 
         if not draft_list:
             console.print("[yellow]No drafts found.[/yellow]")
             return
 
-        acct = resolve_account(state.account)
         console.print(f"\n[cyan]Drafts ({acct})[/cyan]\n")
 
-        for draft in draft_list:
-            draft_id = draft.get("id")
-            msg_id = draft.get("message", {}).get("id")
+        for draft_item in draft_list:
+            draft_id = draft_item.get("id")
+            msg_id = draft_item.get("message", {}).get("id")
             if msg_id:
-                msg = client.get_message_details(msg_id)
+                if auth_method == "app_password":
+                    msg = client.get_message_details(msg_id)
+                else:
+                    msg = api_client.get_message_details(msg_id)
                 summary = format_message_summary(msg)
                 console.print(f"[dim]{draft_id}[/dim]")
                 console.print(f"    To: {truncate(summary.get('to', 'N/A'), 50)}")
@@ -700,7 +1129,7 @@ def drafts(
         logger.error(f"Gmail API error listing drafts: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Drafts error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -713,24 +1142,35 @@ def search(
     include_spam: bool = typer.Option(False, "--include-spam", help="Include messages from spam and trash"),
 ):
     """Search emails using Gmail query syntax."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        messages = client.search(
-            query=query,
-            max_results=count,
-            include_spam_trash=include_spam,
-        )
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            messages = client.search(
+                query=query,
+                max_results=count,
+                include_spam_trash=include_spam,
+            )
+        else:
+            api_client = get_client()
+            messages = api_client.search(
+                query=query,
+                max_results=count,
+                include_spam_trash=include_spam,
+            )
 
         if not messages:
             console.print(f"[yellow]No messages matching:[/yellow] {query}")
             return
 
-        acct = resolve_account(state.account)
         console.print(f"\n[cyan]Search: {query} ({acct})[/cyan]\n")
 
         for msg_summary in messages:
-            msg = client.get_message_details(msg_summary["id"])
+            if auth_method == "app_password":
+                msg = client.get_message_details(msg_summary["id"])
+            else:
+                msg = api_client.get_message_details(msg_summary["id"])
             summary = format_message_summary(msg)
 
             console.print(f"[ ] [dim]{summary['id']}[/dim]")
@@ -745,7 +1185,7 @@ def search(
         logger.error(f"Gmail API error searching: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Search error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -757,18 +1197,24 @@ def count(
     label: str = typer.Option(None, "-l", "--label", help="Label to count (e.g., INBOX)"),
 ):
     """Count emails matching a query (fast server-side estimate)."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
         label_ids = [label.upper()] if label else None
-        result = client.count_messages(label_ids=label_ids, query=query)
+
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            result = client.count_messages(label_ids=label_ids, query=query)
+        else:
+            api_client = get_client()
+            result = api_client.count_messages(label_ids=label_ids, query=query)
         console.print(f"{result}")
 
     except HttpError as e:
         logger.error(f"Gmail API error counting: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Count error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -777,12 +1223,16 @@ def count(
 @app.command()
 def labels() -> None:
     """List all labels/folders."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        all_labels = client.list_labels()
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            all_labels = client.list_labels()
+        else:
+            api_client = get_client()
+            all_labels = api_client.list_labels()
 
-        # Separate system and user labels
         system_labels = []
         user_labels = []
 
@@ -792,7 +1242,6 @@ def labels() -> None:
             else:
                 user_labels.append(label)
 
-        # System labels table
         if system_labels:
             table = Table(title="System Labels")
             table.add_column("ID", style="cyan")
@@ -803,7 +1252,6 @@ def labels() -> None:
 
             console.print(table)
 
-        # User labels table
         if user_labels:
             table = Table(title="User Labels")
             table.add_column("ID", style="cyan")
@@ -818,7 +1266,7 @@ def labels() -> None:
         logger.error(f"Gmail API error listing labels: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Labels error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -831,7 +1279,7 @@ def delete(
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation"),
 ):
     """Delete/trash an email."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     if not yes:
         action = "permanently delete" if permanent else "move to trash"
@@ -841,7 +1289,12 @@ def delete(
             return
 
     try:
-        client.delete_message(message_id, permanent=permanent)
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            client.delete_message(message_id, permanent=permanent)
+        else:
+            api_client = get_client()
+            api_client.delete_message(message_id, permanent=permanent)
 
         if permanent:
             console.print(f"[green]Message permanently deleted.[/green]")
@@ -852,7 +1305,7 @@ def delete(
         logger.error(f"Gmail API error deleting: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Delete error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -863,17 +1316,22 @@ def untrash(
     message_id: str = typer.Argument(..., help="Message ID to restore"),
 ):
     """Restore an email from trash."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        client.untrash_message(message_id)
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            client.untrash_message(message_id)
+        else:
+            api_client = get_client()
+            api_client.untrash_message(message_id)
         console.print("[green]Message restored from trash.[/green]")
 
     except HttpError as e:
         logger.error(f"Gmail API error untrashing: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Untrash error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -884,24 +1342,47 @@ def archive(
     message_ids: List[str] = typer.Argument(..., help="Message ID(s) to archive"),
 ):
     """Archive email(s) (remove from inbox, keep in All Mail). Accepts multiple IDs."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        if len(message_ids) == 1:
-            client.archive_message(message_ids[0])
-            console.print("[green]Message archived.[/green]")
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            if len(message_ids) == 1:
+                client.archive_message(message_ids[0])
+                console.print("[green]Message archived.[/green]")
+            else:
+                client.batch_archive_messages(message_ids)
+                console.print(f"[green]{len(message_ids)} messages archived.[/green]")
         else:
-            client.batch_archive_messages(message_ids)
-            console.print(f"[green]{len(message_ids)} messages archived.[/green]")
+            api_client = get_client()
+            if len(message_ids) == 1:
+                api_client.archive_message(message_ids[0])
+                console.print("[green]Message archived.[/green]")
+            else:
+                api_client.batch_archive_messages(message_ids)
+                console.print(f"[green]{len(message_ids)} messages archived.[/green]")
 
     except HttpError as e:
         logger.error(f"Gmail API error archiving: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Archive error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+
+def _show_archive_sample_imap(client: ImapClient, query: str) -> None:
+    """Show sample messages that would be archived in dry-run mode (IMAP)."""
+    console.print("\n[yellow]DRY RUN - No changes made.[/yellow]")
+    sample = client.list_messages(query=query, max_results=5)
+    if sample:
+        console.print("\nSample messages that would be archived:")
+        for msg_summary in sample:
+            msg = client.get_message_details(msg_summary["id"])
+            summary = format_message_summary(msg)
+            date_str = summary['date'][:10] if summary['date'] else 'N/A'
+            console.print(f"  - {date_str} | {truncate(summary['from'], 30)} | {truncate(summary['subject'], 40)}")
 
 
 def _show_archive_sample(client: GmailClient, query: str) -> None:
@@ -915,6 +1396,21 @@ def _show_archive_sample(client: GmailClient, query: str) -> None:
             summary = format_message_summary(msg)
             date_str = summary['date'][:10] if summary['date'] else 'N/A'
             console.print(f"  - {date_str} | {truncate(summary['from'], 30)} | {truncate(summary['subject'], 40)}")
+
+
+def _execute_archive_imap(client: ImapClient, query: str) -> int:
+    """Fetch and archive all messages matching query via IMAP. Returns count archived."""
+    console.print("\n[blue]Fetching message IDs...[/blue]")
+    messages = client.list_all_messages(query=query)
+    total = len(messages)
+    console.print(f"[blue]Found {total:,} messages to archive.[/blue]")
+
+    if total == 0:
+        return 0
+
+    console.print("[blue]Archiving...[/blue]")
+    message_ids = [m["id"] for m in messages]
+    return client.batch_archive_messages(message_ids)
 
 
 def _execute_archive(client: GmailClient, query: str) -> int:
@@ -940,7 +1436,7 @@ def archive_before(
     category: Optional[str] = typer.Option(None, "-c", "--category", help="Filter by category (updates, promotions, social, forums)"),
 ):
     """Archive all inbox messages before a specified date."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     # Build query (convert YYYY-MM-DD to YYYY/MM/DD for Gmail)
     date_formatted = date.replace("-", "/")
@@ -949,26 +1445,51 @@ def archive_before(
         query += f" category:{category.lower()}"
 
     try:
-        acct = resolve_account(state.account)
-        estimate = client.count_messages(query=query)
-        console.print(f"\n[cyan]Account:[/cyan] {acct}")
-        console.print(f"[cyan]Query:[/cyan] {query}")
-        console.print(f"[cyan]Estimated matches:[/cyan] {estimate:,}")
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            estimate = client.count_messages(query=query)
 
-        if estimate == 0:
-            console.print("[yellow]No messages match this query.[/yellow]")
-            return
+            console.print(f"\n[cyan]Account:[/cyan] {acct}")
+            console.print(f"[cyan]Query:[/cyan] {query}")
+            console.print(f"[cyan]Estimated matches:[/cyan] {estimate:,}")
 
-        if dry_run:
-            _show_archive_sample(client, query)
-            return
-
-        if not yes:
-            if not typer.confirm(f"\nArchive ~{estimate:,} messages before {date}?"):
-                console.print("[yellow]Cancelled.[/yellow]")
+            if estimate == 0:
+                console.print("[yellow]No messages match this query.[/yellow]")
                 return
 
-        archived = _execute_archive(client, query)
+            if dry_run:
+                _show_archive_sample_imap(client, query)
+                return
+
+            if not yes:
+                if not typer.confirm(f"\nArchive ~{estimate:,} messages before {date}?"):
+                    console.print("[yellow]Cancelled.[/yellow]")
+                    return
+
+            archived = _execute_archive_imap(client, query)
+        else:
+            api_client = get_client()
+            estimate = api_client.count_messages(query=query)
+
+            console.print(f"\n[cyan]Account:[/cyan] {acct}")
+            console.print(f"[cyan]Query:[/cyan] {query}")
+            console.print(f"[cyan]Estimated matches:[/cyan] {estimate:,}")
+
+            if estimate == 0:
+                console.print("[yellow]No messages match this query.[/yellow]")
+                return
+
+            if dry_run:
+                _show_archive_sample(api_client, query)
+                return
+
+            if not yes:
+                if not typer.confirm(f"\nArchive ~{estimate:,} messages before {date}?"):
+                    console.print("[yellow]Cancelled.[/yellow]")
+                    return
+
+            archived = _execute_archive(api_client, query)
+
         if archived > 0:
             console.print(f"\n[green]Done! Archived {archived:,} messages.[/green]")
         else:
@@ -978,7 +1499,7 @@ def archive_before(
         logger.error(f"Gmail API error in archive-before: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Archive-before error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -987,20 +1508,27 @@ def archive_before(
 @app.command()
 def profile() -> None:
     """Show authenticated user profile."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        info = client.get_profile()
-        acct = resolve_account(state.account)
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            info = client.get_profile()
+        else:
+            api_client = get_client()
+            info = api_client.get_profile()
 
         table = Table(title=f"Gmail Profile ({acct})")
         table.add_column("Property", style="cyan")
         table.add_column("Value")
 
         table.add_row("Email", info.get("emailAddress", "Unknown"))
-        table.add_row("Messages Total", str(info.get("messagesTotal", 0)))
-        table.add_row("Threads Total", str(info.get("threadsTotal", 0)))
-        table.add_row("History ID", info.get("historyId", "Unknown"))
+        table.add_row("Auth Method", auth_method)
+        if "messagesTotal" in info:
+            table.add_row("Messages Total", str(info.get("messagesTotal", 0)))
+            table.add_row("Threads Total", str(info.get("threadsTotal", 0)))
+        if "historyId" in info:
+            table.add_row("History ID", info.get("historyId", "Unknown"))
 
         console.print(table)
 
@@ -1008,7 +1536,7 @@ def profile() -> None:
         logger.error(f"Gmail API error getting profile: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Profile error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -1025,23 +1553,28 @@ def stats(
     top: int = typer.Option(10, "-t", "--top", help="Number of top labels to show"),
 ):
     """Show comprehensive mailbox statistics dashboard."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        acct = resolve_account(state.account)
         console.print(f"\n[bold cyan]Gmail Statistics Dashboard[/bold cyan] ({acct})")
         console.print("Loading stats from server...\n")
 
-        stats_data = client.get_mailbox_stats()
-        profile = stats_data["profile"]
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            stats_data = client.get_mailbox_stats()
+        else:
+            api_client = get_client()
+            stats_data = api_client.get_mailbox_stats()
+
+        profile_data = stats_data["profile"]
         system = stats_data["system_labels"]
         categories = stats_data["categories"]
         user_labels = stats_data["user_labels"]
 
         # Profile summary
-        console.print(f"[bold]Account:[/bold] {profile['email']}")
-        console.print(f"[bold]Total Messages:[/bold] {format_number(profile['messages_total'])}")
-        console.print(f"[bold]Total Threads:[/bold] {format_number(profile['threads_total'])}")
+        console.print(f"[bold]Account:[/bold] {profile_data['email']}")
+        console.print(f"[bold]Total Messages:[/bold] {format_number(profile_data['messages_total'])}")
+        console.print(f"[bold]Total Threads:[/bold] {format_number(profile_data['threads_total'])}")
         console.print()
 
         # Inbox overview table
@@ -1091,7 +1624,6 @@ def stats(
             label_table.add_column("Unread", justify="right", style="yellow")
 
             for label in user_labels[:top]:
-                # Sanitize label name for display (remove problematic unicode)
                 name = label["name"]
                 try:
                     name.encode('cp1252')
@@ -1099,7 +1631,7 @@ def stats(
                     name = name.encode('ascii', 'replace').decode('ascii')
 
                 label_table.add_row(
-                    name[:30],  # Truncate long names
+                    name[:30],
                     format_number(label["total"]),
                     format_number(label["unread"]) if label["unread"] > 0 else "-",
                 )
@@ -1127,7 +1659,7 @@ def stats(
         logger.error(f"Gmail API error getting stats: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Stats error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -1138,18 +1670,29 @@ def label_stats(
     label: str = typer.Argument(..., help="Label name or ID"),
 ):
     """Show detailed statistics for a specific label."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        # Try as ID first, then by name
-        try:
-            data = client.get_label(label.upper())
-        except HttpError:
-            found = client.get_label_by_name(label)
-            if not found:
-                console.print(f"[red]Error:[/red] Label '{label}' not found")
-                raise typer.Exit(1)
-            data = client.get_label(found["id"])
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            try:
+                data = client.get_label(label.upper())
+            except ValueError:
+                found = client.get_label_by_name(label)
+                if not found:
+                    console.print(f"[red]Error:[/red] Label '{label}' not found")
+                    raise typer.Exit(1)
+                data = client.get_label(found["id"])
+        else:
+            api_client = get_client()
+            try:
+                data = api_client.get_label(label.upper())
+            except HttpError:
+                found = api_client.get_label_by_name(label)
+                if not found:
+                    console.print(f"[red]Error:[/red] Label '{label}' not found")
+                    raise typer.Exit(1)
+                data = api_client.get_label(found["id"])
 
         table = Table(title=f"Label: {data.get('name', label)}")
         table.add_column("Metric", style="cyan")
@@ -1170,7 +1713,7 @@ def label_stats(
         logger.error(f"Gmail API error getting label stats: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Label stats error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -1181,17 +1724,26 @@ def label_create(
     name: str = typer.Argument(..., help="Label name to create"),
 ):
     """Create a new label/folder."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        # Check if exists first
-        existing = client.get_label_by_name(name)
-        if existing:
-            console.print(f"[yellow]Label '{name}' already exists.[/yellow]")
-            console.print(f"Label ID: {existing.get('id')}")
-            return
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            existing = client.get_label_by_name(name)
+            if existing:
+                console.print(f"[yellow]Label '{name}' already exists.[/yellow]")
+                console.print(f"Label ID: {existing.get('id')}")
+                return
+            label = client.create_label(name)
+        else:
+            api_client = get_client()
+            existing = api_client.get_label_by_name(name)
+            if existing:
+                console.print(f"[yellow]Label '{name}' already exists.[/yellow]")
+                console.print(f"Label ID: {existing.get('id')}")
+                return
+            label = api_client.create_label(name)
 
-        label = client.create_label(name)
         console.print(f"[green]Label created:[/green] {label.get('name')}")
         console.print(f"Label ID: {label.get('id')}")
 
@@ -1199,7 +1751,7 @@ def label_create(
         logger.error(f"Gmail API error creating label: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Label create error: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -1212,18 +1764,27 @@ def move(
     keep_inbox: bool = typer.Option(False, "--keep-inbox", help="Keep in inbox (just add label)"),
 ):
     """Move an email to a label (removes from inbox by default)."""
-    client = get_client()
+    acct, auth_method = _resolve_and_get_auth()
 
     try:
-        # Get or create the label
-        target_label = client.get_or_create_label(label)
-        label_id = target_label.get("id")
+        if auth_method == "app_password":
+            client = _get_imap_client(acct)
+            target_label = client.get_or_create_label(label)
+            label_id = target_label.get("id")
 
-        # Modify labels
-        add_labels = [label_id]
-        remove_labels = [] if keep_inbox else ["INBOX"]
+            add_labels = [label_id]
+            remove_labels = [] if keep_inbox else ["INBOX"]
 
-        client.modify_labels(message_id, add_labels=add_labels, remove_labels=remove_labels)
+            client.modify_labels(message_id, add_labels=add_labels, remove_labels=remove_labels)
+        else:
+            api_client = get_client()
+            target_label = api_client.get_or_create_label(label)
+            label_id = target_label.get("id")
+
+            add_labels = [label_id]
+            remove_labels = [] if keep_inbox else ["INBOX"]
+
+            api_client.modify_labels(message_id, add_labels=add_labels, remove_labels=remove_labels)
 
         if keep_inbox:
             console.print(f"[green]Label '{label}' added to message.[/green]")
@@ -1234,9 +1795,392 @@ def move(
         logger.error(f"Gmail API error moving message: {e}")
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-    except ValueError as e:
+    except (ValueError, ConnectionError, OSError) as e:
         logger.error(f"Move error: {e}")
         console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+# =============================================================================
+# Calendar Commands (OAuth only)
+# =============================================================================
+
+@calendar_app.command("list")
+def calendar_list_cmd():
+    """List all calendars."""
+    acct, client = _get_calendar_client()
+    try:
+        calendars = client.list_calendars()
+        if not calendars:
+            console.print("[yellow]No calendars found.[/yellow]")
+            return
+
+        table = Table(title="Calendars")
+        table.add_column("Name", style="cyan")
+        table.add_column("ID")
+        table.add_column("Primary")
+        table.add_column("Role")
+
+        for cal in calendars:
+            primary = "[green]Yes[/green]" if cal.get("primary") else ""
+            cal_id = truncate(cal["id"], 40)
+            table.add_row(cal["name"], cal_id, primary, cal.get("access_role", ""))
+
+        console.print(table)
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@calendar_app.command("events")
+def calendar_events_cmd(
+    days: int = typer.Option(7, "-d", "--days", help="Days ahead to show"),
+    calendar_id: str = typer.Option("primary", "-c", "--calendar", help="Calendar ID"),
+):
+    """View upcoming calendar events."""
+    acct, client = _get_calendar_client()
+    try:
+        events = client.get_events(days_ahead=days, calendar_id=calendar_id)
+        if not events:
+            console.print(f"[yellow]No events in the next {days} days.[/yellow]")
+            return
+
+        console.print(f"\n[cyan]Upcoming Events ({acct}) - next {days} days[/cyan]\n")
+        _display_event_list(events)
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@calendar_app.command("today")
+def calendar_today_cmd(
+    calendar_id: str = typer.Option("primary", "-c", "--calendar", help="Calendar ID"),
+):
+    """View today's calendar events."""
+    acct, client = _get_calendar_client()
+    try:
+        events = client.get_today(calendar_id=calendar_id)
+        if not events:
+            console.print("[yellow]No events today.[/yellow]")
+            return
+
+        console.print(f"\n[cyan]Today's Events ({acct})[/cyan]\n")
+        _display_event_list(events)
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@calendar_app.command("get")
+def calendar_get_cmd(
+    event_id: str = typer.Argument(..., help="Event ID to view"),
+    calendar_id: str = typer.Option("primary", "-c", "--calendar", help="Calendar ID"),
+):
+    """View details of a calendar event."""
+    acct, client = _get_calendar_client()
+    try:
+        event = client.get_event(event_id, calendar_id=calendar_id)
+
+        console.print(f"\n[bold cyan]{event['summary']}[/bold cyan]")
+        console.print(f"[dim]ID: {event['id']}[/dim]\n")
+
+        table = Table(show_header=False, box=None)
+        table.add_column("Property", style="cyan", width=15)
+        table.add_column("Value")
+
+        table.add_row("Start", event["start"])
+        table.add_row("End", event["end"])
+        table.add_row("All Day", "Yes" if event["is_all_day"] else "No")
+        if event.get("location"):
+            table.add_row("Location", event["location"])
+        if event.get("organizer"):
+            table.add_row("Organizer", event["organizer"])
+        if event.get("status"):
+            table.add_row("Status", event["status"])
+        if event.get("hangout_link"):
+            table.add_row("Google Meet", event["hangout_link"])
+        if event.get("html_link"):
+            table.add_row("Calendar Link", event["html_link"])
+
+        console.print(table)
+
+        if event.get("attendees"):
+            console.print("\n[cyan]Attendees:[/cyan]")
+            response_map = {
+                "accepted": "[green]Y[/green]",
+                "declined": "[red]N[/red]",
+                "tentative": "[yellow]?[/yellow]",
+            }
+            for att in event["attendees"]:
+                icon = response_map.get(att["response"], "[ ]")
+                console.print(f"  {icon} {att['email']}")
+
+        if event.get("description"):
+            console.print("\n[cyan]Description:[/cyan]")
+            console.print(event["description"])
+
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@calendar_app.command("create")
+def calendar_create_cmd(
+    subject: str = typer.Option(..., "-s", "--subject", help="Event subject"),
+    date_str: str = typer.Option(..., "-d", "--date", help="Event date (YYYY-MM-DD)"),
+    time_str: Optional[str] = typer.Option(None, "-t", "--time", help="Start time (HH:MM)"),
+    duration: int = typer.Option(60, "--duration", help="Duration in minutes"),
+    location: Optional[str] = typer.Option(None, "-l", "--location", help="Event location"),
+    attendees: Optional[str] = typer.Option(None, "--attendees", help="Attendee emails, comma-separated"),
+    body: Optional[str] = typer.Option(None, "-b", "--body", help="Event description"),
+    all_day: bool = typer.Option(False, "--all-day", help="Create as all-day event"),
+):
+    """Create a calendar event."""
+    acct, client = _get_calendar_client()
+
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        console.print("[red]Error:[/red] Invalid date format. Use YYYY-MM-DD (e.g., 2026-03-15)")
+        raise typer.Exit(1)
+
+    if not all_day and not time_str:
+        console.print("[red]Error:[/red] --time is required for timed events (or use --all-day).")
+        raise typer.Exit(1)
+
+    if time_str:
+        try:
+            parsed_time = datetime.strptime(time_str, "%H:%M")
+            start_time = parsed_date.replace(hour=parsed_time.hour, minute=parsed_time.minute)
+        except ValueError:
+            console.print("[red]Error:[/red] Invalid time format. Use HH:MM (e.g., 14:30)")
+            raise typer.Exit(1)
+    else:
+        start_time = parsed_date
+
+    attendee_list = [a.strip() for a in attendees.split(",")] if attendees else None
+
+    try:
+        result = client.create_event(
+            summary=subject,
+            start_time=start_time,
+            duration_minutes=duration,
+            location=location,
+            description=body,
+            attendees=attendee_list,
+            all_day=all_day,
+        )
+        console.print(f"[green]Event created:[/green] {subject}")
+        console.print(f"  ID: {result['id']}")
+        if not all_day:
+            console.print(f"  Time: {start_time.strftime('%Y-%m-%d %H:%M')} ({duration} min)")
+        else:
+            console.print(f"  Date: {date_str} (all day)")
+        if location:
+            console.print(f"  Location: {location}")
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@calendar_app.command("delete")
+def calendar_delete_cmd(
+    event_id: str = typer.Argument(..., help="Event ID to delete"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation"),
+):
+    """Delete a calendar event."""
+    acct, client = _get_calendar_client()
+
+    if not yes:
+        confirm = typer.confirm(f"Delete event {event_id[:16]}...?")
+        if not confirm:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
+    try:
+        client.delete_event(event_id)
+        console.print("[green]Event deleted.[/green]")
+    except HttpError as e:
+        handle_calendar_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+def _display_event_list(events: list) -> None:
+    """Display a list of events in vertical format (shared by events/today)."""
+    for event in events:
+        console.print(f"  [bold]{event['summary']}[/bold]")
+        console.print(f"    ID: [dim]{truncate(event['id'], 40)}[/dim]")
+        if event["is_all_day"]:
+            console.print(f"    Date: {event['start']} (all day)")
+        else:
+            console.print(f"    Start: {event['start']}")
+            console.print(f"    End: {event['end']}")
+        if event.get("location"):
+            console.print(f"    Location: {event['location']}")
+        if event.get("hangout_link"):
+            console.print(f"    [blue]Google Meet:[/blue] {event['hangout_link']}")
+        if event.get("attendees"):
+            att_emails = [a["email"] for a in event["attendees"][:3]]
+            att_display = ", ".join(att_emails)
+            if len(event["attendees"]) > 3:
+                att_display += "..."
+            console.print(f"    Attendees: {att_display}")
+        console.print()
+
+
+# =============================================================================
+# Contacts Commands (OAuth only)
+# =============================================================================
+
+@contacts_app.command("list")
+def contacts_list_cmd(
+    count: int = typer.Option(25, "-n", "--count", help="Number of contacts to show"),
+):
+    """List contacts."""
+    acct, client = _get_contacts_client()
+    try:
+        contacts = client.list_contacts(max_results=count)
+        if not contacts:
+            console.print("[yellow]No contacts found.[/yellow]")
+            return
+
+        table = Table(title=f"Contacts ({acct})")
+        table.add_column("Name", style="cyan")
+        table.add_column("Email")
+        table.add_column("Phone")
+        table.add_column("Organization")
+        table.add_column("Resource", style="dim")
+
+        for c in contacts:
+            table.add_row(
+                c["name"],
+                c["emails"][0] if c["emails"] else "",
+                c["phones"][0] if c["phones"] else "",
+                c["organization"],
+                c["resource_name"],
+            )
+
+        console.print(table)
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@contacts_app.command("search")
+def contacts_search_cmd(
+    query: str = typer.Argument(..., help="Search query (name or email)"),
+):
+    """Search contacts by name or email."""
+    acct, client = _get_contacts_client()
+    try:
+        contacts = client.search_contacts(query)
+        if not contacts:
+            console.print(f"[yellow]No contacts matching '{query}'.[/yellow]")
+            return
+
+        table = Table(title=f"Search Results: '{query}'")
+        table.add_column("Name", style="cyan")
+        table.add_column("Email")
+        table.add_column("Phone")
+        table.add_column("Organization")
+        table.add_column("Resource", style="dim")
+
+        for c in contacts:
+            table.add_row(
+                c["name"],
+                c["emails"][0] if c["emails"] else "",
+                c["phones"][0] if c["phones"] else "",
+                c["organization"],
+                c["resource_name"],
+            )
+
+        console.print(table)
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@contacts_app.command("get")
+def contacts_get_cmd(
+    resource_name: str = typer.Argument(..., help="Contact resource name (e.g., people/c1234567890)"),
+):
+    """View full details of a contact."""
+    acct, client = _get_contacts_client()
+    try:
+        contact = client.get_contact(resource_name)
+
+        console.print(f"\n[bold cyan]{contact['name']}[/bold cyan]")
+        console.print(f"[dim]{contact['resource_name']}[/dim]\n")
+
+        table = Table(show_header=False, box=None)
+        table.add_column("Property", style="cyan", width=15)
+        table.add_column("Value")
+
+        table.add_row("Given Name", contact["given_name"])
+        table.add_row("Family Name", contact["family_name"])
+        for email in contact["emails"]:
+            table.add_row("Email", email)
+        for phone in contact["phones"]:
+            table.add_row("Phone", phone)
+        if contact["organization"]:
+            table.add_row("Organization", contact["organization"])
+        if contact["title"]:
+            table.add_row("Title", contact["title"])
+
+        console.print(table)
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@contacts_app.command("create")
+def contacts_create_cmd(
+    name: str = typer.Option(..., "--name", help="Full name (e.g., 'John Doe')"),
+    email: Optional[str] = typer.Option(None, "--email", help="Email address"),
+    phone: Optional[str] = typer.Option(None, "--phone", help="Phone number"),
+    org: Optional[str] = typer.Option(None, "--org", help="Organization"),
+):
+    """Create a new contact."""
+    acct, client = _get_contacts_client()
+
+    parts = name.strip().split(" ", 1)
+    given_name = parts[0]
+    family_name = parts[1] if len(parts) > 1 else ""
+
+    try:
+        contact = client.create_contact(
+            given_name=given_name,
+            family_name=family_name,
+            email=email,
+            phone=phone,
+            organization=org,
+        )
+        console.print(f"[green]Contact created:[/green] {contact['name']}")
+        console.print(f"  Resource: {contact['resource_name']}")
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
+        raise typer.Exit(1)
+
+
+@contacts_app.command("delete")
+def contacts_delete_cmd(
+    resource_name: str = typer.Argument(..., help="Contact resource name"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation"),
+):
+    """Delete a contact."""
+    acct, client = _get_contacts_client()
+
+    if not yes:
+        confirm = typer.confirm(f"Delete contact {resource_name}?")
+        if not confirm:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
+    try:
+        client.delete_contact(resource_name)
+        console.print("[green]Contact deleted.[/green]")
+    except HttpError as e:
+        handle_contacts_api_error(e, acct)
         raise typer.Exit(1)
 
 

@@ -4,232 +4,191 @@ Gmail CLI: read, send, search, and manage emails from the command line.
 
 Supports **multiple Gmail accounts** with easy switching between them.
 
-## Quick Start
+## Quick Start (App Password -- 2 minutes)
+
+Most users should use this method. No Google Cloud project needed.
 
 ```bash
-# 1. Add your first account
+# 1. Add your account
 cc-gmail accounts add personal
 
-# 2. Complete Google Cloud setup (see detailed steps below)
-# 3. Place credentials.json in the account folder
-# 4. Authenticate
-cc-gmail auth
-
-# 5. Start using Gmail from the command line
+# 2. Enter your email and app password (interactive)
+# 3. Done! Start using Gmail
 cc-gmail list
 ```
 
----
-
-## Google Cloud Setup (Required - One Time)
-
-Before using cc-gmail, you need OAuth credentials from Google Cloud Console.
-This is a one-time setup. You can use the same credentials for multiple Gmail accounts.
-
-### Step 1: Go to Google Cloud Console
-
-1. Open https://console.cloud.google.com/
-2. Sign in with your Google account
-
-### Step 2: Create or Select a Project
-
-1. Click the project dropdown at the top (next to "Google Cloud")
-2. Either:
-   - Select an existing project, OR
-   - Click "New Project", enter a name (e.g., "cc-gmail"), click "Create"
-
-### Step 3: Set Up OAuth Consent Screen
-
-This tells Google what your app is and who can use it.
-
-1. In the left sidebar, go to **APIs & Services** -> **OAuth consent screen**
-   - Or go directly to: https://console.cloud.google.com/apis/credentials/consent
-2. If you see "Google Auth Platform not configured yet", click **"Get started"**
-3. Fill in the required fields:
-   - **App name:** `cc-gmail`
-   - **User support email:** Select your email
-   - **Audience:** Select **"External"** (unless you have Google Workspace)
-   - **Contact email:** Enter your email
-4. Click **"Create"** or **"Save and Continue"**
-5. On the Scopes page, click **"Save and Continue"** (we'll use default scopes)
-6. On the Test users page:
-   - Click **"Add Users"**
-   - Enter your Gmail address(es) that you want to use with cc-gmail
-   - Click **"Save and Continue"**
-
-### Step 4: Enable the Gmail API
-
-1. Go to **APIs & Services** -> **Library**
-   - Or go directly to: https://console.cloud.google.com/apis/library
-2. Search for **"Gmail API"**
-3. Click on **"Gmail API"** in the results
-4. Click the **"Enable"** button
-5. Wait a few seconds for it to enable
-
-**IMPORTANT:** If you skip this step, you'll get this error when authenticating:
-```
-Gmail API has not been used in project XXXXX before or it is disabled.
-```
-
-### Step 5: Create OAuth Credentials
-
-1. Go to **APIs & Services** -> **Credentials**
-   - Or go directly to: https://console.cloud.google.com/apis/credentials
-2. Click **"+ CREATE CREDENTIALS"** at the top
-3. Select **"OAuth client ID"**
-4. For **Application type**, select **"Desktop app"**
-5. For **Name**, enter `cc-gmail` (or any name you want)
-6. Click **"Create"**
-
-### Step 6: Download the Credentials File
-
-1. After creating, a popup shows your Client ID and Secret
-2. Click **"DOWNLOAD JSON"** (the download icon)
-3. Save the file - it will have a long name like:
-   `client_secret_XXXXX.apps.googleusercontent.com.json`
-
-### Step 7: Set Up cc-gmail Account
-
-```bash
-# Create an account in cc-gmail
-cc-gmail accounts add personal
-```
-
-This will show you where to place the credentials file:
-```
-~/.cc-gmail/accounts/personal/credentials.json
-```
-
-Copy/rename your downloaded JSON file to that location:
-```bash
-# Windows example:
-copy "C:\Users\YOU\Downloads\client_secret_XXX.json" "C:\Users\YOU\.cc-gmail\accounts\personal\credentials.json"
-
-# Or manually copy and rename the file
-```
-
-### Step 8: Authenticate
-
-```bash
-cc-gmail auth
-```
-
-This will:
-1. Open a browser window
-2. Ask you to sign in to your Google account
-3. Ask you to grant permissions to cc-gmail
-4. Show "Authenticated as: your@email.com" when successful
+The interactive setup will guide you through:
+1. Entering your Gmail address
+2. Creating an App Password (link provided)
+3. Testing IMAP/SMTP connectivity
 
 ---
 
-## Common Setup Errors
+## App Password Setup (Quick Setup)
 
-### "Gmail API has not been used in project XXXXX before or it is disabled"
+### Prerequisites
 
-**Problem:** The Gmail API is not enabled for your project.
+- A Gmail account with **2-Step Verification** enabled
+- That's it. No Google Cloud project, no API keys.
 
-**Solution:**
-1. Go to: https://console.cloud.google.com/apis/library/gmail.googleapis.com
-2. Make sure your project is selected at the top
-3. Click **"Enable"**
-4. Wait a minute, then run `cc-gmail auth` again
+### Step 1: Enable 2-Step Verification
 
-### "Access blocked: This app's request is invalid" or "Error 400: redirect_uri_mismatch"
+If you haven't already:
+1. Go to https://myaccount.google.com/security
+2. Under "How you sign in to Google", click **2-Step Verification**
+3. Follow the prompts to enable it
 
-**Problem:** The OAuth client type is wrong.
+### Step 2: Create an App Password
 
-**Solution:**
-1. Go to: https://console.cloud.google.com/apis/credentials
-2. Delete the existing OAuth client
-3. Create a new one with type **"Desktop app"** (not "Web application")
+1. Go to https://myaccount.google.com/apppasswords
+2. Enter a name: `cc-gmail`
+3. Click **Create**
+4. Copy the 16-character password shown (e.g., `abcd efgh ijkl mnop`)
 
-### "Access blocked: cc-gmail has not completed the Google verification process"
+### Step 3: Add the Account
 
-**Problem:** Your app is in testing mode and you're not listed as a test user.
-
-**Solution:**
-1. Go to: https://console.cloud.google.com/apis/credentials/consent
-2. Under "Test users", click **"Add Users"**
-3. Add your Gmail address
-4. Try again
-
-### "OAuth credentials not found"
-
-**Problem:** The credentials.json file is missing or in the wrong location.
-
-**Solution:**
-1. Run `cc-gmail accounts add <name>` to see the expected path
-2. Copy your downloaded JSON file to that exact path
-3. Make sure it's named `credentials.json`
-
-### "No accounts configured"
-
-**Problem:** You haven't created any accounts yet.
-
-**Solution:**
 ```bash
 cc-gmail accounts add personal
 ```
+
+When prompted:
+- Enter your email address
+- Paste the app password (spaces are stripped automatically)
+- cc-gmail tests the connection and confirms it works
+
+```
+Email address: you@gmail.com
+
+-- Quick Setup (App Password) --
+App Password (or 'oauth' for advanced setup): ****************
+
+Testing connection...
+  [OK] IMAP login successful (imap.gmail.com)
+  [OK] SMTP login successful (smtp.gmail.com)
+
+Account 'personal' ready! Auth method: app_password
+```
+
+### Google Workspace Accounts
+
+App Passwords work with Workspace accounts too, but your admin must enable:
+- **2-Step Verification** for users
+- **IMAP access** (Admin Console -> Apps -> Google Workspace -> Gmail -> User access)
+- **Less secure app access** or **App passwords** option
+
+If your admin has disabled IMAP, use the [OAuth Setup](#oauth-setup-advanced) instead.
+
+---
+
+## OAuth Setup (Advanced)
+
+Use this if:
+- Your organization blocks IMAP/App Passwords
+- You want Calendar or Contacts access
+
+### When to Use OAuth
+
+When you run `cc-gmail accounts add`, if App Password authentication fails
+with a connection error, it usually means IMAP is blocked. The error message
+will guide you to OAuth setup.
+
+### OAuth Setup Steps
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create or select a project
+3. Enable these APIs (click each link, select your project, click Enable):
+   - [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) (required for email)
+   - [Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) (for calendar commands)
+   - [People API](https://console.cloud.google.com/apis/library/people.googleapis.com) (for contacts commands)
+4. Set up OAuth consent screen:
+   - Go to [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+   - Select **External** user type (or **Internal** for Workspace)
+   - App name: `cc-gmail`, add your email
+   - Under **Test users**, add your Gmail address
+5. Create OAuth credentials:
+   - Go to [Credentials](https://console.cloud.google.com/apis/credentials)
+   - **Create Credentials** -> **OAuth client ID** -> **Desktop app**
+   - Download the JSON file
+6. Set up the account:
+
+```bash
+# During account add, type 'oauth' when prompted for app password
+cc-gmail accounts add work
+# Email: you@company.com
+# App Password: oauth
+
+# Place credentials.json in the account folder
+# (path shown during setup)
+
+# Authenticate
+cc-gmail -a work auth
+```
+
+Or switch an existing account to OAuth:
+
+```bash
+cc-gmail -a work auth --method oauth
+```
+
+---
+
+## What Works With Each Auth Method
+
+| Command | App Password | OAuth |
+|---------|-------------|-------|
+| send | YES (SMTP) | YES |
+| list, read | YES (IMAP) | YES |
+| search | YES (GIMAP) | YES |
+| labels | YES (IMAP) | YES |
+| draft | YES (IMAP) | YES |
+| reply | YES (IMAP+SMTP) | YES |
+| delete, archive | YES (IMAP) | YES |
+| attachments | YES | YES |
+| stats | YES | YES |
+| calendar | NO | YES |
+| contacts | NO | YES |
+
+---
+
+## Credential Storage
+
+**App Passwords** are stored in your OS credential manager:
+- Windows: Windows Credential Manager
+- macOS: Keychain
+- Linux: Secret Service (or encrypted file fallback)
+
+App passwords are **never** stored in plain text config files.
+
+**OAuth tokens** are stored as `token.json` in the account directory.
+
+**Account config** (`config.json` per account) stores only:
+- Email address
+- Auth method (`app_password` or `oauth`)
+- No secrets
 
 ---
 
 ## Managing Multiple Accounts
 
-cc-gmail supports multiple Gmail accounts. Each account has its own token
-but can share the same OAuth credentials from Google Cloud.
-
-### Add Multiple Accounts
-
 ```bash
-# Add personal account (set as default)
+# Add accounts
 cc-gmail accounts add personal --default
-
-# Add work account
 cc-gmail accounts add work
 
-# Each account needs credentials.json in its folder
-# You can copy the SAME credentials.json to each account folder
-```
-
-### List Accounts
-
-```bash
+# List accounts
 cc-gmail accounts list
-```
 
-Output:
-```
-+----------+---------+-------------+---------------+
-| Account  | Default | Credentials | Authenticated |
-+----------+---------+-------------+---------------+
-| personal | *       | OK          | Yes           |
-| work     |         | OK          | Yes           |
-+----------+---------+-------------+---------------+
-```
-
-### Switch Default Account
-
-```bash
+# Switch default
 cc-gmail accounts default work
-```
 
-### Use Specific Account
+# Use specific account
+cc-gmail -a personal list
+cc-gmail -a work search "from:boss"
 
-```bash
-# Use --account (or -a) flag with any command
-cc-gmail --account work list
-cc-gmail -a personal search "from:mom"
-```
-
-### Check Account Status
-
-```bash
+# Check status
 cc-gmail accounts status personal
-```
 
-### Remove Account
-
-```bash
+# Remove account
 cc-gmail accounts remove old-account
 ```
 
@@ -246,118 +205,130 @@ cc-gmail auth
 # Force re-authentication
 cc-gmail auth --force
 
-# Revoke token (requires re-auth)
+# Revoke token / delete app password
 cc-gmail auth --revoke
+
+# Switch auth method
+cc-gmail auth --method oauth
+cc-gmail auth --method app_password
 ```
 
 ### List Emails
 
 ```bash
-# List inbox (default)
-cc-gmail list
-
-# List with options
-cc-gmail list -l INBOX -n 20
-cc-gmail list --label SENT --count 5
-cc-gmail list --unread
-
-# List from specific account
-cc-gmail -a work list
+cc-gmail list                     # List inbox (default)
+cc-gmail list -n 20               # Show 20 messages
+cc-gmail list --unread            # Unread only
+cc-gmail list -l SENT             # Sent messages
+cc-gmail -a work list             # From specific account
 ```
 
 ### Read Email
 
 ```bash
-# Read a specific email by ID
 cc-gmail read <message_id>
-
-# Show raw message data
-cc-gmail read <message_id> --raw
+cc-gmail read <message_id> --raw  # Raw message data
 ```
 
 ### Send Email
 
 ```bash
-# Send with body text
-cc-gmail send -t "recipient@example.com" -s "Subject" -b "Body text"
-
-# Send with body from file
-cc-gmail send -t "recipient@example.com" -s "Subject" -f body.txt
-
-# Send with CC/BCC
+cc-gmail send -t "to@example.com" -s "Subject" -b "Body text"
+cc-gmail send -t "to@example.com" -s "Subject" -f body.txt
 cc-gmail send -t "to@example.com" -s "Subject" -b "Body" --cc "cc@example.com"
-
-# Send HTML email
 cc-gmail send -t "to@example.com" -s "Subject" -f email.html --html
-
-# Send with attachments
-cc-gmail send -t "to@example.com" -s "Subject" -b "See attached" --attach file1.pdf --attach file2.txt
-
-# Send from specific account
-cc-gmail -a work send -t "colleague@company.com" -s "Report" -b "Here's the report"
+cc-gmail send -t "to@example.com" -s "Subject" -b "See attached" --attach file.pdf
 ```
 
-### Create Draft
+### Drafts
 
 ```bash
-cc-gmail draft -t "recipient@example.com" -s "Subject" -b "Draft body"
-cc-gmail draft -t "recipient@example.com" -s "Subject" -f draft.txt
+cc-gmail draft -t "to@example.com" -s "Subject" -b "Draft body"
+cc-gmail reply <message_id> -b "Reply text"
+cc-gmail reply <message_id> --all -b "Reply all text"
+cc-gmail drafts                   # List drafts
 ```
 
 ### Search
 
 ```bash
-# Basic search
 cc-gmail search "from:someone@example.com"
-
-# Search with count
 cc-gmail search "subject:important" -n 20
-
-# Gmail query examples
 cc-gmail search "is:unread"
 cc-gmail search "has:attachment"
 cc-gmail search "after:2024/01/01 before:2024/02/01"
-cc-gmail search "from:boss@company.com subject:urgent"
 ```
 
 ### Labels
 
 ```bash
-# List all labels/folders
-cc-gmail labels
+cc-gmail labels                   # List all labels
+cc-gmail label-stats INBOX        # Label statistics
+cc-gmail label-create "My Label"  # Create label
+cc-gmail move <id> -l "My Label"  # Move to label
 ```
 
-### Delete
+### Delete / Archive
 
 ```bash
-# Move to trash
-cc-gmail delete <message_id>
-
-# Permanently delete (skip trash)
-cc-gmail delete <message_id> --permanent
-
-# Skip confirmation
-cc-gmail delete <message_id> -y
+cc-gmail delete <message_id>              # Move to trash
+cc-gmail delete <message_id> --permanent  # Permanently delete
+cc-gmail archive <message_id>             # Archive (remove from inbox)
+cc-gmail archive-before 2024-01-01        # Archive old messages
+cc-gmail archive-before 2024-01-01 --dry-run  # Preview what would be archived
 ```
 
-### Profile
+### Statistics
 
 ```bash
-# Show authenticated user profile
-cc-gmail profile
+cc-gmail profile                  # User profile
+cc-gmail stats                    # Mailbox dashboard
+cc-gmail stats -l                 # Include user labels
+cc-gmail count "is:unread"        # Count messages
 ```
+
+### Calendar (OAuth only)
+
+```bash
+cc-gmail calendar list                             # List all calendars
+cc-gmail calendar events                           # Upcoming events (7 days)
+cc-gmail calendar events -d 14                     # Next 14 days
+cc-gmail calendar events -c "work@group.v.calendar.google.com"  # Specific calendar
+cc-gmail calendar today                            # Today's events
+cc-gmail calendar get <event_id>                   # Event details
+cc-gmail calendar create -s "Team Meeting" -d 2026-03-15 -t 14:00 --duration 60
+cc-gmail calendar create -s "All Hands" -d 2026-03-20 --all-day
+cc-gmail calendar create -s "Review" -d 2026-03-15 -t 10:00 --attendees "a@co.com,b@co.com"
+cc-gmail calendar delete <event_id>                # Delete (with confirmation)
+cc-gmail calendar delete <event_id> -y             # Delete (skip confirmation)
+```
+
+Requires OAuth authentication. App Password users will see guidance on how to switch.
+
+### Contacts (OAuth only)
+
+```bash
+cc-gmail contacts list                             # List contacts (25 default)
+cc-gmail contacts list -n 50                       # List 50 contacts
+cc-gmail contacts search "John"                    # Search by name or email
+cc-gmail contacts get people/c1234567890           # Full contact details
+cc-gmail contacts create --name "John Doe" --email "john@example.com" --phone "+1-555-0100"
+cc-gmail contacts create --name "Jane Smith" --org "Acme Corp"
+cc-gmail contacts delete people/c1234567890        # Delete (with confirmation)
+cc-gmail contacts delete people/c1234567890 -y     # Delete (skip confirmation)
+```
+
+Requires OAuth authentication. App Password users will see guidance on how to switch.
 
 ---
 
 ## Gmail Search Syntax
 
-cc-gmail supports full Gmail search syntax:
-
 | Query | Description |
 |-------|-------------|
 | `from:email` | Messages from sender |
 | `to:email` | Messages to recipient |
-| `subject:word` | Messages with subject containing word |
+| `subject:word` | Subject contains word |
 | `is:unread` | Unread messages |
 | `is:starred` | Starred messages |
 | `has:attachment` | Messages with attachments |
@@ -366,26 +337,83 @@ cc-gmail supports full Gmail search syntax:
 | `label:name` | Messages with label |
 | `in:inbox` | Messages in inbox |
 | `in:sent` | Sent messages |
+| `category:updates` | Category filter |
 
 Combine queries: `from:boss@company.com subject:report after:2024/01/01`
 
 ---
 
+## Troubleshooting
+
+### App Password: "Authentication failed"
+
+- Make sure 2-Step Verification is enabled
+- Create a fresh app password at https://myaccount.google.com/apppasswords
+- Enter the 16-character password without spaces
+- If the app passwords page is not available, your Workspace admin may have disabled it
+
+### App Password: "Connection refused" / IMAP blocked
+
+Your organization likely blocks IMAP access. Options:
+1. Ask your Workspace admin to enable IMAP
+2. Use OAuth instead: `cc-gmail auth --method oauth`
+
+### OAuth: "Gmail API has not been used in project"
+
+Enable the Gmail API:
+1. Go to https://console.cloud.google.com/apis/library/gmail.googleapis.com
+2. Select your project
+3. Click **Enable**
+
+### OAuth: "redirect_uri_mismatch"
+
+Wrong OAuth client type. Create a new one with type **Desktop app** (not Web application).
+
+### OAuth: "App not verified"
+
+Add yourself as a test user:
+1. Go to https://console.cloud.google.com/apis/credentials/consent
+2. Under "Test users", add your Gmail address
+
+### Calendar: "Calendar API is not enabled"
+
+Enable the Google Calendar API:
+1. Go to https://console.cloud.google.com/apis/library/calendar-json.googleapis.com
+2. Select your project
+3. Click **Enable**
+
+### Contacts: "People API is not enabled"
+
+Enable the People API:
+1. Go to https://console.cloud.google.com/apis/library/people.googleapis.com
+2. Select your project
+3. Click **Enable**
+
+### Calendar/Contacts: "Token missing permissions"
+
+Your OAuth token was created before calendar/contacts support was added.
+Re-authorize to get the new permissions:
+```bash
+cc-gmail auth --force
+```
+
+---
+
 ## Configuration
 
-Configuration files are stored in `~/.cc-gmail/`:
-
 ```
-~/.cc-gmail/
+~/.cc_tools/gmail/
     config.json              # Default account setting
     accounts/
         personal/
-            credentials.json # OAuth client credentials (you provide)
-            token.json       # OAuth access token (created automatically)
+            config.json      # Email + auth method (no secrets)
+            credentials.json # OAuth only: client credentials
+            token.json       # OAuth only: access token
         work/
-            credentials.json
-            token.json
+            config.json
 ```
+
+App passwords are stored separately in your OS credential manager (not in files).
 
 ---
 
@@ -395,7 +423,7 @@ Configuration files are stored in `~/.cc-gmail/`:
 .\build.ps1
 ```
 
-This creates `dist/cc-gmail.exe`.
+Creates `dist/cc-gmail.exe`.
 
 ---
 
