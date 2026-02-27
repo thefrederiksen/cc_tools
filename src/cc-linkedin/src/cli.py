@@ -16,9 +16,11 @@ from urllib.parse import quote
 try:
     from .browser_client import BrowserClient, BrowserError, WorkspaceError
     from .linkedin_selectors import LinkedInURLs, LinkedIn
+    from .delays import jittered_sleep
 except ImportError:
     from browser_client import BrowserClient, BrowserError, WorkspaceError
     from linkedin_selectors import LinkedInURLs, LinkedIn
+    from delays import jittered_sleep
 
 app = typer.Typer(
     name="cc-linkedin",
@@ -233,7 +235,7 @@ def whoami():
         url = info.get("url", "")
         if "linkedin.com" not in url:
             client.navigate(LinkedInURLs.home())
-            time.sleep(3)
+            jittered_sleep(3)
 
         # Get user info via JavaScript
         js_code = """
@@ -302,7 +304,7 @@ def me():
         # First get username from home page if needed
         if "linkedin.com" not in url:
             client.navigate(LinkedInURLs.home())
-            time.sleep(3)
+            jittered_sleep(3)
 
         # Click on "View profile" or navigate via identity module
         js_get_profile = """
@@ -325,7 +327,7 @@ def me():
             if not profile_url.startswith("http"):
                 profile_url = f"https://www.linkedin.com{profile_url}"
             client.navigate(profile_url)
-            time.sleep(3)
+            jittered_sleep(3)
 
         # Extract profile info
         js_profile = """
@@ -388,12 +390,12 @@ def feed(
 
         # Navigate to feed
         client.navigate(LinkedInURLs.home())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Scroll to load more content
         for _ in range(2):
             client.scroll("down")
-            time.sleep(1)
+            jittered_sleep(1)
 
         # Extract feed items
         js_feed = """
@@ -551,7 +553,7 @@ def _attach_image_to_post(client: BrowserClient, image_path: str) -> None:
 
     if media_ref:
         client.click(media_ref)
-        time.sleep(1)
+        jittered_sleep(1)
 
         # Get snapshot to find file input
         snapshot = client.snapshot()
@@ -572,7 +574,7 @@ def _attach_image_to_post(client: BrowserClient, image_path: str) -> None:
             # Use the browser client's upload method
             try:
                 client.upload(file_input_ref, str(image_file.absolute()))
-                time.sleep(2)
+                jittered_sleep(2)
                 console.print(f"[dim]Image attached: {image_file.name}[/dim]")
             except Exception as e:
                 warn(f"Could not attach image: {e}")
@@ -601,7 +603,7 @@ def _attach_image_to_post(client: BrowserClient, image_path: str) -> None:
             if input_info.get("found"):
                 console.print(f"[yellow]File input found but cannot auto-upload.[/yellow]")
                 console.print(f"[yellow]Please manually select: {image_file.absolute()}[/yellow]")
-                time.sleep(5)  # Give user time to manually select
+                jittered_sleep(5)  # Give user time to manually select
             else:
                 warn("Could not find file input for image upload")
     else:
@@ -623,7 +625,7 @@ def post(
             post_url = LinkedInURLs.post(url)
 
         client.navigate(post_url)
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract post content
         js_post = """
@@ -695,7 +697,7 @@ def like(
             client.navigate(url)
         else:
             client.navigate(LinkedInURLs.post(url))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find like button
         snapshot = client.snapshot()
@@ -708,7 +710,7 @@ def like(
 
         if like_ref:
             client.click(like_ref)
-            time.sleep(1)
+            jittered_sleep(1)
             success("Post liked")
         else:
             error("Could not find like button")
@@ -733,7 +735,7 @@ def comment(
             client.navigate(url)
         else:
             client.navigate(LinkedInURLs.post(url))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Click comment button to open comment box
         snapshot = client.snapshot()
@@ -741,7 +743,7 @@ def comment(
 
         if comment_btn_ref:
             client.click(comment_btn_ref)
-            time.sleep(1)
+            jittered_sleep(1)
 
         # Get new snapshot to find comment input
         snapshot = client.snapshot()
@@ -760,9 +762,9 @@ def comment(
 
         # Type comment
         client.click(input_ref)
-        time.sleep(0.5)
+        jittered_sleep(0.5)
         client.type(input_ref, text)
-        time.sleep(0.5)
+        jittered_sleep(0.5)
 
         # Find and click post/submit button
         snapshot = client.snapshot()
@@ -770,7 +772,7 @@ def comment(
 
         if submit_ref:
             client.click(submit_ref)
-            time.sleep(1)
+            jittered_sleep(1)
             success("Comment posted")
         else:
             warn("Could not find submit button. Comment may not have been posted.")
@@ -794,7 +796,7 @@ def profile(
 
         # Navigate to profile
         client.navigate(LinkedInURLs.profile(username))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract profile info including related profiles for spider effect
         js_profile = """
@@ -880,65 +882,263 @@ def profile(
         raise typer.Exit(1)
 
 
+def scroll_until_loaded(client: BrowserClient, selector: str, target_count: int, max_stale_scrolls: int = 3) -> int:
+    """Scroll page until target element count is reached or no new elements load.
+
+    Args:
+        client: BrowserClient instance
+        selector: CSS selector to count elements
+        target_count: Desired number of elements
+        max_stale_scrolls: Consecutive scrolls with no new elements before stopping
+
+    Returns:
+        Final element count
+    """
+    count_js = f"document.querySelectorAll('{selector}').length"
+    prev_count = int(client.evaluate(count_js).get("result", "0"))
+    stale = 0
+    scroll_num = 0
+    max_scrolls = 50  # Hard ceiling to prevent infinite loops
+
+    while prev_count < target_count and stale < max_stale_scrolls and scroll_num < max_scrolls:
+        client.scroll("down")
+        jittered_sleep(2)
+        scroll_num += 1
+
+        current_count = int(client.evaluate(count_js).get("result", "0"))
+        if current_count <= prev_count:
+            stale += 1
+        else:
+            stale = 0
+        prev_count = current_count
+
+        # Brief extra pause every 10 scrolls to reduce detection risk
+        if scroll_num % 10 == 0:
+            jittered_sleep(3)
+
+        if config.verbose:
+            console.print(f"  Loaded {current_count} / {target_count} ...", end="\r")
+
+    if config.verbose:
+        console.print(f"  Loaded {prev_count} elements after {scroll_num} scrolls.")
+
+    return prev_count
+
+
+def _load_existing_connections(filepath: str) -> tuple[list[dict], set[str]]:
+    """Load connections from an existing JSON file for resume/append mode.
+
+    Args:
+        filepath: Path to existing JSON file.
+
+    Returns:
+        Tuple of (connections list, set of usernames already captured).
+
+    Raises:
+        typer.Exit: If file cannot be read or parsed.
+    """
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            existing_data = json.load(f)
+        if isinstance(existing_data, dict) and "connections" in existing_data:
+            conns = existing_data["connections"]
+        elif isinstance(existing_data, list):
+            conns = existing_data
+        else:
+            conns = []
+        usernames = {c["username"] for c in conns if c.get("username")}
+        console.print(f"Loaded {len(usernames)} existing connections from {filepath}")
+        return conns, usernames
+    except (json.JSONDecodeError, IOError) as e:
+        error(f"Cannot read append file {filepath}: {e}")
+        raise typer.Exit(1)
+
+
+def _write_connections_json(
+    filepath: str,
+    connections_data: list[dict],
+    search_filter: str = "",
+    limit: Optional[int] = None,
+) -> None:
+    """Write connections data to a JSON file with metadata wrapper.
+
+    Args:
+        filepath: Output file path.
+        connections_data: List of connection dicts to write.
+        search_filter: Search keyword used, if any.
+        limit: Limit value used, if relevant.
+    """
+    from datetime import datetime
+
+    export_data: dict = {
+        "exported_at": datetime.now().isoformat(),
+        "search_filter": search_filter or None,
+        "total": len(connections_data),
+        "connections": connections_data,
+    }
+    if limit is not None:
+        export_data["limit"] = limit
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(export_data, f, indent=2, ensure_ascii=False)
+
+
+def _filter_connections_search(client: BrowserClient, search_term: str) -> None:
+    """Type a search term into the connections page search bar.
+
+    Tries snapshot-based ref typing first, then JS injection as alternate approach.
+
+    Args:
+        client: BrowserClient instance.
+        search_term: Keyword to type into the search input.
+    """
+    search_js = """
+    (() => {
+        const selectors = [
+            'input#mn-connections-search-input',
+            'input[placeholder*="search" i]',
+            'input[placeholder*="Search"]',
+            'input[aria-label*="search" i]',
+            'input[aria-label*="Search"]'
+        ];
+        for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el) {
+                el.scrollIntoView();
+                el.focus();
+                el.click();
+                return 'found';
+            }
+        }
+        return 'not_found';
+    })()
+    """
+    find_result = client.evaluate(search_js)
+    if find_result.get("result") == "not_found":
+        warn("Could not find search input on connections page. Proceeding without filter.")
+        return
+
+    jittered_sleep(1)
+    snapshot = client.snapshot()
+    snap_text = snapshot.get("snapshot", "")
+    input_ref = find_element_ref(snap_text, ["search", "connections"], "textbox")
+    if not input_ref:
+        input_ref = find_element_ref(snap_text, ["search", "connections"], "input")
+
+    if input_ref:
+        client.type(input_ref, search_term)
+        jittered_sleep(1)
+        client.press("Enter")
+        jittered_sleep(3)
+    else:
+        # Snapshot ref not found -- type via JS directly as alternate approach
+        # chr(39) is single quote, stripped to prevent JS string injection
+        safe_term = search_term.replace(chr(39), "")
+        type_js = f"""
+        (() => {{
+            const selectors = [
+                'input#mn-connections-search-input',
+                'input[placeholder*="search" i]',
+                'input[placeholder*="Search"]'
+            ];
+            for (const sel of selectors) {{
+                const el = document.querySelector(sel);
+                if (el) {{
+                    el.value = '{safe_term}';
+                    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    el.dispatchEvent(new KeyboardEvent('keydown', {{ key: 'Enter', code: 'Enter', bubbles: true }}));
+                    return 'typed';
+                }}
+            }}
+            return 'not_found';
+        }})()
+        """
+        client.evaluate(type_js)
+        jittered_sleep(3)
+
+
+# JavaScript to extract connection cards from the DOM
+_JS_EXTRACT_CONNECTIONS = """
+(() => {
+    const cards = document.querySelectorAll('li.mn-connection-card');
+    const data = [];
+
+    for (const card of cards) {
+        const nameEl = card.querySelector('.mn-connection-card__name');
+        const name = nameEl?.textContent?.trim() || '';
+
+        const linkEl = card.querySelector('a[href*="/in/"]');
+        const href = linkEl?.getAttribute('href') || '';
+        const usernameMatch = href.match(/\\/in\\/([^/]+)/);
+        const username = usernameMatch ? usernameMatch[1] : '';
+
+        const occupationEl = card.querySelector('.mn-connection-card__occupation');
+        const headline = occupationEl?.textContent?.trim() || '';
+
+        if (name) {
+            data.push({ username, name, headline });
+        }
+    }
+
+    return JSON.stringify(data);
+})()
+"""
+
+
 @app.command()
 def connections(
     limit: int = typer.Option(20, help="Number of connections to show"),
+    search: str = typer.Option("", "--search", "-s", help="Filter connections by keyword"),
+    output_file: str = typer.Option("", "--output", "-o", help="Write JSON output to file"),
+    append_file: str = typer.Option("", "--append", "-a", help="Resume: append to existing JSON file, skip duplicates"),
 ):
     """List your LinkedIn connections."""
+    if output_file and append_file:
+        error("Cannot use both --output and --append. Use --append to resume into an existing file, or --output for a new file.")
+        raise typer.Exit(1)
+
+    existing_connections: list[dict] = []
+    existing_usernames: set[str] = set()
+    if append_file and os.path.exists(append_file):
+        existing_connections, existing_usernames = _load_existing_connections(append_file)
+
     try:
         client = get_client()
-
-        # Navigate to connections page
         client.navigate(LinkedInURLs.connections())
-        time.sleep(3)
+        jittered_sleep(3)
 
-        # Scroll to load more
-        for _ in range(2):
-            client.scroll("down")
-            time.sleep(1)
+        if search:
+            _filter_connections_search(client, search)
 
-        # Extract connections
-        js_connections = """
-        (() => {
-            const cards = document.querySelectorAll('li.mn-connection-card');
-            const data = [];
+        scroll_until_loaded(client, "li.mn-connection-card", limit)
 
-            for (const card of cards) {
-                const nameEl = card.querySelector('.mn-connection-card__name');
-                const name = nameEl?.textContent?.trim() || '';
+        result = client.evaluate(_JS_EXTRACT_CONNECTIONS)
+        connections_data = json.loads(result.get("result", "[]"))[:limit]
 
-                const linkEl = card.querySelector('a[href*="/in/"]');
-                const href = linkEl?.getAttribute('href') || '';
-                const usernameMatch = href.match(/\\/in\\/([^/]+)/);
-                const username = usernameMatch ? usernameMatch[1] : '';
+        # Append/resume mode -- merge with existing, dedup by username
+        if append_file:
+            new_connections = [c for c in connections_data if c.get("username") not in existing_usernames]
+            merged = existing_connections + new_connections
+            _write_connections_json(append_file, merged, search_filter=search)
+            console.print(f"Found {len(new_connections)} new ({len(existing_usernames)} already captured)")
+            console.print(f"Wrote {len(merged)} total connections to {append_file}")
+            return
 
-                const occupationEl = card.querySelector('.mn-connection-card__occupation');
-                const headline = occupationEl?.textContent?.trim() || '';
+        if output_file:
+            _write_connections_json(output_file, connections_data, search_filter=search, limit=limit)
+            console.print(f"Wrote {len(connections_data)} connections to {output_file}")
+            return
 
-                if (name) {
-                    data.push({ username, name, headline });
-                }
-            }
-
-            return JSON.stringify(data);
-        })()
-        """
-
-        result = client.evaluate(js_connections)
-        connections_data = json.loads(result.get("result", "[]"))
-
+        # Console output
         console.print(f"\n[bold]Your Connections[/bold] ({len(connections_data)} shown)\n")
-
         if connections_data:
             if config.format == "json":
-                console.print_json(json.dumps(connections_data[:limit]))
+                print(json.dumps(connections_data, ensure_ascii=False))
             else:
                 table = Table(show_header=True, header_style="bold", box=None)
                 table.add_column("#", width=3)
                 table.add_column("Name", width=25)
                 table.add_column("Headline", width=45, no_wrap=True, overflow="ellipsis")
-
-                for i, c in enumerate(connections_data[:limit], 1):
+                for i, c in enumerate(connections_data, 1):
                     table.add_row(str(i), c["name"], c.get("headline", ""))
                 console.print(table)
         else:
@@ -960,7 +1160,7 @@ def connect(
 
         # Navigate to profile
         client.navigate(LinkedInURLs.profile(username))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find connect button
         snapshot = client.snapshot()
@@ -985,20 +1185,20 @@ def connect(
             raise typer.Exit(1)
 
         client.click(connect_ref)
-        time.sleep(1)
+        jittered_sleep(1)
 
         # If note provided, add it
         if note:
             _add_connection_note(client, note)
 
         # Click send/done button
-        time.sleep(0.5)
+        jittered_sleep(0.5)
         snapshot = client.snapshot()
         send_ref = find_element_ref(snapshot.get("snapshot", ""), ["send", "done"], "button")
 
         if send_ref:
             client.click(send_ref)
-            time.sleep(1)
+            jittered_sleep(1)
             success(f"Connection request sent to {username}")
         else:
             warn("Could not find send button. Request may not have been sent.")
@@ -1028,7 +1228,7 @@ def _add_connection_note(client: BrowserClient, note: str) -> None:
 
     if add_note_ref:
         client.click(add_note_ref)
-        time.sleep(0.5)
+        jittered_sleep(0.5)
 
         # Find text area and type note
         snapshot = client.snapshot()
@@ -1052,7 +1252,7 @@ def messages(
 
         # Navigate to messaging
         client.navigate(LinkedInURLs.messaging())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract message threads
         js_messages = """
@@ -1128,7 +1328,7 @@ def message(
 
         # Navigate to profile first
         client.navigate(LinkedInURLs.profile(username))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Find and click Message button
         snapshot = client.snapshot()
@@ -1144,7 +1344,7 @@ def message(
             raise typer.Exit(1)
 
         client.click(message_ref)
-        time.sleep(2)
+        jittered_sleep(2)
 
         # Find message input
         snapshot = client.snapshot()
@@ -1160,9 +1360,9 @@ def message(
 
         # Type message
         client.click(input_ref)
-        time.sleep(0.3)
+        jittered_sleep(0.3)
         client.type(input_ref, text)
-        time.sleep(0.5)
+        jittered_sleep(0.5)
 
         # Find and click send button
         snapshot = client.snapshot()
@@ -1170,12 +1370,12 @@ def message(
 
         if send_ref:
             client.click(send_ref)
-            time.sleep(1)
+            jittered_sleep(1)
             success(f"Message sent to {username}")
         else:
             # Try pressing Enter as alternative
             client.press("Enter")
-            time.sleep(1)
+            jittered_sleep(1)
             success(f"Message sent to {username}")
 
     except BrowserError as e:
@@ -1192,18 +1392,23 @@ def search(
     query: str = typer.Argument(..., help="Search query"),
     search_type: str = typer.Option("people", "--type", "-t", help="Search type: people, posts, companies, jobs"),
     limit: int = typer.Option(10, help="Number of results to show"),
+    network: str = typer.Option("", "--network", "-n", help="Connection degree: 1st, 2nd, 3rd (people only)"),
 ):
     """Search LinkedIn."""
+    if network and search_type != "people":
+        warn(f"--network filter only applies to people search. Ignoring for type '{search_type}'.")
+        network = ""
+
     try:
         client = get_client()
 
         # Navigate to search results
-        client.navigate(LinkedInURLs.search(query, search_type))
-        time.sleep(3)
+        client.navigate(LinkedInURLs.search(query, search_type, network=network))
+        jittered_sleep(3)
 
         # Scroll to load results
         client.scroll("down")
-        time.sleep(1)
+        jittered_sleep(1)
 
         if search_type == "people":
             js_search = """
@@ -1394,7 +1599,7 @@ def notifications(
 
         # Navigate to notifications
         client.navigate(LinkedInURLs.notifications())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract notifications
         js_notifications = """
@@ -1463,7 +1668,7 @@ def invitations(
 
         # Navigate to invitations
         client.navigate(LinkedInURLs.invitations())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract invitations
         js_invitations = """
@@ -1534,7 +1739,7 @@ def accept(
 
         # Navigate to invitations
         client.navigate(LinkedInURLs.invitations())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find the invitation
         snapshot = client.snapshot()
@@ -1556,7 +1761,7 @@ def accept(
             raise typer.Exit(1)
 
         client.click(accept_ref)
-        time.sleep(1)
+        jittered_sleep(1)
         success(f"Accepted invitation from {name}")
 
     except BrowserError as e:
@@ -1574,7 +1779,7 @@ def ignore(
 
         # Navigate to invitations
         client.navigate(LinkedInURLs.invitations())
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find the invitation
         snapshot = client.snapshot()
@@ -1596,7 +1801,7 @@ def ignore(
             raise typer.Exit(1)
 
         client.click(ignore_ref)
-        time.sleep(1)
+        jittered_sleep(1)
         success(f"Ignored invitation from {name}")
 
     except BrowserError as e:
@@ -1622,7 +1827,7 @@ def repost(
             client.navigate(url)
         else:
             client.navigate(LinkedInURLs.post(url))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find repost button
         snapshot = client.snapshot()
@@ -1638,7 +1843,7 @@ def repost(
             raise typer.Exit(1)
 
         client.click(repost_ref)
-        time.sleep(1)
+        jittered_sleep(1)
 
         # Get new snapshot for repost options
         snapshot = client.snapshot()
@@ -1660,7 +1865,7 @@ def _repost_with_thoughts(client: BrowserClient, snapshot_text: str, thoughts: s
 
     if thoughts_ref:
         client.click(thoughts_ref)
-        time.sleep(1)
+        jittered_sleep(1)
 
         # Find text input and type thoughts
         snapshot = client.snapshot()
@@ -1668,18 +1873,18 @@ def _repost_with_thoughts(client: BrowserClient, snapshot_text: str, thoughts: s
 
         if input_ref:
             client.click(input_ref)
-            time.sleep(0.3)
+            jittered_sleep(0.3)
             client.type(input_ref, thoughts)
 
         # Click post button
-        time.sleep(0.5)
+        jittered_sleep(0.5)
         snapshot = client.snapshot()
         post_ref = find_element_ref(snapshot.get("snapshot", ""), ["post"], "button")
 
         if post_ref:
             client.click(post_ref)
 
-        time.sleep(1)
+        jittered_sleep(1)
         success("Reposted with your thoughts")
     else:
         warn("Could not find 'repost with thoughts' option")
@@ -1701,7 +1906,7 @@ def _repost_instant(client: BrowserClient, snapshot_text: str) -> None:
 
     if instant_ref:
         client.click(instant_ref)
-        time.sleep(1)
+        jittered_sleep(1)
         success("Reposted")
     else:
         warn("Could not find instant repost option")
@@ -1720,7 +1925,7 @@ def save(
             client.navigate(url)
         else:
             client.navigate(LinkedInURLs.post(url))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Get snapshot to find save/more button
         snapshot = client.snapshot()
@@ -1737,7 +1942,7 @@ def save(
             more_ref = find_element_ref(snapshot_text, ["more", "..."], "button")
             if more_ref:
                 client.click(more_ref)
-                time.sleep(0.5)
+                jittered_sleep(0.5)
 
             # Get new snapshot and look for save
             snapshot = client.snapshot()
@@ -1745,7 +1950,7 @@ def save(
 
         if save_ref:
             client.click(save_ref)
-            time.sleep(1)
+            jittered_sleep(1)
             success("Post saved")
         else:
             error("Could not find Save option")
@@ -1770,7 +1975,7 @@ def company(
 
         # Navigate to company page
         client.navigate(LinkedInURLs.company(company_id))
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Extract company info
         js_company = """
@@ -1867,11 +2072,11 @@ def jobs(
             search_url += f"&location={quote(location)}"
 
         client.navigate(search_url)
-        time.sleep(3)
+        jittered_sleep(3)
 
         # Scroll to load results
         client.scroll("down")
-        time.sleep(1)
+        jittered_sleep(1)
 
         # Extract job listings
         js_jobs = """

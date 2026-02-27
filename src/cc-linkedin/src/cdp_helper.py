@@ -4,6 +4,11 @@ import httpx
 import time
 from pathlib import Path
 
+try:
+    from .delays import jittered_sleep
+except ImportError:
+    from delays import jittered_sleep
+
 
 def click_element_by_text(port: int, text: str, tag: str = "button") -> dict:
     """Click an element by its text content using CDP."""
@@ -57,7 +62,7 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
     except Exception as e:
         return {"success": False, "error": f"Navigate failed: {e}"}
 
-    time.sleep(2)
+    jittered_sleep(2)
 
     # Step 2: Click "Start a post"
     result = click_element_by_text(port, "Start a post", "button")
@@ -77,7 +82,7 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
         except Exception as e:
             return {"success": False, "error": f"Click start post failed: {e}"}
 
-    time.sleep(2)
+    jittered_sleep(2)
 
     # Step 3: Type content
     escaped_content = content.replace("'", "\\'").replace("\n", "\\n")
@@ -100,7 +105,7 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
     except Exception as e:
         return {"success": False, "error": f"Type failed: {e}"}
 
-    time.sleep(1)
+    jittered_sleep(1)
 
     # Step 3.5: Attach image/video if provided
     if image_path:
@@ -139,7 +144,7 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
         except Exception as e:
             return {"success": False, "error": f"Click media button failed: {e}"}
 
-        time.sleep(2)
+        jittered_sleep(2)
 
         # Find the file input and upload the image
         # LinkedIn uses a hidden file input for uploads
@@ -202,12 +207,12 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
             return {"success": False, "error": f"Upload request failed: {e}"}
 
         # Wait for upload to process
-        time.sleep(3)
+        jittered_sleep(3)
 
         # LinkedIn shows an image editor - click "Next" to proceed
         result = click_element_by_text(port, "Next", "button")
         if result.get("success"):
-            time.sleep(2)
+            jittered_sleep(2)
         # If no "Next" button, maybe we're already past the editor
 
     # Step 4: Click Post button
@@ -215,17 +220,17 @@ def create_post_via_js(port: int, content: str, image_path: str = None) -> dict:
     if not result.get("success"):
         return {"success": False, "error": "Could not find Post button"}
 
-    time.sleep(3)
+    jittered_sleep(3)
 
     # Step 5: Handle visibility modal if it appears
     for _ in range(10):
         result = click_element_by_text(port, "Done", "button")
         if result.get("success"):
-            time.sleep(2)
+            jittered_sleep(2)
             # Click Post again
             click_element_by_text(port, "Post", "button")
-            time.sleep(3)
+            jittered_sleep(3)
             break
-        time.sleep(0.5)
+        jittered_sleep(0.5)
 
     return {"success": True, "message": "Post created"}

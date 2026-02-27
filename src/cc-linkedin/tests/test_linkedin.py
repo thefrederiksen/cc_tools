@@ -2,6 +2,9 @@
 
 import sys
 import os
+import json
+import time
+import tempfile
 import pytest
 
 # Add src to path so we can import modules directly
@@ -363,3 +366,191 @@ class TestElementRefFinding:
             search_range=10,
         )
         assert ref is None
+
+
+# =============================================================================
+# TestJitteredSleep
+# =============================================================================
+
+class TestJitteredSleep:
+    """Tests for jittered_sleep delay helper."""
+
+    def test_small_sleep_has_small_jitter(self):
+        """Base < 1.0s gets 0-0.5s jitter."""
+        from delays import jittered_sleep
+        start = time.time()
+        jittered_sleep(0.1)
+        elapsed = time.time() - start
+        assert 0.1 <= elapsed <= 0.7
+
+    def test_medium_sleep_has_medium_jitter(self):
+        """Base 1.0-2.9s gets 0-1.5s jitter."""
+        from delays import jittered_sleep
+        start = time.time()
+        jittered_sleep(1.0)
+        elapsed = time.time() - start
+        assert 1.0 <= elapsed <= 2.6
+
+    def test_large_sleep_has_large_jitter(self):
+        """Base >= 3.0s gets 0-2.0s jitter."""
+        from delays import jittered_sleep
+        start = time.time()
+        jittered_sleep(3.0)
+        elapsed = time.time() - start
+        assert 3.0 <= elapsed <= 5.1
+
+
+# =============================================================================
+# TestSearchNetworkURLs
+# =============================================================================
+
+class TestSearchNetworkURLs:
+    """Tests for search URL with network degree filter."""
+
+    def test_search_without_network(self):
+        """Search URL has no network param when not specified."""
+        url = LinkedInURLs.search("engineer", "people")
+        assert "keywords=engineer" in url
+        assert "network" not in url
+
+    def test_search_first_degree(self):
+        """--network 1st appends network=["F"] to URL."""
+        url = LinkedInURLs.search("Toronto", "people", network="1st")
+        assert 'network=["F"]' in url
+
+    def test_search_second_degree(self):
+        """--network 2nd appends network=["S"] to URL."""
+        url = LinkedInURLs.search("Toronto", "people", network="2nd")
+        assert 'network=["S"]' in url
+
+    def test_search_third_degree(self):
+        """--network 3rd appends network=["O"] to URL."""
+        url = LinkedInURLs.search("Toronto", "people", network="3rd")
+        assert 'network=["O"]' in url
+
+    def test_search_invalid_network_ignored(self):
+        """Invalid network value produces no network param."""
+        url = LinkedInURLs.search("test", "people", network="invalid")
+        assert "network" not in url
+
+    def test_search_empty_network_ignored(self):
+        """Empty network string produces no network param."""
+        url = LinkedInURLs.search("test", "people", network="")
+        assert "network" not in url
+
+    def test_search_network_preserves_keywords(self):
+        """Network param doesn't interfere with keywords."""
+        url = LinkedInURLs.search("data scientist", "people", network="1st")
+        assert "keywords=data%20scientist" in url
+        assert 'network=["F"]' in url
+
+
+# =============================================================================
+# TestConnectionsOutputFile
+# =============================================================================
+
+class TestConnectionsOutputFile:
+    """Tests for --output and --append JSON file logic."""
+
+    def test_output_json_structure(self):
+        """Verify the expected JSON export structure."""
+        from datetime import datetime
+        connections_data = [
+            {"username": "alice", "name": "Alice Smith", "headline": "Engineer"},
+            {"username": "bob", "name": "Bob Jones", "headline": "Designer"},
+        ]
+        export_data = {
+            "exported_at": datetime.now().isoformat(),
+            "search_filter": None,
+            "total": len(connections_data),
+            "limit": 20,
+            "connections": connections_data,
+        }
+        assert export_data["total"] == 2
+        assert len(export_data["connections"]) == 2
+        assert export_data["connections"][0]["username"] == "alice"
+        assert export_data["search_filter"] is None
+
+    def test_output_json_with_search_filter(self):
+        """Verify search_filter is populated when search is used."""
+        from datetime import datetime
+        export_data = {
+            "exported_at": datetime.now().isoformat(),
+            "search_filter": "Toronto",
+            "total": 1,
+            "limit": 100,
+            "connections": [{"username": "carol", "name": "Carol", "headline": "PM"}],
+        }
+        assert export_data["search_filter"] == "Toronto"
+
+    def test_append_dedup_by_username(self):
+        """Verify dedup logic filters out existing usernames."""
+        existing = [
+            {"username": "alice", "name": "Alice Smith", "headline": "Engineer"},
+            {"username": "bob", "name": "Bob Jones", "headline": "Designer"},
+        ]
+        existing_usernames = {c["username"] for c in existing}
+
+        new_from_page = [
+            {"username": "alice", "name": "Alice Smith", "headline": "Engineer"},
+            {"username": "carol", "name": "Carol White", "headline": "PM"},
+        ]
+        new_connections = [c for c in new_from_page if c["username"] not in existing_usernames]
+
+        assert len(new_connections) == 1
+        assert new_connections[0]["username"] == "carol"
+
+        merged = existing + new_connections
+        assert len(merged) == 3
+
+    def test_append_reads_wrapped_format(self):
+        """Verify append mode reads the wrapped JSON format with metadata."""
+        data = {
+            "exported_at": "2026-02-27T10:00:00",
+            "total": 2,
+            "connections": [
+                {"username": "alice", "name": "Alice", "headline": "Eng"},
+                {"username": "bob", "name": "Bob", "headline": "Des"},
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            tmpfile = f.name
+
+        try:
+            with open(tmpfile, "r") as f:
+                loaded = json.load(f)
+            if isinstance(loaded, dict) and "connections" in loaded:
+                connections = loaded["connections"]
+            elif isinstance(loaded, list):
+                connections = loaded
+            else:
+                connections = []
+            usernames = {c["username"] for c in connections}
+            assert usernames == {"alice", "bob"}
+        finally:
+            os.unlink(tmpfile)
+
+    def test_append_reads_plain_array_format(self):
+        """Verify append mode reads a plain JSON array (legacy format)."""
+        data = [
+            {"username": "alice", "name": "Alice", "headline": "Eng"},
+            {"username": "bob", "name": "Bob", "headline": "Des"},
+        ]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            tmpfile = f.name
+
+        try:
+            with open(tmpfile, "r") as f:
+                loaded = json.load(f)
+            if isinstance(loaded, dict) and "connections" in loaded:
+                connections = loaded["connections"]
+            elif isinstance(loaded, list):
+                connections = loaded
+            else:
+                connections = []
+            usernames = {c["username"] for c in connections}
+            assert usernames == {"alice", "bob"}
+        finally:
+            os.unlink(tmpfile)

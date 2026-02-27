@@ -8,6 +8,7 @@ The cc-browser snapshot command with --interactive is the best way to
 discover current element refs.
 """
 
+from typing import Literal
 from urllib.parse import quote
 
 
@@ -109,25 +110,37 @@ class LinkedInURLs:
         return f"{LinkedInURLs.BASE}/feed/update/urn:li:activity:{urn}"
 
     @staticmethod
-    def search(query: str, search_type: str = "all") -> str:
+    def search(
+        query: str,
+        search_type: Literal["all", "people", "companies", "posts", "jobs", "groups"] = "all",
+        network: Literal["", "1st", "2nd", "3rd"] = "",
+    ) -> str:
         """Search URL.
 
-        search_type can be: all, people, companies, posts, jobs, groups
+        Args:
+            query: Search keywords
+            search_type: all, people, companies, posts, jobs, groups
+            network: Connection degree filter: 1st, 2nd, 3rd (people search only)
         """
         encoded_query = quote(query)
-        if search_type == "all":
-            return f"{LinkedInURLs.BASE}/search/results/all/?keywords={encoded_query}"
-        elif search_type == "people":
-            return f"{LinkedInURLs.BASE}/search/results/people/?keywords={encoded_query}"
-        elif search_type == "companies":
-            return f"{LinkedInURLs.BASE}/search/results/companies/?keywords={encoded_query}"
-        elif search_type == "posts":
-            return f"{LinkedInURLs.BASE}/search/results/content/?keywords={encoded_query}"
-        elif search_type == "jobs":
-            return f"{LinkedInURLs.BASE}/search/results/jobs/?keywords={encoded_query}"
-        elif search_type == "groups":
-            return f"{LinkedInURLs.BASE}/search/results/groups/?keywords={encoded_query}"
-        return f"{LinkedInURLs.BASE}/search/results/all/?keywords={encoded_query}"
+        type_map = {
+            "all": "all",
+            "people": "people",
+            "companies": "companies",
+            "posts": "content",
+            "jobs": "jobs",
+            "groups": "groups",
+        }
+        result_type = type_map.get(search_type, "all")
+        url = f"{LinkedInURLs.BASE}/search/results/{result_type}/?keywords={encoded_query}"
+
+        if network:
+            network_map = {"1st": "F", "2nd": "S", "3rd": "O"}
+            code = network_map.get(network)
+            if code:
+                url += f'&network=["{code}"]'
+
+        return url
 
     @staticmethod
     def messaging() -> str:
