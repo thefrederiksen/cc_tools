@@ -89,6 +89,13 @@ import {
 } from './snapshot.mjs';
 import { detectCaptcha, detectCaptchaDOM, solveCaptcha } from './captcha.mjs';
 import { getPageForTargetId } from './session.mjs';
+import {
+  createSession, getSession, listSessions, deleteSession,
+  addTabToSession, removeTabFromSessions, findSessionForTab,
+  touchSession, pruneExpiredSessions, reconcileTabs,
+  persistSessions, loadSessions,
+  startCleanupTimer, stopCleanupTimer, sessionCount,
+} from './sessions.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -265,6 +272,7 @@ const routes = {
       tabs: status.tabs || [],
       activeTab: status.activeTab,
       playwrightConnected: !!cached,
+      sessions: sessionCount(),
     });
   },
 
@@ -667,6 +675,13 @@ const routes = {
     if (!validation.valid) return jsonError(res, 400, validation.error);
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
     const tabs = await listPagesViaPlaywright({ cdpUrl });
+    // Annotate tabs with session info
+    for (const tab of tabs) {
+      const sess = findSessionForTab(tab.targetId);
+      if (sess) {
+        tab.session = { id: sess.id, name: sess.name };
+      }
+    }
     jsonSuccess(res, { tabs });
   },
 
@@ -674,8 +689,22 @@ const routes = {
   'POST /tabs/open': async (req, res, params, body) => {
     const validation = validateSession(body);
     if (!validation.valid) return jsonError(res, 400, validation.error);
+
+    // Validate session ID if provided
+    if (body.session) {
+      const sess = getSession(body.session);
+      if (!sess) return jsonError(res, 404, `Session not found: ${body.session}`);
+    }
+
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
     const tab = await createPageViaPlaywright({ cdpUrl, url: body.url });
+
+    // Track tab in session (also acts as implicit heartbeat)
+    if (body.session) {
+      addTabToSession(body.session, tab.targetId);
+      tab.session = body.session;
+    }
+
     jsonSuccess(res, { tab });
   },
 
@@ -684,8 +713,10 @@ const routes = {
     const validation = validateSession(body);
     if (!validation.valid) return jsonError(res, 400, validation.error);
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
-    await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: body.tab || body.targetId });
-    jsonSuccess(res, { closed: body.tab || body.targetId });
+    const tabId = body.tab || body.targetId;
+    await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+    removeTabFromSessions(tabId);
+    jsonSuccess(res, { closed: tabId });
   },
 
   // Focus tab
@@ -757,6 +788,130 @@ const routes = {
       outer: body.outer,
     });
     jsonSuccess(res, { html });
+  },
+
+  // -----------------------------------------------------------------------
+  // Sessions
+  // -----------------------------------------------------------------------
+
+  // Create session
+  'POST /sessions/create': async (req, res, params, body) => {
+    if (!body.name) return jsonError(res, 400, 'name is required');
+    const session = createSession({
+      name: body.name,
+      ttlMs: body.ttl,
+      metadata: body.metadata,
+    });
+    jsonSuccess(res, { session });
+  },
+
+  // List sessions
+  'GET /sessions': async (req, res) => {
+    const all = listSessions();
+    const result = all.map(s => ({
+      id: s.id,
+      name: s.name,
+      createdAt: s.createdAt,
+      lastActivity: s.lastActivity,
+      ttlMs: s.ttlMs,
+      tabCount: s.tabIds.length,
+      tabIds: s.tabIds,
+      metadata: s.metadata,
+    }));
+    jsonSuccess(res, { sessions: result });
+  },
+
+  // Heartbeat -- touch session to keep alive
+  'POST /sessions/heartbeat': async (req, res, params, body) => {
+    if (!body.session) return jsonError(res, 400, 'session is required');
+    const ok = touchSession(body.session);
+    if (!ok) return jsonError(res, 404, `Session not found: ${body.session}`);
+    jsonSuccess(res, { session: body.session, touched: true });
+  },
+
+  // Close session -- close all tabs, delete session
+  'POST /sessions/close': async (req, res, params, body) => {
+    if (!body.session) return jsonError(res, 400, 'session is required');
+    const sess = getSession(body.session);
+    if (!sess) return jsonError(res, 404, `Session not found: ${body.session}`);
+
+    const validation = validateSession(body);
+    if (!validation.valid) return jsonError(res, 400, validation.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    // Close all tabs in this session
+    const closed = [];
+    const errors = [];
+    for (const tabId of [...sess.tabIds]) {
+      try {
+        await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+        closed.push(tabId);
+      } catch {
+        errors.push(tabId);
+      }
+    }
+
+    deleteSession(body.session);
+    jsonSuccess(res, {
+      session: body.session,
+      closed: closed.length,
+      errors: errors.length,
+    });
+  },
+
+  // Prune expired sessions
+  'POST /sessions/prune': async (req, res, params, body) => {
+    const validation = validateSession(body);
+    if (!validation.valid) return jsonError(res, 400, validation.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    const pruned = pruneExpiredSessions();
+    let totalClosed = 0;
+
+    for (const p of pruned) {
+      for (const tabId of p.tabIds) {
+        try {
+          await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+          totalClosed++;
+        } catch {
+          // Tab may already be gone
+        }
+      }
+    }
+
+    jsonSuccess(res, {
+      prunedSessions: pruned.length,
+      closedTabs: totalClosed,
+    });
+  },
+
+  // Close all tabs (keeps one blank tab -- Chrome requirement)
+  'POST /tabs/close-all': async (req, res, params, body) => {
+    const validation = validateSession(body);
+    if (!validation.valid) return jsonError(res, 400, validation.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    const tabs = await listPagesViaPlaywright({ cdpUrl });
+    if (tabs.length === 0) {
+      return jsonSuccess(res, { closed: 0 });
+    }
+
+    // Create a blank tab first (Chrome needs at least 1 tab)
+    await createPageViaPlaywright({ cdpUrl, url: 'about:blank' });
+
+    // Close all original tabs
+    let closed = 0;
+    for (const tab of tabs) {
+      try {
+        await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tab.targetId });
+        removeTabFromSessions(tab.targetId);
+        closed++;
+      } catch {
+        // Tab may already be closed
+      }
+    }
+
+    jsonSuccess(res, { closed });
   },
 };
 
@@ -844,6 +999,28 @@ const server = createServer(handleRequest);
 // Store actual port for status responses
 actualDaemonPort = daemonPort;
 
+// Load sessions and start cleanup timer
+const sessionDir = (defaultBrowser && defaultWorkspace)
+  ? getWorkspaceDir(defaultBrowser, defaultWorkspace)
+  : null;
+
+if (sessionDir) {
+  loadSessions(sessionDir);
+  console.log(`[cc-browser] Sessions loaded (${sessionCount()} active)`);
+}
+
+startCleanupTimer(async (tabIds) => {
+  if (!activeCdpPort) return;
+  const cdpUrl = `http://127.0.0.1:${activeCdpPort}`;
+  for (const tabId of tabIds) {
+    try {
+      await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+    } catch {
+      // Tab may already be closed
+    }
+  }
+});
+
 server.listen(daemonPort, '127.0.0.1', () => {
   console.log(`[cc-browser] Daemon listening on http://127.0.0.1:${daemonPort}`);
   if (defaultBrowser && defaultWorkspace) {
@@ -861,6 +1038,8 @@ server.listen(daemonPort, '127.0.0.1', () => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n[cc-browser] Shutting down...');
+  stopCleanupTimer();
+  if (sessionDir) persistSessions(sessionDir);
   removeLockfile();
   await disconnectBrowser();
   server.close();
@@ -869,6 +1048,8 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   console.log('\n[cc-browser] Shutting down...');
+  stopCleanupTimer();
+  if (sessionDir) persistSessions(sessionDir);
   removeLockfile();
   await disconnectBrowser();
   server.close();

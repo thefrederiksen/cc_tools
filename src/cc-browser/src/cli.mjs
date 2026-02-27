@@ -4,9 +4,9 @@
 // Usage: node cli.mjs <command> [options]
 
 import { spawn } from 'child_process';
-import { dirname, join } from 'path';
+import { dirname, join, resolve, extname } from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -202,12 +202,497 @@ function outputError(message) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-Command Help
+// ---------------------------------------------------------------------------
+
+const commandHelp = {
+  daemon: `Usage: cc-browser daemon [options]
+
+  Start the background daemon that manages browser connections.
+
+  Options:
+    --port <port>       Daemon HTTP port (default: from workspace.json or 9280)
+    --browser <name>    Browser: chrome, edge, brave
+    --workspace <name>  Named workspace for isolated sessions
+
+  Examples:
+    cc-browser daemon
+    cc-browser daemon --workspace mindzie
+    cc-browser daemon --browser chrome --workspace work`,
+
+  status: `Usage: cc-browser status [options]
+
+  Check daemon and browser connection status.
+
+  Options:
+    --port <port>       Daemon port
+    --workspace <name>  Target workspace`,
+
+  browsers: `Usage: cc-browser browsers
+
+  List available browsers detected on this system.`,
+
+  profiles: `Usage: cc-browser profiles [options]
+
+  List system Chrome/Edge built-in profiles (with emails).
+
+  Options:
+    --browser <name>    Browser to list profiles for (default: chrome)`,
+
+  workspaces: `Usage: cc-browser workspaces
+
+  List all configured cc-browser workspaces with their ports and aliases.`,
+
+  favorites: `Usage: cc-browser favorites --workspace <name> [options]
+
+  Get favorites/bookmarks from workspace.json configuration.
+
+  Options:
+    --workspace <name>  Workspace name (required)
+    --browser <name>    Browser (default: edge)`,
+
+  start: `Usage: cc-browser start [options]
+
+  Launch a browser instance and connect to it.
+
+  Options:
+    --browser <name>        Browser: chrome, edge, brave
+    --workspace <name>      Named workspace (persists logins, isolated sessions)
+    --profileDir <dir>      Use existing system Chrome profile (e.g., "Default", "Profile 1")
+    --cdpPort <port>        Chrome CDP port (default: from workspace.json or 9222)
+    --headless              Start in headless mode
+    --no-indicator          Hide the automation info bar
+    --mode <mode>           Initial mode: fast, human, stealth
+
+  Examples:
+    cc-browser start --workspace mindzie
+    cc-browser start --browser chrome --workspace personal
+    cc-browser start --profileDir "Default"
+    cc-browser start --browser edge --workspace work --mode human`,
+
+  stop: `Usage: cc-browser stop [options]
+
+  Stop the browser and disconnect.
+
+  Options:
+    --browser <name>    Browser filter
+    --workspace <name>  Workspace filter`,
+
+  navigate: `Usage: cc-browser navigate --url <url> [options]
+
+  Navigate to a URL.
+
+  Options:
+    --url <url>          URL to navigate to (required)
+    --tab <targetId>     Target specific tab
+    --waitUntil <event>  Wait until: load, domcontentloaded, networkidle
+    --timeout <ms>       Navigation timeout (default: 30000)
+
+  Examples:
+    cc-browser navigate --url "https://example.com"
+    cc-browser navigate --url "https://app.com" --waitUntil networkidle`,
+
+  reload: `Usage: cc-browser reload [options]
+
+  Reload the current page.
+
+  Options:
+    --tab <targetId>     Target specific tab
+    --waitUntil <event>  Wait until: load, domcontentloaded, networkidle
+    --timeout <ms>       Reload timeout`,
+
+  back: `Usage: cc-browser back [options]
+
+  Go back in browser history.
+
+  Options:
+    --tab <targetId>    Target specific tab`,
+
+  forward: `Usage: cc-browser forward [options]
+
+  Go forward in browser history.
+
+  Options:
+    --tab <targetId>    Target specific tab`,
+
+  snapshot: `Usage: cc-browser snapshot [options]
+
+  Get page structure with element refs (e1, e2, etc.) for interactions.
+
+  Options:
+    --interactive       Only show interactive elements (buttons, links, inputs)
+    --compact           Compact output (fewer structural elements)
+    --maxDepth <n>      Maximum tree depth
+    --maxChars <n>      Maximum output characters
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser snapshot
+    cc-browser snapshot --interactive
+    cc-browser snapshot --compact --maxDepth 5`,
+
+  info: `Usage: cc-browser info [options]
+
+  Get page URL, title, and viewport information.
+
+  Options:
+    --tab <targetId>    Target specific tab`,
+
+  click: `Usage: cc-browser click <--ref | --text | --selector> [options]
+
+  Click an element on the page.
+
+  Target (exactly one required):
+    --ref <ref>          Element reference from snapshot (e.g., e1, e5)
+    --text <string>      Click element containing this text
+    --selector <css>     Click element matching CSS selector
+
+  Options:
+    --exact              With --text, require exact text match (not substring)
+    --double             Double-click instead of single click
+    --button <btn>       Mouse button: left, right, middle (default: left)
+    --modifiers <json>   Keyboard modifiers: ["Control", "Shift", "Alt"]
+    --timeout <ms>       Wait timeout (default: 8000, range: 500-60000)
+    --tab <targetId>     Target specific tab
+
+  Examples:
+    cc-browser click --ref e5
+    cc-browser click --text "CaseAttributes.sql"
+    cc-browser click --text "Submit" --exact
+    cc-browser click --selector "[data-testid='save-btn']"
+    cc-browser click --ref e3 --double --modifiers '["Control"]'`,
+
+  type: `Usage: cc-browser type <--ref | --textContent | --selector> --text <text> [options]
+
+  Type text into an input element.
+
+  Target (exactly one required):
+    --ref <ref>             Element reference from snapshot
+    --textContent <string>  Target element containing this text
+    --selector <css>        Target element matching CSS selector
+
+  Options:
+    --text <text>        Text to type (required)
+    --exact              With --textContent, require exact text match
+    --submit             Press Enter after typing
+    --slowly             Type character-by-character with delays
+    --timeout <ms>       Wait timeout (default: 8000)
+    --tab <targetId>     Target specific tab
+
+  Examples:
+    cc-browser type --ref e4 --text "hello world"
+    cc-browser type --ref e4 --text "search query" --submit
+    cc-browser type --selector "#search" --text "query"`,
+
+  press: `Usage: cc-browser press --key <key> [options]
+
+  Press a keyboard key.
+
+  Options:
+    --key <key>         Key to press (required). Examples: Enter, Tab, Escape,
+                        ArrowDown, Control+a, Shift+Enter
+    --delay <ms>        Hold duration
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser press --key Enter
+    cc-browser press --key "Control+a"
+    cc-browser press --key Escape`,
+
+  hover: `Usage: cc-browser hover <--ref | --text | --selector> [options]
+
+  Hover over an element.
+
+  Target (exactly one required):
+    --ref <ref>          Element reference from snapshot
+    --text <string>      Hover element containing this text
+    --selector <css>     Hover element matching CSS selector
+
+  Options:
+    --exact              With --text, require exact text match
+    --timeout <ms>       Wait timeout (default: 8000)
+    --tab <targetId>     Target specific tab
+
+  Examples:
+    cc-browser hover --ref e3
+    cc-browser hover --text "Menu Item"`,
+
+  drag: `Usage: cc-browser drag --from <ref> --to <ref> [options]
+
+  Drag one element to another.
+
+  Options:
+    --from <ref>        Start element ref (required)
+    --to <ref>          End element ref (required)
+    --timeout <ms>      Wait timeout
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser drag --from e1 --to e5`,
+
+  select: `Usage: cc-browser select --ref <ref> --value <value> [options]
+
+  Select an option from a dropdown.
+
+  Options:
+    --ref <ref>         Element reference (required)
+    --value <value>     Option value to select
+    --values <json>     Multiple values: ["opt1", "opt2"]
+    --timeout <ms>      Wait timeout
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser select --ref e3 --value "option1"`,
+
+  scroll: `Usage: cc-browser scroll [options]
+
+  Scroll the viewport or scroll an element into view.
+
+  Options:
+    --direction <dir>   Scroll direction: up, down, left, right (default: down)
+    --amount <px>       Scroll amount in pixels (default: 500)
+    --ref <ref>         Scroll this element into view instead
+    --timeout <ms>      Wait timeout (for ref scrolling)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser scroll
+    cc-browser scroll --direction up --amount 300
+    cc-browser scroll --ref e10`,
+
+  wait: `Usage: cc-browser wait [options]
+
+  Wait for a condition before continuing.
+
+  Options:
+    --time <ms>         Wait for fixed duration
+    --text <string>     Wait for text to appear on page
+    --textGone <string> Wait for text to disappear
+    --selector <css>    Wait for CSS selector to be visible
+    --url <pattern>     Wait for URL to match
+    --loadState <state> Wait for load state: load, domcontentloaded, networkidle
+    --fn <js>           Wait for JS function to return truthy
+    --timeout <ms>      Maximum wait time (default: 20000)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser wait --text "Loading complete"
+    cc-browser wait --time 2000
+    cc-browser wait --selector ".modal" --timeout 10000`,
+
+  evaluate: `Usage: cc-browser evaluate --js <code> [options]
+
+  Execute JavaScript in the browser page context.
+
+  Options:
+    --js <code>         JavaScript code to execute (required)
+    --fn <code>         Alias for --js
+    --code <code>       Alias for --js
+    --ref <ref>         Execute in context of element (receives 'el' parameter)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser evaluate --js "document.title"
+    cc-browser evaluate --js "document.querySelectorAll('a').length"
+    cc-browser evaluate --ref e1 --js "el => el.textContent"
+    cc-browser evaluate --ref e1 --js "el => el.getBoundingClientRect()"`,
+
+  fill: `Usage: cc-browser fill --fields <json> [options]
+
+  Fill multiple form fields at once.
+
+  Options:
+    --fields <json>     Array of field objects (required):
+                        [{"ref":"e1","type":"text","value":"hello"},
+                         {"ref":"e2","type":"checkbox","value":true}]
+    --timeout <ms>      Wait timeout
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser fill --fields '[{"ref":"e1","type":"text","value":"John"}]'`,
+
+  screenshot: `Usage: cc-browser screenshot [options]
+
+  Take a screenshot of the page or a specific element.
+
+  Options:
+    --save <path>       Save screenshot to file (PNG/JPEG)
+    --ref <ref>         Screenshot specific element by ref
+    --element <css>     Screenshot specific element by CSS selector
+    --fullPage          Capture entire page (not just viewport)
+    --type <format>     Image format: png, jpeg (default: png)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser screenshot
+    cc-browser screenshot --save ./page.png
+    cc-browser screenshot --ref e5 --save ./element.png
+    cc-browser screenshot --fullPage --save ./full.png --type jpeg`,
+
+  'screenshot-labels': `Usage: cc-browser screenshot-labels [options]
+
+  Take a screenshot with numbered element labels overlaid.
+
+  Options:
+    --maxLabels <n>     Maximum number of labels
+    --type <format>     Image format: png, jpeg (default: png)
+    --tab <targetId>    Target specific tab`,
+
+  upload: `Usage: cc-browser upload --ref <ref> --path <file> [options]
+
+  Upload a file to a file input element.
+
+  Options:
+    --ref <ref>         File input element ref
+    --element <css>     File input element CSS selector
+    --path <file>       File path to upload
+    --paths <json>      Multiple file paths: ["file1.txt", "file2.txt"]
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser upload --ref e3 --path "./photo.jpg"`,
+
+  resize: `Usage: cc-browser resize --width <px> --height <px> [options]
+
+  Resize the browser viewport.
+
+  Options:
+    --width <px>        Viewport width (required, min: 320)
+    --height <px>       Viewport height (required, min: 240)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser resize --width 1920 --height 1080
+    cc-browser resize --width 375 --height 812`,
+
+  tabs: `Usage: cc-browser tabs
+
+  List all open browser tabs with their targetIds, URLs, and titles.`,
+
+  'tabs-open': `Usage: cc-browser tabs-open [--url <url>]
+
+  Open a new browser tab.
+
+  Options:
+    --url <url>         URL to open in the new tab (default: about:blank)`,
+
+  'tabs-close': `Usage: cc-browser tabs-close --tab <targetId>
+
+  Close a browser tab.
+
+  Options:
+    --tab <targetId>    Target tab ID to close (required)`,
+
+  'tabs-focus': `Usage: cc-browser tabs-focus --tab <targetId>
+
+  Focus/activate a browser tab.
+
+  Options:
+    --tab <targetId>    Target tab ID to focus (required)`,
+
+  text: `Usage: cc-browser text [options]
+
+  Get the text content of the page or a specific element.
+
+  Options:
+    --selector <css>    CSS selector to limit scope
+    --tab <targetId>    Target specific tab`,
+
+  html: `Usage: cc-browser html [options]
+
+  Get the HTML of the page or a specific element.
+
+  Options:
+    --selector <css>    CSS selector to limit scope
+    --outer             Include the outer element HTML
+    --tab <targetId>    Target specific tab`,
+
+  mode: `Usage: cc-browser mode [fast|human|stealth]
+
+  Get or set the interaction mode.
+
+  Modes:
+    fast      Instant actions, no delays (default)
+    human     Human-like delays, mouse curves, typing variation
+    stealth   Human mode + anti-detection (WebDriver masking, fingerprint spoofing)
+
+  Examples:
+    cc-browser mode              # Show current mode
+    cc-browser mode human        # Switch to human mode
+    cc-browser mode fast         # Switch to fast mode`,
+
+  captcha: `Usage: cc-browser captcha <detect|solve> [options]
+
+  Detect or solve CAPTCHAs on the current page.
+
+  Subcommands:
+    detect              Check if a CAPTCHA is present
+    solve               Attempt to solve the detected CAPTCHA
+
+  Options:
+    --attempts <n>      Maximum solve attempts (default: 3)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser captcha detect
+    cc-browser captcha solve
+    cc-browser captcha solve --attempts 5`,
+
+  session: `Usage: cc-browser session <subcommand> [options]
+
+  Manage named tab sessions for agent cleanup.
+
+  Subcommands:
+    create              Create a new session
+    list                List all active sessions
+    close               Close all tabs in a session
+    heartbeat           Touch session to reset TTL timer
+    prune               Manually clean up expired sessions
+
+  Options:
+    --name <name>       Session name (required for create)
+    --session <id>      Session ID (required for close, heartbeat)
+    --ttl <ms>          Time-to-live in ms (default: 1800000 = 30 min, 0 = never)
+    --metadata <json>   Optional metadata JSON
+
+  Examples:
+    cc-browser session create --name "research" --ttl 1800000
+    cc-browser session list
+    cc-browser session heartbeat --session sess_a7b3c9d2
+    cc-browser session close --session sess_a7b3c9d2
+    cc-browser session prune`,
+
+  'tabs-close-all': `Usage: cc-browser tabs-close-all
+
+  Close all open tabs. A blank tab is created first (Chrome requires >= 1 tab).
+  Tabs are also removed from any sessions they belong to.`,
+};
+
+function printCommandHelp(command) {
+  const help = commandHelp[command];
+  if (help) {
+    console.log(help);
+    return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
 
 const commands = {
   // Help
-  help: () => {
+  help: (args) => {
+    // Per-command help: cc-browser help <command>
+    const target = args._[1];
+    if (target && printCommandHelp(target)) {
+      return;
+    }
+    if (target) {
+      console.log(`No help available for "${target}". Run 'cc-browser help' for all commands.`);
+      return;
+    }
     console.log(`
 cc-browser - Fast browser automation for Claude Code
 
@@ -245,15 +730,19 @@ PAGE INSPECTION:
 
 INTERACTIONS:
   cc-browser click --ref <e1>                  Click element by ref
+  cc-browser click --text "File.sql"           Click element by text content
+  cc-browser click --selector ".btn"           Click element by CSS selector
   cc-browser type --ref <e1> --text "hello"    Type into element
   cc-browser press --key Enter                 Press keyboard key
   cc-browser hover --ref <e1>                  Hover over element
+  cc-browser hover --text "Menu"               Hover by text content
   cc-browser select --ref <e1> --value "opt"   Select dropdown option
   cc-browser scroll [--direction down]         Scroll viewport
   cc-browser scroll --ref <e1>                 Scroll element into view
 
 SCREENSHOTS:
   cc-browser screenshot [--fullPage]           Take screenshot (base64)
+  cc-browser screenshot --save ./page.png      Save screenshot to file
   cc-browser screenshot-labels                 Screenshot with element labels
 
 TABS:
@@ -274,12 +763,30 @@ CAPTCHA:
   cc-browser captcha solve                     Auto-solve detected CAPTCHA
   cc-browser captcha solve --attempts 5        Solve with max attempts
 
+SESSIONS:
+  cc-browser session create --name <name>      Create named session (returns session ID)
+  cc-browser session create --name x --ttl 60000  Create with 60s TTL
+  cc-browser session list                      List all active sessions
+  cc-browser session heartbeat --session <id>  Keep session alive (reset TTL timer)
+  cc-browser session close --session <id>      Close all tabs in session
+  cc-browser session prune                     Manually clean expired sessions
+  cc-browser tabs-open --url <url> --session <id>  Open tab tracked by session
+  cc-browser tabs-close-all                    Close all tabs (keeps one blank)
+
+JAVASCRIPT:
+  cc-browser evaluate --js "document.title"          Run JavaScript in page
+  cc-browser evaluate --js "el => el.textContent" --ref e1   Run JS on element
+
 ADVANCED:
   cc-browser wait --text "loaded"              Wait for text to appear
   cc-browser wait --time 1000                  Wait for time (ms)
-  cc-browser evaluate --js "document.title"    Run JavaScript
   cc-browser fill --fields '[...]'             Fill multiple form fields
   cc-browser upload --ref <e1> --path <file>   Upload file
+
+HELP:
+  cc-browser help                              Show this help
+  cc-browser help <command>                    Show help for a specific command
+  cc-browser <command> --help                  Same as above
 
 OPTIONS:
   --port <port>       Daemon port (default: 9280)
@@ -547,6 +1054,9 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
     const port = getDaemonPort(args);
     const result = await request('POST', '/click', {
       ref: args.ref,
+      text: args.text,
+      selector: args.selector,
+      exact: args.exact,
       tab: args.tab,
       doubleClick: args.double || args.doubleClick,
       button: args.button,
@@ -561,6 +1071,9 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
     const port = getDaemonPort(args);
     const result = await request('POST', '/type', {
       ref: args.ref,
+      textContent: args.textContent,
+      selector: args.selector,
+      exact: args.exact,
       text: args.text,
       tab: args.tab,
       submit: args.submit,
@@ -586,6 +1099,9 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
     const port = getDaemonPort(args);
     const result = await request('POST', '/hover', {
       ref: args.ref,
+      text: args.text,
+      selector: args.selector,
+      exact: args.exact,
       tab: args.tab,
       timeout: args.timeout,
     }, port);
@@ -678,7 +1194,26 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       type: args.type,
       tab: args.tab,
     }, port);
-    output(result);
+
+    if (args.save && result.screenshot) {
+      let savePath = String(args.save);
+      // Auto-append extension if missing
+      const ext = extname(savePath).toLowerCase();
+      const imgType = result.type || args.type || 'png';
+      if (!ext) {
+        savePath += '.' + imgType;
+      }
+      const absPath = resolve(savePath);
+      const dir = dirname(absPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const buf = Buffer.from(result.screenshot, 'base64');
+      writeFileSync(absPath, buf);
+      output({ success: true, saved: absPath, size: buf.length, type: imgType });
+    } else {
+      output(result);
+    }
   },
 
   // Screenshot with labels
@@ -727,6 +1262,7 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
     const port = getDaemonPort(args);
     const result = await request('POST', '/tabs/open', {
       url: args.url,
+      session: args.session,
     }, port);
     output(result);
   },
@@ -802,6 +1338,58 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       outputError('Usage: cc-browser captcha <detect|solve> [--attempts N]');
     }
   },
+
+  // Session management
+  'session': async (args) => {
+    const port = getDaemonPort(args);
+    const subcommand = args._[1]; // create, list, close, heartbeat, prune
+
+    if (subcommand === 'create') {
+      if (!args.name) {
+        outputError('Usage: cc-browser session create --name <name> [--ttl <ms>]');
+        return;
+      }
+      const result = await request('POST', '/sessions/create', {
+        name: args.name,
+        ttl: args.ttl,
+        metadata: args.metadata,
+      }, port);
+      output(result);
+    } else if (subcommand === 'list') {
+      const result = await request('GET', '/sessions', null, port);
+      output(result);
+    } else if (subcommand === 'close') {
+      if (!args.session) {
+        outputError('Usage: cc-browser session close --session <id>');
+        return;
+      }
+      const result = await request('POST', '/sessions/close', {
+        session: args.session,
+      }, port);
+      output(result);
+    } else if (subcommand === 'heartbeat') {
+      if (!args.session) {
+        outputError('Usage: cc-browser session heartbeat --session <id>');
+        return;
+      }
+      const result = await request('POST', '/sessions/heartbeat', {
+        session: args.session,
+      }, port);
+      output(result);
+    } else if (subcommand === 'prune') {
+      const result = await request('POST', '/sessions/prune', {}, port);
+      output(result);
+    } else {
+      outputError('Usage: cc-browser session <create|list|close|heartbeat|prune>');
+    }
+  },
+
+  // Close all tabs
+  'tabs-close-all': async (args) => {
+    const port = getDaemonPort(args);
+    const result = await request('POST', '/tabs/close-all', {}, port);
+    output(result);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -811,6 +1399,14 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
 async function main() {
   const args = parseArgs(process.argv);
   const command = args._[0] || 'help';
+
+  // Per-command help: cc-browser <command> --help
+  if (args.help && command !== 'help') {
+    if (!printCommandHelp(command)) {
+      console.log(`No help available for "${command}". Run 'cc-browser help' for all commands.`);
+    }
+    return;
+  }
 
   const handler = commands[command];
   if (!handler) {

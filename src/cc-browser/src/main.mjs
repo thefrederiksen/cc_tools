@@ -4,8 +4,8 @@
 
 import { createServer } from 'http';
 import { parse as parseUrl } from 'url';
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'fs';
+import { join, resolve, dirname, extname } from 'path';
 import { homedir } from 'os';
 
 import { ensureChromeAvailable, checkChromeRunning, stopChrome, launchChrome, listAvailableBrowsers, listChromeProfiles } from './chrome.mjs';
@@ -43,6 +43,13 @@ import {
   getHtmlViaPlaywright,
   screenshotWithLabelsViaPlaywright,
 } from './snapshot.mjs';
+import {
+  createSession, getSession, listSessions, deleteSession,
+  addTabToSession, removeTabFromSessions, findSessionForTab,
+  touchSession, pruneExpiredSessions, reconcileTabs,
+  persistSessions, loadSessions,
+  startCleanupTimer, stopCleanupTimer, sessionCount,
+} from './sessions.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -287,6 +294,7 @@ const routes = {
       tabs: status.tabs || [],
       activeTab: status.activeTab,
       playwrightConnected: !!cached,
+      sessions: sessionCount(),
     });
   },
 
@@ -402,12 +410,15 @@ const routes = {
       cdpUrl,
       targetId: body.tab,
       ref: body.ref,
+      text: body.text,
+      selector: body.selector,
+      exact: body.exact,
       doubleClick: body.doubleClick || body.double,
       button: body.button,
       modifiers: body.modifiers,
       timeoutMs: body.timeout,
     });
-    jsonSuccess(res, { clicked: body.ref });
+    jsonSuccess(res, { clicked: body.ref || body.text || body.selector });
   },
 
   'POST /type': async (req, res, params, body) => {
@@ -418,12 +429,15 @@ const routes = {
       cdpUrl,
       targetId: body.tab,
       ref: body.ref,
+      textContent: body.textContent,
+      selector: body.selector,
+      exact: body.exact,
       text: body.text,
       submit: body.submit,
       slowly: body.slowly,
       timeoutMs: body.timeout,
     });
-    jsonSuccess(res, { typed: body.text, ref: body.ref });
+    jsonSuccess(res, { typed: body.text, ref: body.ref || body.textContent || body.selector });
   },
 
   'POST /press': async (req, res, params, body) => {
@@ -438,8 +452,16 @@ const routes = {
     const v = validateSession(body);
     if (!v.valid) return jsonError(res, 400, v.error);
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
-    await hoverViaPlaywright({ cdpUrl, targetId: body.tab, ref: body.ref, timeoutMs: body.timeout });
-    jsonSuccess(res, { hovered: body.ref });
+    await hoverViaPlaywright({
+      cdpUrl,
+      targetId: body.tab,
+      ref: body.ref,
+      text: body.text,
+      selector: body.selector,
+      exact: body.exact,
+      timeoutMs: body.timeout,
+    });
+    jsonSuccess(res, { hovered: body.ref || body.text || body.selector });
   },
 
   'POST /drag': async (req, res, params, body) => {
@@ -580,14 +602,32 @@ const routes = {
     if (!v.valid) return jsonError(res, 400, v.error);
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
     const tabs = await listPagesViaPlaywright({ cdpUrl });
+    for (const tab of tabs) {
+      const sess = findSessionForTab(tab.targetId);
+      if (sess) {
+        tab.session = { id: sess.id, name: sess.name };
+      }
+    }
     jsonSuccess(res, { tabs });
   },
 
   'POST /tabs/open': async (req, res, params, body) => {
     const v = validateSession(body);
     if (!v.valid) return jsonError(res, 400, v.error);
+
+    if (body.session) {
+      const sess = getSession(body.session);
+      if (!sess) return jsonError(res, 404, `Session not found: ${body.session}`);
+    }
+
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
     const tab = await createPageViaPlaywright({ cdpUrl, url: body.url });
+
+    if (body.session) {
+      addTabToSession(body.session, tab.targetId);
+      tab.session = body.session;
+    }
+
     jsonSuccess(res, { tab });
   },
 
@@ -595,8 +635,10 @@ const routes = {
     const v = validateSession(body);
     if (!v.valid) return jsonError(res, 400, v.error);
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
-    await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: body.tab || body.targetId });
-    jsonSuccess(res, { closed: body.tab || body.targetId });
+    const tabId = body.tab || body.targetId;
+    await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+    removeTabFromSessions(tabId);
+    jsonSuccess(res, { closed: tabId });
   },
 
   'POST /tabs/focus': async (req, res, params, body) => {
@@ -621,6 +663,119 @@ const routes = {
     const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
     const html = await getHtmlViaPlaywright({ cdpUrl, targetId: body.tab, selector: body.selector, outer: body.outer });
     jsonSuccess(res, { html });
+  },
+
+  // --- Sessions ---
+
+  'POST /sessions/create': async (req, res, params, body) => {
+    if (!body.name) return jsonError(res, 400, 'name is required');
+    const session = createSession({
+      name: body.name,
+      ttlMs: body.ttl,
+      metadata: body.metadata,
+    });
+    jsonSuccess(res, { session });
+  },
+
+  'GET /sessions': async (req, res) => {
+    const all = listSessions();
+    const result = all.map(s => ({
+      id: s.id,
+      name: s.name,
+      createdAt: s.createdAt,
+      lastActivity: s.lastActivity,
+      ttlMs: s.ttlMs,
+      tabCount: s.tabIds.length,
+      tabIds: s.tabIds,
+      metadata: s.metadata,
+    }));
+    jsonSuccess(res, { sessions: result });
+  },
+
+  'POST /sessions/heartbeat': async (req, res, params, body) => {
+    if (!body.session) return jsonError(res, 400, 'session is required');
+    const ok = touchSession(body.session);
+    if (!ok) return jsonError(res, 404, `Session not found: ${body.session}`);
+    jsonSuccess(res, { session: body.session, touched: true });
+  },
+
+  'POST /sessions/close': async (req, res, params, body) => {
+    if (!body.session) return jsonError(res, 400, 'session is required');
+    const sess = getSession(body.session);
+    if (!sess) return jsonError(res, 404, `Session not found: ${body.session}`);
+
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    const closed = [];
+    const errors = [];
+    for (const tabId of [...sess.tabIds]) {
+      try {
+        await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+        closed.push(tabId);
+      } catch {
+        errors.push(tabId);
+      }
+    }
+
+    deleteSession(body.session);
+    jsonSuccess(res, {
+      session: body.session,
+      closed: closed.length,
+      errors: errors.length,
+    });
+  },
+
+  'POST /sessions/prune': async (req, res, params, body) => {
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    const pruned = pruneExpiredSessions();
+    let totalClosed = 0;
+
+    for (const p of pruned) {
+      for (const tabId of p.tabIds) {
+        try {
+          await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+          totalClosed++;
+        } catch {
+          // Tab may already be gone
+        }
+      }
+    }
+
+    jsonSuccess(res, {
+      prunedSessions: pruned.length,
+      closedTabs: totalClosed,
+    });
+  },
+
+  'POST /tabs/close-all': async (req, res, params, body) => {
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+
+    const tabs = await listPagesViaPlaywright({ cdpUrl });
+    if (tabs.length === 0) {
+      return jsonSuccess(res, { closed: 0 });
+    }
+
+    await createPageViaPlaywright({ cdpUrl, url: 'about:blank' });
+
+    let closed = 0;
+    for (const tab of tabs) {
+      try {
+        await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tab.targetId });
+        removeTabFromSessions(tab.targetId);
+        closed++;
+      } catch {
+        // Tab may already be closed
+      }
+    }
+
+    jsonSuccess(res, { closed });
   },
 };
 
@@ -674,6 +829,27 @@ function startDaemon(args) {
 
   actualDaemonPort = daemonPort;
 
+  const sessionDir = (args.browser && args.workspace)
+    ? getWorkspaceDir(args.browser, args.workspace)
+    : null;
+
+  if (sessionDir) {
+    loadSessions(sessionDir);
+    console.log(`[cc-browser] Sessions loaded (${sessionCount()} active)`);
+  }
+
+  startCleanupTimer(async (tabIds) => {
+    if (!activeCdpPort) return;
+    const cdpUrl = `http://127.0.0.1:${activeCdpPort}`;
+    for (const tabId of tabIds) {
+      try {
+        await closePageByTargetIdViaPlaywright({ cdpUrl, targetId: tabId });
+      } catch {
+        // Tab may already be closed
+      }
+    }
+  });
+
   const server = createServer(handleRequest);
 
   server.listen(daemonPort, '127.0.0.1', () => {
@@ -688,6 +864,8 @@ function startDaemon(args) {
 
   process.on('SIGINT', async () => {
     console.log('\n[cc-browser] Shutting down...');
+    stopCleanupTimer();
+    if (sessionDir) persistSessions(sessionDir);
     await disconnectBrowser();
     server.close();
     process.exit(0);
@@ -695,6 +873,8 @@ function startDaemon(args) {
 
   process.on('SIGTERM', async () => {
     console.log('\n[cc-browser] Shutting down...');
+    stopCleanupTimer();
+    if (sessionDir) persistSessions(sessionDir);
     await disconnectBrowser();
     server.close();
     process.exit(0);
@@ -899,6 +1079,9 @@ EXAMPLES:
     const port = getDaemonPort(args);
     const result = await request('POST', '/click', {
       ref: args.ref,
+      text: args.text,
+      selector: args.selector,
+      exact: args.exact,
       tab: args.tab,
       doubleClick: args.double || args.doubleClick,
       button: args.button,
@@ -912,6 +1095,9 @@ EXAMPLES:
     const port = getDaemonPort(args);
     const result = await request('POST', '/type', {
       ref: args.ref,
+      textContent: args.textContent,
+      selector: args.selector,
+      exact: args.exact,
       text: args.text,
       tab: args.tab,
       submit: args.submit,
@@ -929,7 +1115,14 @@ EXAMPLES:
 
   hover: async (args) => {
     const port = getDaemonPort(args);
-    const result = await request('POST', '/hover', { ref: args.ref, tab: args.tab, timeout: args.timeout }, port);
+    const result = await request('POST', '/hover', {
+      ref: args.ref,
+      text: args.text,
+      selector: args.selector,
+      exact: args.exact,
+      tab: args.tab,
+      timeout: args.timeout,
+    }, port);
     output(result);
   },
 
@@ -1008,7 +1201,25 @@ EXAMPLES:
       type: args.type,
       tab: args.tab,
     }, port);
-    output(result);
+
+    if (args.save && result.screenshot) {
+      let savePath = String(args.save);
+      const ext = extname(savePath).toLowerCase();
+      const imgType = result.type || args.type || 'png';
+      if (!ext) {
+        savePath += '.' + imgType;
+      }
+      const absPath = resolve(savePath);
+      const dir = dirname(absPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const buf = Buffer.from(result.screenshot, 'base64');
+      writeFileSync(absPath, buf);
+      output({ success: true, saved: absPath, size: buf.length, type: imgType });
+    } else {
+      output(result);
+    }
   },
 
   'screenshot-labels': async (args) => {
@@ -1046,7 +1257,7 @@ EXAMPLES:
 
   'tabs-open': async (args) => {
     const port = getDaemonPort(args);
-    const result = await request('POST', '/tabs/open', { url: args.url }, port);
+    const result = await request('POST', '/tabs/open', { url: args.url, session: args.session }, port);
     output(result);
   },
 
@@ -1071,6 +1282,52 @@ EXAMPLES:
   html: async (args) => {
     const port = getDaemonPort(args);
     const result = await request('POST', '/html', { selector: args.selector, outer: args.outer, tab: args.tab }, port);
+    output(result);
+  },
+
+  session: async (args) => {
+    const port = getDaemonPort(args);
+    const subcommand = args._[1];
+
+    if (subcommand === 'create') {
+      if (!args.name) {
+        outputError('Usage: cc-browser session create --name <name> [--ttl <ms>]');
+        return;
+      }
+      const result = await request('POST', '/sessions/create', {
+        name: args.name,
+        ttl: args.ttl,
+        metadata: args.metadata,
+      }, port);
+      output(result);
+    } else if (subcommand === 'list') {
+      const result = await request('GET', '/sessions', null, port);
+      output(result);
+    } else if (subcommand === 'close') {
+      if (!args.session) {
+        outputError('Usage: cc-browser session close --session <id>');
+        return;
+      }
+      const result = await request('POST', '/sessions/close', { session: args.session }, port);
+      output(result);
+    } else if (subcommand === 'heartbeat') {
+      if (!args.session) {
+        outputError('Usage: cc-browser session heartbeat --session <id>');
+        return;
+      }
+      const result = await request('POST', '/sessions/heartbeat', { session: args.session }, port);
+      output(result);
+    } else if (subcommand === 'prune') {
+      const result = await request('POST', '/sessions/prune', {}, port);
+      output(result);
+    } else {
+      outputError('Usage: cc-browser session <create|list|close|heartbeat|prune>');
+    }
+  },
+
+  'tabs-close-all': async (args) => {
+    const port = getDaemonPort(args);
+    const result = await request('POST', '/tabs/close-all', {}, port);
     output(result);
   },
 };
