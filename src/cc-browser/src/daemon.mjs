@@ -53,7 +53,7 @@ function resolveAlias(alias) {
   }
   return null;
 }
-import { connectBrowser, disconnectBrowser, getCachedBrowser, getPageState, setWorkspaceIndicator } from './session.mjs';
+import { connectBrowser, disconnectBrowser, getCachedBrowser, getPageState, setWorkspaceIndicator, getCurrentMode, setCurrentMode } from './session.mjs';
 import {
   listPagesViaPlaywright,
   createPageViaPlaywright,
@@ -87,6 +87,8 @@ import {
   getHtmlViaPlaywright,
   screenshotWithLabelsViaPlaywright,
 } from './snapshot.mjs';
+import { detectCaptcha, detectCaptchaDOM, solveCaptcha } from './captcha.mjs';
+import { getPageForTargetId } from './session.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -259,6 +261,7 @@ const routes = {
       cdpPort,
       browserKind: activeBrowserKind,
       workspace: activeWorkspace,
+      mode: getCurrentMode(),
       tabs: status.tabs || [],
       activeTab: status.activeTab,
       playwrightConnected: !!cached,
@@ -283,7 +286,12 @@ const routes = {
     }
 
     // Indicator setting: --no-indicator flag > workspace.json > default (true)
+    // Stealth mode: NEVER use --enable-automation (it's the #1 bot detection signal)
+    const requestedMode = body.mode || (workspaceConfig && workspaceConfig.mode);
     let indicator = true;
+    if (requestedMode === 'stealth') {
+      indicator = false;
+    }
     if (workspaceConfig?.indicator === false) {
       indicator = false;
     }
@@ -313,12 +321,18 @@ const routes = {
     // Track this as the active session
     setActiveSession(cdpPort, result.browserKind, workspaceName);
 
+    // Set mode if specified in request or workspace config
+    if (requestedMode) {
+      setCurrentMode(requestedMode);
+    }
+
     jsonSuccess(res, {
       started: result.started,
       cdpUrl: result.cdpUrl,
       cdpPort,
       browserKind: result.browserKind,
       workspace: workspaceName,
+      mode: getCurrentMode(),
       tabs: result.tabs,
       activeTab: result.activeTab,
     });
@@ -694,6 +708,41 @@ const routes = {
       selector: body.selector,
     });
     jsonSuccess(res, { text });
+  },
+
+  // Detect CAPTCHA
+  'POST /captcha/detect': async (req, res, params, body) => {
+    const validation = validateSession(body);
+    if (!validation.valid) return jsonError(res, 400, validation.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+    const page = await getPageForTargetId({ cdpUrl, targetId: body.tab || body.targetId });
+    const result = await detectCaptcha(page);
+    jsonSuccess(res, result);
+  },
+
+  // Solve CAPTCHA
+  'POST /captcha/solve': async (req, res, params, body) => {
+    const validation = validateSession(body);
+    if (!validation.valid) return jsonError(res, 400, validation.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+    const page = await getPageForTargetId({ cdpUrl, targetId: body.tab || body.targetId });
+    const result = await solveCaptcha(page, { maxAttempts: body.attempts || 3 });
+    jsonSuccess(res, result);
+  },
+
+  // Get current mode
+  'GET /mode': async (req, res) => {
+    jsonSuccess(res, { mode: getCurrentMode() });
+  },
+
+  // Set mode
+  'POST /mode': async (req, res, params, body) => {
+    try {
+      setCurrentMode(body.mode);
+      jsonSuccess(res, { mode: getCurrentMode() });
+    } catch (err) {
+      jsonError(res, 400, err.message);
+    }
   },
 
   // Get HTML

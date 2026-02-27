@@ -56,6 +56,23 @@ import { chromium } from 'playwright-core';
  */
 
 // ---------------------------------------------------------------------------
+// Mode State
+// ---------------------------------------------------------------------------
+
+let currentMode = 'human'; // 'fast' | 'human' | 'stealth'
+
+export function getCurrentMode() {
+  return currentMode;
+}
+
+export function setCurrentMode(mode) {
+  if (!['fast', 'human', 'stealth'].includes(mode)) {
+    throw new Error(`Invalid mode: ${mode}. Must be fast, human, or stealth`);
+  }
+  currentMode = mode;
+}
+
+// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
@@ -255,10 +272,110 @@ export function getPageState(page) {
 // page scripts) so websites cannot detect the automation info bar.
 
 const WEBDRIVER_MASK_SCRIPT = `
+  // Override on instance
   Object.defineProperty(navigator, 'webdriver', {
     get: () => undefined,
+    configurable: true,
+  });
+  // Override on prototype (catches Navigator.prototype.webdriver checks)
+  Object.defineProperty(Navigator.prototype, 'webdriver', {
+    get: () => undefined,
+    configurable: true,
+  });
+  // Remove the property entirely if possible, then redefine
+  try { delete navigator.webdriver; } catch(e) {}
+  try { delete Navigator.prototype.webdriver; } catch(e) {}
+  Object.defineProperty(Navigator.prototype, 'webdriver', {
+    get: () => undefined,
+    configurable: true,
   });
 `;
+
+// ---------------------------------------------------------------------------
+// Stealth Scripts (injected when mode is 'stealth')
+// ---------------------------------------------------------------------------
+
+const STEALTH_SCRIPTS = `
+  // WebGL vendor/renderer spoofing
+  (function() {
+    var getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(param) {
+      if (param === 37445) return 'Intel Inc.';
+      if (param === 37446) return 'Intel Iris OpenGL Engine';
+      return getParameter.call(this, param);
+    };
+    if (typeof WebGL2RenderingContext !== 'undefined') {
+      var getParameter2 = WebGL2RenderingContext.prototype.getParameter;
+      WebGL2RenderingContext.prototype.getParameter = function(param) {
+        if (param === 37445) return 'Intel Inc.';
+        if (param === 37446) return 'Intel Iris OpenGL Engine';
+        return getParameter2.call(this, param);
+      };
+    }
+  })();
+
+  // Canvas fingerprint noise
+  (function() {
+    var originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function(type) {
+      if (this.width === 0 || this.height === 0) return originalToDataURL.apply(this, arguments);
+      var ctx = this.getContext('2d');
+      if (ctx) {
+        var imageData = ctx.getImageData(0, 0, Math.min(this.width, 2), Math.min(this.height, 2));
+        for (var i = 0; i < imageData.data.length; i += 4) {
+          imageData.data[i] = imageData.data[i] ^ 1;
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+      return originalToDataURL.apply(this, arguments);
+    };
+  })();
+
+  // navigator.plugins spoofing
+  (function() {
+    Object.defineProperty(navigator, 'plugins', {
+      get: function() {
+        return [
+          { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format', length: 1 },
+          { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '', length: 1 },
+          { name: 'Native Client', filename: 'internal-nacl-plugin', description: '', length: 2 },
+        ];
+      },
+    });
+  })();
+
+  // navigator.languages consistency
+  (function() {
+    Object.defineProperty(navigator, 'languages', {
+      get: function() { return ['en-US', 'en']; },
+    });
+  })();
+
+  // window.chrome.runtime existence
+  (function() {
+    if (!window.chrome) window.chrome = {};
+    if (!window.chrome.runtime) {
+      window.chrome.runtime = {
+        connect: function() { return {}; },
+        sendMessage: function() {},
+      };
+    }
+  })();
+`;
+
+/** @type {WeakSet<object>} Track contexts with stealth scripts applied */
+const stealthContexts = new WeakSet();
+
+async function applyStealthScripts(context) {
+  if (stealthContexts.has(context)) return;
+  stealthContexts.add(context);
+
+  await context.addInitScript(STEALTH_SCRIPTS);
+
+  for (const page of context.pages()) {
+    await page.evaluate(STEALTH_SCRIPTS).catch(() => {});
+  }
+}
 
 async function applyWebdriverMask(context) {
   if (maskedContexts.has(context)) return;
@@ -384,8 +501,39 @@ export async function connectBrowser(cdpUrl) {
         // Mask navigator.webdriver and observe all pages
         for (const context of browser.contexts()) {
           await applyWebdriverMask(context);
+          // Apply stealth scripts if in stealth mode
+          if (currentMode === 'stealth') {
+            await applyStealthScripts(context);
+          }
           for (const page of context.pages()) {
             ensurePageState(page);
+            // Use CDP to disable webdriver flag at browser level
+            if (currentMode === 'stealth') {
+              try {
+                const session = await page.context().newCDPSession(page);
+                // Inject via CDP before any JS runs (even earlier than addInitScript)
+                await session.send('Page.addScriptToEvaluateOnNewDocument', {
+                  source: `
+                    Object.defineProperty(Navigator.prototype, 'webdriver', {
+                      get: () => undefined,
+                      configurable: true,
+                    });
+                  `,
+                });
+                // Also run it immediately on the current page
+                await session.send('Runtime.evaluate', {
+                  expression: `
+                    Object.defineProperty(Navigator.prototype, 'webdriver', {
+                      get: () => undefined,
+                      configurable: true,
+                    });
+                  `,
+                });
+                await session.detach().catch(() => {});
+              } catch {
+                // Best effort
+              }
+            }
           }
           context.on('page', (page) => ensurePageState(page));
         }

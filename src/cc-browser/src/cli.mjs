@@ -262,6 +262,18 @@ TABS:
   cc-browser tabs-close --tab <targetId>       Close tab
   cc-browser tabs-focus --tab <targetId>       Focus tab
 
+MODE:
+  cc-browser mode                              Show current mode
+  cc-browser mode human                        Set human mode (delays + mouse curves)
+  cc-browser mode fast                         Set fast mode (instant, no delays)
+  cc-browser mode stealth                      Set stealth mode (human + anti-detect)
+  cc-browser start --workspace x --mode human  Start with specific mode
+
+CAPTCHA:
+  cc-browser captcha detect                    Detect CAPTCHA on current page
+  cc-browser captcha solve                     Auto-solve detected CAPTCHA
+  cc-browser captcha solve --attempts 5        Solve with max attempts
+
 ADVANCED:
   cc-browser wait --text "loaded"              Wait for text to appear
   cc-browser wait --time 1000                  Wait for time (ms)
@@ -452,6 +464,7 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       profileDir: args.profileDir,
       useSystemProfile: args.profileDir ? true : args.systemProfile,
       noIndicator: args['no-indicator'] || false,
+      mode: args.mode,
     }, port);
     output(result);
   },
@@ -755,6 +768,39 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       tab: args.tab,
     }, port);
     output(result);
+  },
+
+  // Mode - get or set
+  mode: async (args) => {
+    const port = getDaemonPort(args);
+    const newMode = args._[1]; // e.g. "cc-browser mode human" -> args._[1] = "human"
+    if (newMode) {
+      const result = await request('POST', '/mode', { mode: newMode }, port);
+      output(result);
+    } else {
+      const result = await request('GET', '/mode', null, port);
+      output(result);
+    }
+  },
+
+  // CAPTCHA detect
+  'captcha': async (args) => {
+    const port = getDaemonPort(args);
+    const subcommand = args._[1]; // detect or solve
+    if (subcommand === 'detect') {
+      const result = await request('POST', '/captcha/detect', {
+        tab: args.tab,
+      }, port);
+      output(result);
+    } else if (subcommand === 'solve') {
+      const result = await request('POST', '/captcha/solve', {
+        tab: args.tab,
+        attempts: args.attempts,
+      }, port);
+      output(result);
+    } else {
+      outputError('Usage: cc-browser captcha <detect|solve> [--attempts N]');
+    }
   },
 };
 

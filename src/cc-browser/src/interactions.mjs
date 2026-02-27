@@ -7,7 +7,22 @@ import {
   getPageForTargetId,
   refLocator,
   restoreRoleRefsForTarget,
+  getCurrentMode,
 } from './session.mjs';
+import {
+  sleep,
+  navigationDelay,
+  preClickDelay,
+  preTypeDelay,
+  interKeyDelay,
+  preScrollDelay,
+  postLoadDelay,
+  humanMousePath,
+  clickOffset,
+  humanDragPath,
+  typingDelays,
+} from './human-mode.mjs';
+import { detectCaptchaDOM, solveCaptcha } from './captcha.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,12 +78,37 @@ export async function navigateViaPlaywright(opts) {
   const page = await getPageForTargetId({ cdpUrl, targetId });
   ensurePageState(page);
 
+  // --- HUMAN MODE INJECTION ---
+  const mode = getCurrentMode();
+  if (mode !== 'fast') {
+    await sleep(navigationDelay());
+  }
+
   const timeout = normalizeTimeoutMs(timeoutMs, 30000);
   await page.goto(url, { waitUntil, timeout });
+
+  // --- HUMAN MODE POST-LOAD DELAY ---
+  if (mode !== 'fast') {
+    await sleep(postLoadDelay());
+  }
+
+  // --- AUTO CAPTCHA DETECTION (human/stealth modes) ---
+  let captchaResult = null;
+  if (mode !== 'fast') {
+    try {
+      const domCheck = await detectCaptchaDOM(page);
+      if (domCheck.detected) {
+        captchaResult = await solveCaptcha(page);
+      }
+    } catch {
+      // Auto-detection is best-effort, don't fail navigation
+    }
+  }
 
   return {
     url: page.url(),
     title: await page.title().catch(() => ''),
+    ...(captchaResult ? { captcha: captchaResult } : {}),
   };
 }
 
@@ -128,6 +168,28 @@ export async function clickViaPlaywright(opts) {
   const locator = refLocator(page, refStr);
   const timeout = normalizeTimeoutMs(timeoutMs);
 
+  // --- HUMAN MODE INJECTION ---
+  const mode = getCurrentMode();
+  if (mode !== 'fast') {
+    await sleep(preClickDelay());
+    try {
+      const box = await locator.boundingBox();
+      if (box) {
+        const centerX = box.x + box.width / 2;
+        const centerY = box.y + box.height / 2;
+        const offset = clickOffset();
+        const targetX = centerX + offset.x;
+        const targetY = centerY + offset.y;
+        const path = humanMousePath(0, 0, targetX, targetY);
+        for (const point of path) {
+          await page.mouse.move(point.x, point.y);
+        }
+      }
+    } catch {
+      // Bounding box may fail for offscreen elements - proceed with normal click
+    }
+  }
+
   try {
     if (doubleClick) {
       await locator.dblclick({ timeout, button, modifiers });
@@ -149,6 +211,25 @@ export async function hoverViaPlaywright(opts) {
   const locator = refLocator(page, refStr);
   const timeout = normalizeTimeoutMs(timeoutMs);
 
+  // --- HUMAN MODE INJECTION ---
+  const mode = getCurrentMode();
+  if (mode !== 'fast') {
+    await sleep(preClickDelay());
+    try {
+      const box = await locator.boundingBox();
+      if (box) {
+        const targetX = box.x + box.width / 2;
+        const targetY = box.y + box.height / 2;
+        const path = humanMousePath(0, 0, targetX, targetY);
+        for (const point of path) {
+          await page.mouse.move(point.x, point.y);
+        }
+      }
+    } catch {
+      // Proceed with normal hover
+    }
+  }
+
   try {
     await locator.hover({ timeout });
   } catch (err) {
@@ -157,11 +238,66 @@ export async function hoverViaPlaywright(opts) {
 }
 
 export async function dragViaPlaywright(opts) {
-  const { cdpUrl, targetId, startRef, endRef, timeoutMs } = opts;
+  const { cdpUrl, targetId, startRef, endRef, startX, startY, endX, endY, timeoutMs } = opts;
   const page = await getPageForTargetId({ cdpUrl, targetId });
   ensurePageState(page);
   restoreRoleRefsForTarget({ cdpUrl, targetId, page });
 
+  const mode = getCurrentMode();
+
+  // --- HUMAN MODE DRAG (coordinate-based or ref-based) ---
+  if (mode !== 'fast') {
+    let sx, sy, ex, ey;
+
+    // Determine start coordinates
+    if (typeof startX === 'number' && typeof startY === 'number') {
+      sx = startX;
+      sy = startY;
+    } else if (startRef) {
+      const startLoc = refLocator(page, requireRef(startRef));
+      const startBox = await startLoc.boundingBox();
+      if (!startBox) throw new Error('Could not get bounding box for start element');
+      sx = startBox.x + startBox.width / 2;
+      sy = startBox.y + startBox.height / 2;
+    }
+
+    // Determine end coordinates
+    if (typeof endX === 'number' && typeof endY === 'number') {
+      ex = endX;
+      ey = endY;
+    } else if (endRef) {
+      const endLoc = refLocator(page, requireRef(endRef));
+      const endBox = await endLoc.boundingBox();
+      if (!endBox) throw new Error('Could not get bounding box for end element');
+      ex = endBox.x + endBox.width / 2;
+      ey = endBox.y + endBox.height / 2;
+    }
+
+    if (sx !== undefined && sy !== undefined && ex !== undefined && ey !== undefined) {
+      await sleep(preClickDelay());
+      const dragPath = humanDragPath(sx, sy, ex, ey);
+
+      // Move to start position
+      await page.mouse.move(sx, sy);
+      await sleep(randomInt(50, 150));
+
+      // Mouse down
+      await page.mouse.down();
+      await sleep(randomInt(30, 80));
+
+      // Follow the drag path with delays
+      for (const point of dragPath) {
+        await page.mouse.move(point.x, point.y);
+        await sleep(point.delay);
+      }
+
+      // Mouse up at final position
+      await page.mouse.up();
+      return;
+    }
+  }
+
+  // --- FAST MODE / FALLBACK: use Playwright's built-in dragTo ---
   const start = requireRef(startRef);
   const end = requireRef(endRef);
   const timeout = normalizeTimeoutMs(timeoutMs);
@@ -171,6 +307,11 @@ export async function dragViaPlaywright(opts) {
   } catch (err) {
     throw toAIFriendlyError(err, `${start} -> ${end}`);
   }
+}
+
+// Helper for human-mode drag with random int
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 export async function selectOptionViaPlaywright(opts) {
@@ -222,6 +363,12 @@ export async function pressKeyViaPlaywright(opts) {
     throw new Error('key is required');
   }
 
+  // --- HUMAN MODE INJECTION ---
+  const mode = getCurrentMode();
+  if (mode !== 'fast') {
+    await sleep(preClickDelay());
+  }
+
   await page.keyboard.press(keyStr, {
     delay: Math.max(0, Math.floor(delayMs || 0)),
   });
@@ -238,14 +385,28 @@ export async function typeViaPlaywright(opts) {
   const locator = refLocator(page, refStr);
   const timeout = normalizeTimeoutMs(timeoutMs);
 
+  const mode = getCurrentMode();
+
   try {
-    if (slowly) {
+    if (mode !== 'fast') {
+      // Human mode: always type character-by-character with variable delays
+      await sleep(preTypeDelay());
+      await locator.click({ timeout });
+      const delays = typingDelays(textStr);
+      for (let i = 0; i < textStr.length; i++) {
+        await page.keyboard.type(textStr[i], { delay: 0 });
+        if (i < textStr.length - 1) {
+          await sleep(delays[i]);
+        }
+      }
+    } else if (slowly) {
       await locator.click({ timeout });
       await locator.type(textStr, { timeout, delay: 75 });
     } else {
       await locator.fill(textStr, { timeout });
     }
     if (submit) {
+      if (mode !== 'fast') await sleep(preClickDelay());
       await locator.press('Enter', { timeout });
     }
   } catch (err) {
@@ -260,8 +421,13 @@ export async function fillFormViaPlaywright(opts) {
   restoreRoleRefsForTarget({ cdpUrl, targetId, page });
 
   const timeout = normalizeTimeoutMs(timeoutMs);
+  const mode = getCurrentMode();
 
   for (const field of fields || []) {
+    // --- HUMAN MODE INJECTION: delay between fields ---
+    if (mode !== 'fast') {
+      await sleep(preTypeDelay());
+    }
     const ref = String(field.ref || '').trim();
     const type = String(field.type || '').trim();
     const rawValue = field.value;
@@ -400,7 +566,23 @@ export async function scrollViaPlaywright(opts) {
       deltaY = scrollAmount;
   }
 
-  await page.mouse.wheel(deltaX, deltaY);
+  const mode = getCurrentMode();
+  if (mode !== 'fast') {
+    // Human mode: multi-step scroll with variable delta
+    await sleep(preScrollDelay());
+    const steps = randomInt(3, 6);
+    const stepDeltaX = Math.round(deltaX / steps);
+    const stepDeltaY = Math.round(deltaY / steps);
+    for (let i = 0; i < steps; i++) {
+      // Add slight variation to each step
+      const varX = stepDeltaX + randomInt(-10, 10);
+      const varY = stepDeltaY + randomInt(-10, 10);
+      await page.mouse.wheel(varX, varY);
+      await sleep(randomInt(30, 100));
+    }
+  } else {
+    await page.mouse.wheel(deltaX, deltaY);
+  }
 }
 
 // ---------------------------------------------------------------------------
