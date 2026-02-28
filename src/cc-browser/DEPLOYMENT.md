@@ -26,14 +26,16 @@ cc-browser is a **CLI + daemon pair**, NOT a standalone executable.
 
 ```
 %LOCALAPPDATA%\cc-tools\bin\
-  cc-browser.cmd              <- entry point (~40 bytes, calls node)
-  cc-browser\
+  cc-browser.cmd              <- Windows entry point (CMD/PowerShell)
+  cc-browser                  <- Git Bash entry point (Claude Code)
+  _cc-browser\                <- underscore prefix avoids file/dir name collision
     package.json
     node_modules\             <- playwright-core + deps
     src\
       cli.mjs                 <- CLI (HTTP client)
       daemon.mjs              <- daemon server (long-running)
       session.mjs             <- browser/tab/page management
+      sessions.mjs            <- named tab session tracking
       interactions.mjs        <- click, type, hover, etc.
       snapshot.mjs            <- ARIA tree / page info
       chrome.mjs              <- Chrome/Edge detection + launch
@@ -43,20 +45,31 @@ cc-browser is a **CLI + daemon pair**, NOT a standalone executable.
       main.mjs                <- legacy standalone entry point
 ```
 
-## cc-browser.cmd Content
+## Launcher Scripts
 
+Two launcher scripts exist side by side for shell compatibility:
+
+**cc-browser.cmd** (Windows CMD/PowerShell):
 ```cmd
-@node "%~dp0cc-browser\src\cli.mjs" %*
+@node "%~dp0_cc-browser\src\cli.mjs" %*
 ```
 
-This invokes `cli.mjs` via Node.js. The `%~dp0` expands to the directory containing the `.cmd` file.
+**cc-browser** (Git Bash / Claude Code):
+```sh
+#!/bin/sh
+node "$(dirname "$0")/_cc-browser/src/cli.mjs" "$@"
+```
+
+Windows CMD resolves `.cmd` files via PATHEXT. Git Bash does not, so it needs the
+extensionless wrapper. The subdirectory uses `_cc-browser` (underscore prefix) because
+Windows cannot have a file and directory with the same name.
 
 ## Deployment Procedure
 
 ### Manual
 
-1. Copy entire `cc-browser/` directory (src + node_modules + package.json) to `%LOCALAPPDATA%\cc-tools\bin\cc-browser\`
-2. Ensure `cc-browser.cmd` exists at `%LOCALAPPDATA%\cc-tools\bin\cc-browser.cmd`
+1. Copy entire `cc-browser/` directory (src + node_modules + package.json) to `%LOCALAPPDATA%\cc-tools\bin\_cc-browser\`
+2. Ensure `cc-browser.cmd` and `cc-browser` (extensionless) exist at `%LOCALAPPDATA%\cc-tools\bin\`
 3. Delete any `cc-browser.exe` in that directory -- it will take precedence over `.cmd` and cause confusion
 4. After deploying updated source, restart any running daemon:
    ```bash

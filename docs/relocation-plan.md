@@ -103,13 +103,14 @@ D:\Vault\                         Personal vault data
 ```
 %LOCALAPPDATA%\
   cc-tools\
-    bin\                          Executables, .cmd launchers, CC_TOOLS.md
-      *.exe
-      *.cmd
-      cc-browser\                 Node.js tool
-      cc-click\                   .NET tools
-      cc-trisight\
-      cc-computer\
+    bin\                          Executables, launchers, CC_TOOLS.md
+      *.exe                       Python tools (direct executables)
+      *.cmd                       Windows launchers (CMD/PowerShell)
+      cc-browser, cc-click, ...   Git Bash launchers (extensionless, for Claude Code)
+      _cc-browser\                Node.js tool (underscore prefix avoids name collision)
+      _cc-click\                  .NET tools
+      _cc-trisight\
+      _cc-computer\
     data\                         Shared config, OAuth tokens
       config.json
       outlook\tokens\

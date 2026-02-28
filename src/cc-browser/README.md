@@ -249,6 +249,92 @@ cc-browser start --browser chrome --workspace personal
 | 9223 | Chrome CDP (chrome-work) |
 | 9224 | Chrome CDP (chrome-personal) |
 
+## Build and Deploy
+
+cc-browser is a Node.js tool. It is NOT compiled to a standalone exe -- it is deployed as source files + node_modules with a `.cmd` launcher script.
+
+### Build Process
+
+**ALWAYS build before deploying. Never copy source files directly to the install location.**
+
+```bash
+# From the cc-browser directory:
+cd D:\ReposFred\cc-tools\src\cc-browser
+
+# Step 1: Build (creates dist/ with source, node_modules, and launcher)
+powershell -ExecutionPolicy Bypass -File build.ps1
+
+# Step 2: Verify dist/ contents
+ls dist/
+# Expected: cc-browser.cmd, package.json, README.md, src/, node_modules/
+```
+
+### Deploy (via master build script)
+
+The master build script handles building AND deploying all tools:
+
+```bash
+# From repo root -- builds ALL tools including cc-browser:
+cd D:\ReposFred\cc-tools
+scripts\build.bat
+```
+
+This runs `build.ps1` then copies `dist/` contents to `%LOCALAPPDATA%\cc-tools\bin\_cc-browser\`.
+
+### Build-only (cc-browser individually)
+
+To build cc-browser without deploying:
+
+```bash
+cd D:\ReposFred\cc-tools\src\cc-browser
+powershell -ExecutionPolicy Bypass -File build.ps1
+```
+
+Then manually copy from `dist/` to the install location if needed.
+
+### What Gets Deployed
+
+```
+%LOCALAPPDATA%\cc-tools\bin\
+  cc-browser.cmd                    # Windows launcher: @node "%~dp0_cc-browser\src\cli.mjs" %*
+  cc-browser                        # Git Bash launcher (used by Claude Code)
+  _cc-browser\                      # Underscore prefix avoids file/dir name collision
+    package.json
+    README.md
+    src\
+      cli.mjs
+      daemon.mjs
+      main.mjs
+      session.mjs
+      sessions.mjs
+      interactions.mjs
+      snapshot.mjs
+      chrome.mjs
+      captcha.mjs
+      human-mode.mjs
+      vision.mjs
+    node_modules\
+      playwright-core\              # Only runtime dependency
+```
+
+The subdirectory uses an underscore prefix (`_cc-browser`) because Windows cannot have
+a file and directory with the same name. The `.cmd` launcher serves CMD/PowerShell
+(which resolves `.cmd` via PATHEXT), while the extensionless launcher serves Git Bash
+(which Claude Code uses as its shell).
+
+### deploy.mjs (DEV SHORTCUT -- DO NOT USE FOR RELEASES)
+
+The `deploy.mjs` script copies source files directly to the install location, bypassing the build step. This exists only for rapid iteration during development. **Do not use it for releases** -- it skips `npm install` and does not create the `dist/` staging area.
+
+### After Deploying
+
+Restart the daemon to pick up changes:
+
+```bash
+cc-browser stop
+cc-browser daemon --workspace <your-workspace>
+```
+
 ## Comparison to MCP
 
 | Aspect | Playwright MCP | cc-browser |

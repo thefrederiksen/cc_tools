@@ -85,13 +85,15 @@ echo Building cc-browser (Node.js)...
 echo --------------------------------------------
 
 set "BROWSER_SRC=%REPO_DIR%\src\cc-browser"
-set "BROWSER_DEST=%INSTALL_DIR%\cc-browser"
+set "BROWSER_DEST=%INSTALL_DIR%\_cc-browser"
 
 if exist "%BROWSER_SRC%\build.ps1" (
     pushd "%BROWSER_SRC%"
     powershell -ExecutionPolicy Bypass -File build.ps1
 
     if !errorlevel! equ 0 (
+        REM Remove old directory name if present (migration from cc-browser to _cc-browser)
+        if exist "%INSTALL_DIR%\cc-browser" rmdir /S /Q "%INSTALL_DIR%\cc-browser"
         REM Create destination directory
         if not exist "%BROWSER_DEST%" mkdir "%BROWSER_DEST%"
         if not exist "%BROWSER_DEST%\src" mkdir "%BROWSER_DEST%\src"
@@ -105,8 +107,12 @@ if exist "%BROWSER_SRC%\build.ps1" (
         if exist "%BROWSER_DEST%\node_modules" rmdir /S /Q "%BROWSER_DEST%\node_modules"
         xcopy /E /I /Q /Y "dist\node_modules" "%BROWSER_DEST%\node_modules" >nul
 
-        REM Create launcher script in install dir
-        echo @node "%%~dp0cc-browser\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-browser.cmd"
+        REM Create launcher scripts in install dir (.cmd for Windows, extensionless for Git Bash)
+        echo @node "%%~dp0_cc-browser\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-browser.cmd"
+        > "%INSTALL_DIR%\cc-browser" (
+            echo #^^!/bin/sh
+            echo node "$(dirname "$0")/_cc-browser/src/cli.mjs" "$@"
+        )
 
         echo [OK] cc-browser installed to %BROWSER_DEST%
         set /a SUCCESS_COUNT+=1
@@ -129,13 +135,15 @@ echo Building cc-brandingrecommendations (Node.js)...
 echo --------------------------------------------
 
 set "BRANDREC_SRC=%REPO_DIR%\src\cc-brandingrecommendations"
-set "BRANDREC_DEST=%INSTALL_DIR%\cc-brandingrecommendations"
+set "BRANDREC_DEST=%INSTALL_DIR%\_cc-brandingrecommendations"
 
 if exist "%BRANDREC_SRC%\build.ps1" (
     pushd "%BRANDREC_SRC%"
     powershell -ExecutionPolicy Bypass -File build.ps1
 
     if !errorlevel! equ 0 (
+        REM Remove old directory name if present
+        if exist "%INSTALL_DIR%\cc-brandingrecommendations" rmdir /S /Q "%INSTALL_DIR%\cc-brandingrecommendations"
         REM Create destination directory
         if not exist "%BRANDREC_DEST%" mkdir "%BRANDREC_DEST%"
         if not exist "%BRANDREC_DEST%\src" mkdir "%BRANDREC_DEST%\src"
@@ -154,8 +162,12 @@ if exist "%BRANDREC_SRC%\build.ps1" (
         if exist "%BRANDREC_DEST%\node_modules" rmdir /S /Q "%BRANDREC_DEST%\node_modules"
         xcopy /E /I /Q /Y "dist\node_modules" "%BRANDREC_DEST%\node_modules" >nul
 
-        REM Create launcher script in install dir
-        echo @node "%%~dp0cc-brandingrecommendations\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-brandingrecommendations.cmd"
+        REM Create launcher scripts in install dir (.cmd for Windows, extensionless for Git Bash)
+        echo @node "%%~dp0_cc-brandingrecommendations\src\cli.mjs" %%*> "%INSTALL_DIR%\cc-brandingrecommendations.cmd"
+        > "%INSTALL_DIR%\cc-brandingrecommendations" (
+            echo #^^!/bin/sh
+            echo node "$(dirname "$0")/_cc-brandingrecommendations/src/cli.mjs" "$@"
+        )
 
         echo [OK] cc-brandingrecommendations installed to %BRANDREC_DEST%
         set /a SUCCESS_COUNT+=1
@@ -178,15 +190,21 @@ echo Building cc-click (.NET)...
 echo --------------------------------------------
 
 set "CCCLICK_SRC=%REPO_DIR%\src\cc-click"
-set "CCCLICK_DEST=%INSTALL_DIR%\cc-click"
+set "CCCLICK_DEST=%INSTALL_DIR%\_cc-click"
 
 if exist "%CCCLICK_SRC%\cc-click.slnx" (
     pushd "%CCCLICK_SRC%"
     dotnet publish -c Release -o "%CCCLICK_DEST%"
 
     if !errorlevel! equ 0 (
-        REM Create launcher script (exe name is now cc-click.exe due to AssemblyName)
-        echo @"%%~dp0cc-click\cc-click.exe" %%*> "%INSTALL_DIR%\cc-click.cmd"
+        REM Remove old directory name if present
+        if exist "%INSTALL_DIR%\cc-click" rmdir /S /Q "%INSTALL_DIR%\cc-click"
+        REM Create launcher scripts (.cmd for Windows, extensionless for Git Bash)
+        echo @"%%~dp0_cc-click\cc-click.exe" %%*> "%INSTALL_DIR%\cc-click.cmd"
+        > "%INSTALL_DIR%\cc-click" (
+            echo #^^!/bin/sh
+            echo "$(dirname "$0")/_cc-click/cc-click.exe" "$@"
+        )
         echo [OK] cc-click installed to %CCCLICK_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
@@ -205,15 +223,21 @@ echo Building cc-trisight (.NET)...
 echo --------------------------------------------
 
 set "TRISIGHT_SRC=%REPO_DIR%\src\cc-trisight"
-set "TRISIGHT_DEST=%INSTALL_DIR%\cc-trisight"
+set "TRISIGHT_DEST=%INSTALL_DIR%\_cc-trisight"
 
 if exist "%TRISIGHT_SRC%\cc-trisight.slnx" (
     pushd "%TRISIGHT_SRC%"
     dotnet publish -c Release -o "%TRISIGHT_DEST%"
 
     if !errorlevel! equ 0 (
-        REM Create launcher script (exe name is now cc-trisight.exe due to AssemblyName)
-        echo @"%%~dp0cc-trisight\cc-trisight.exe" %%*> "%INSTALL_DIR%\cc-trisight.cmd"
+        REM Remove old directory name if present
+        if exist "%INSTALL_DIR%\cc-trisight" rmdir /S /Q "%INSTALL_DIR%\cc-trisight"
+        REM Create launcher scripts (.cmd for Windows, extensionless for Git Bash)
+        echo @"%%~dp0_cc-trisight\cc-trisight.exe" %%*> "%INSTALL_DIR%\cc-trisight.cmd"
+        > "%INSTALL_DIR%\cc-trisight" (
+            echo #^^!/bin/sh
+            echo "$(dirname "$0")/_cc-trisight/cc-trisight.exe" "$@"
+        )
         echo [OK] cc-trisight installed to %TRISIGHT_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
@@ -232,16 +256,26 @@ echo Building cc-computer (.NET)...
 echo --------------------------------------------
 
 set "CCCOMPUTER_SRC=%REPO_DIR%\src\cc-computer"
-set "CCCOMPUTER_DEST=%INSTALL_DIR%\cc-computer"
+set "CCCOMPUTER_DEST=%INSTALL_DIR%\_cc-computer"
 
 if exist "%CCCOMPUTER_SRC%\cc-computer.slnx" (
     pushd "%CCCOMPUTER_SRC%"
     dotnet publish ComputerApp -c Release -o "%CCCOMPUTER_DEST%"
 
     if !errorlevel! equ 0 (
-        REM Create launcher scripts for CLI and GUI modes
-        echo @"%%~dp0cc-computer\cc-computer.exe" --cli %%*> "%INSTALL_DIR%\cc-computer.cmd"
-        echo @"%%~dp0cc-computer\cc-computer.exe" %%*> "%INSTALL_DIR%\cc-computer-gui.cmd"
+        REM Remove old directory name if present
+        if exist "%INSTALL_DIR%\cc-computer" rmdir /S /Q "%INSTALL_DIR%\cc-computer"
+        REM Create launcher scripts for CLI and GUI modes (.cmd for Windows, extensionless for Git Bash)
+        echo @"%%~dp0_cc-computer\cc-computer.exe" --cli %%*> "%INSTALL_DIR%\cc-computer.cmd"
+        echo @"%%~dp0_cc-computer\cc-computer.exe" %%*> "%INSTALL_DIR%\cc-computer-gui.cmd"
+        > "%INSTALL_DIR%\cc-computer" (
+            echo #^^!/bin/sh
+            echo "$(dirname "$0")/_cc-computer/cc-computer.exe" --cli "$@"
+        )
+        > "%INSTALL_DIR%\cc-computer-gui" (
+            echo #^^!/bin/sh
+            echo "$(dirname "$0")/_cc-computer/cc-computer.exe" "$@"
+        )
         echo [OK] cc-computer installed to %CCCOMPUTER_DEST%
         set /a SUCCESS_COUNT+=1
     ) else (
@@ -267,6 +301,12 @@ if exist "%REPO_DIR%\docs\CC_TOOLS.md" (
     echo [OK] CC_TOOLS.md copied to %INSTALL_DIR%
 ) else (
     echo [SKIP] docs\CC_TOOLS.md not found
+)
+
+REM Copy helper batch files
+if exist "%REPO_DIR%\src\cc-gmail\cc-gmail_auth.bat" (
+    copy /Y "%REPO_DIR%\src\cc-gmail\cc-gmail_auth.bat" "%INSTALL_DIR%\" >nul
+    echo [OK] cc-gmail_auth.bat copied to %INSTALL_DIR%
 )
 
 :summary

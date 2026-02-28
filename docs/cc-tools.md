@@ -4,6 +4,9 @@ Command-line tools for document conversion, media processing, email, and AI work
 
 **Install location:** `%LOCALAPPDATA%\cc-tools\bin\` (tools are on PATH)
 
+**Shell compatibility:** Tools work in CMD, PowerShell, and Git Bash (used by Claude Code).
+Node.js and .NET tools include both `.cmd` (Windows) and extensionless (Git Bash) launchers.
+
 ---
 
 ## Quick Reference

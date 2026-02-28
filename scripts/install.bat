@@ -64,11 +64,14 @@ if exist "%INSTALL_DIR%\cc-hardware.exe" echo   - cc-hardware
 if exist "%INSTALL_DIR%\cc-photos.exe" echo   - cc-photos
 if exist "%INSTALL_DIR%\cc-comm-queue.exe" echo   - cc-comm-queue
 echo.
-echo Node.js tools:
+echo Node.js tools (with .cmd + Git Bash launchers):
 if exist "%INSTALL_DIR%\cc-browser.cmd" echo   - cc-browser
+if exist "%INSTALL_DIR%\cc-brandingrecommendations.cmd" echo   - cc-brandingrecommendations
 echo.
-echo .NET tools:
+echo .NET tools (with .cmd + Git Bash launchers):
 if exist "%INSTALL_DIR%\cc-click.cmd" echo   - cc-click
 if exist "%INSTALL_DIR%\cc-trisight.cmd" echo   - cc-trisight
+if exist "%INSTALL_DIR%\cc-computer.cmd" echo   - cc-computer
 echo.
+echo All tools work in CMD, PowerShell, and Git Bash (used by Claude Code).
 echo Run any tool with --help for usage info.
