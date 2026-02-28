@@ -250,6 +250,29 @@ def init_db(silent: bool = False):
         )
     """)
 
+    # Contact lists (named, reusable collections)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            list_type TEXT DEFAULT 'general',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # List members (many-to-many: lists <-> contacts)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS list_members (
+            list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+            contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            notes TEXT,
+            PRIMARY KEY (list_id, contact_id)
+        )
+    """)
+
     # Lead scores table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS lead_scores (
@@ -584,6 +607,24 @@ def init_db(silent: bool = False):
     """)
 
     # ==========================================
+    # VECTOR EMBEDDINGS (replaces ChromaDB)
+    # ==========================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vec_embeddings (
+            id TEXT NOT NULL,
+            collection TEXT NOT NULL,
+            embedding BLOB NOT NULL,
+            document TEXT,
+            metadata TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id, collection)
+        )
+    """)
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_vec_collection ON vec_embeddings(collection)")
+
+    # ==========================================
     # INDEXES
     # ==========================================
 
@@ -605,6 +646,12 @@ def init_db(silent: bool = False):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_contact ON notes(contact_id)")
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_contact_tags_tag ON contact_tags(tag)")
+
+    # Lists indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lists_name ON lists(name)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_lists_type ON lists(list_type)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_list_members_list ON list_members(list_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_list_members_contact ON list_members(contact_id)")
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_contact ON actions(contact_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_status ON actions(status)")
@@ -727,6 +774,125 @@ def get_vault_stats() -> Dict[str, Any]:
         stats['social_posts_posted'] = 0
 
     return stats
+
+
+# ===========================================
+# VECTOR EMBEDDINGS HELPERS
+# ===========================================
+
+def vec_add(
+    id: str,
+    collection: str,
+    embedding: bytes,
+    document: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None
+) -> None:
+    """Add or replace an embedding in the vec_embeddings table."""
+    conn = get_db()
+    meta_json = json.dumps(metadata) if metadata else None
+    conn.execute(
+        """INSERT OR REPLACE INTO vec_embeddings
+           (id, collection, embedding, document, metadata)
+           VALUES (?, ?, ?, ?, ?)""",
+        (id, collection, embedding, document, meta_json)
+    )
+    conn.commit()
+    conn.close()
+
+
+def vec_add_batch(
+    rows: List[Dict[str, Any]],
+    collection: str
+) -> None:
+    """Add multiple embeddings in a single transaction.
+
+    Each row dict must have: id, embedding (bytes).
+    Optional: document (str), metadata (dict).
+    """
+    if not rows:
+        return
+    conn = get_db()
+    data = []
+    for row in rows:
+        meta_json = json.dumps(row.get('metadata')) if row.get('metadata') else None
+        data.append((
+            row['id'], collection, row['embedding'],
+            row.get('document'), meta_json
+        ))
+    conn.executemany(
+        """INSERT OR REPLACE INTO vec_embeddings
+           (id, collection, embedding, document, metadata)
+           VALUES (?, ?, ?, ?, ?)""",
+        data
+    )
+    conn.commit()
+    conn.close()
+
+
+def vec_get_all(collection: str) -> List[Dict[str, Any]]:
+    """Return all rows for a collection."""
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, embedding, document, metadata FROM vec_embeddings WHERE collection = ?",
+        (collection,)
+    ).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        meta = json.loads(r['metadata']) if r['metadata'] else {}
+        result.append({
+            'id': r['id'],
+            'embedding': r['embedding'],
+            'document': r['document'],
+            'metadata': meta
+        })
+    return result
+
+
+def vec_delete_by_id(id: str, collection: str) -> None:
+    """Delete a single embedding by id and collection."""
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM vec_embeddings WHERE id = ? AND collection = ?",
+        (id, collection)
+    )
+    conn.commit()
+    conn.close()
+
+
+def vec_delete_by_metadata(collection: str, key: str, value: Any) -> int:
+    """Delete embeddings where metadata->>key = value. Returns count deleted."""
+    conn = get_db()
+    cursor = conn.execute(
+        "DELETE FROM vec_embeddings WHERE collection = ? AND json_extract(metadata, '$.' || ?) = ?",
+        (collection, key, value)
+    )
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+def vec_count(collection: str) -> int:
+    """Count embeddings in a collection."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM vec_embeddings WHERE collection = ?",
+        (collection,)
+    ).fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def vec_get_embedding(id: str, collection: str) -> Optional[bytes]:
+    """Get a single embedding blob by id."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT embedding FROM vec_embeddings WHERE id = ? AND collection = ?",
+        (id, collection)
+    ).fetchone()
+    conn.close()
+    return row['embedding'] if row else None
 
 
 # ===========================================
@@ -1075,6 +1241,213 @@ def list_all_tags() -> List[dict]:
 
 
 # ===========================================
+# LIST MANAGEMENT
+# ===========================================
+
+def create_list(name: str, description: Optional[str] = None, list_type: str = "general") -> int:
+    """
+    Create a named contact list.
+    Returns the new list's ID.
+    """
+    init_db(silent=True)
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO lists (name, description, list_type) VALUES (?, ?, ?)",
+            (name, description, list_type)
+        )
+        list_id = cursor.lastrowid
+        conn.commit()
+        return list_id
+    finally:
+        conn.close()
+
+
+def get_list(name: str) -> Optional[dict]:
+    """Get a list by name."""
+    init_db(silent=True)
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM lists WHERE name = ?", (name,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_list_by_id(list_id: int) -> Optional[dict]:
+    """Get a list by ID."""
+    init_db(silent=True)
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM lists WHERE id = ?", (list_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def list_lists() -> List[dict]:
+    """List all lists with member counts."""
+    init_db(silent=True)
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT l.*, COUNT(lm.contact_id) as member_count
+            FROM lists l
+            LEFT JOIN list_members lm ON l.id = lm.list_id
+            GROUP BY l.id
+            ORDER BY l.name
+        """)
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def delete_list(name: str) -> bool:
+    """Delete a list by name. Members are cascade-deleted."""
+    init_db(silent=True)
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM lists WHERE name = ?", (name,))
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+
+def add_list_member(list_name: str, contact_id: int, notes: Optional[str] = None) -> bool:
+    """
+    Add a contact to a list.
+    Returns True if added, False if already a member.
+    """
+    init_db(silent=True)
+    lst = get_list(list_name)
+    if not lst:
+        raise ValueError(f"List not found: {list_name}")
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO list_members (list_id, contact_id, notes) VALUES (?, ?, ?)",
+            (lst['id'], contact_id, notes)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def add_list_members_by_query(list_name: str, where_clause: str, params: Optional[list] = None) -> int:
+    """
+    Add contacts matching a SQL WHERE clause to a list.
+    Returns the number of contacts added.
+    """
+    init_db(silent=True)
+    lst = get_list(list_name)
+    if not lst:
+        raise ValueError(f"List not found: {list_name}")
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        # Find matching contacts not already in the list
+        sql = f"""
+            INSERT OR IGNORE INTO list_members (list_id, contact_id)
+            SELECT ?, c.id FROM contacts c
+            WHERE {where_clause}
+            AND c.id NOT IN (SELECT contact_id FROM list_members WHERE list_id = ?)
+        """
+        query_params = [lst['id']] + (params or []) + [lst['id']]
+        cursor.execute(sql, query_params)
+        added = cursor.rowcount
+        conn.commit()
+        return added
+    finally:
+        conn.close()
+
+
+def remove_list_member(list_name: str, contact_id: int) -> bool:
+    """Remove a contact from a list. Returns True if removed."""
+    init_db(silent=True)
+    lst = get_list(list_name)
+    if not lst:
+        raise ValueError(f"List not found: {list_name}")
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM list_members WHERE list_id = ? AND contact_id = ?",
+            (lst['id'], contact_id)
+        )
+        removed = cursor.rowcount > 0
+        conn.commit()
+        return removed
+    finally:
+        conn.close()
+
+
+def get_list_members(list_name: str) -> List[dict]:
+    """Get all contacts in a list, joined with contact details."""
+    init_db(silent=True)
+    lst = get_list(list_name)
+    if not lst:
+        raise ValueError(f"List not found: {list_name}")
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT c.*, lm.added_at as list_added_at, lm.notes as list_notes
+            FROM contacts c
+            JOIN list_members lm ON c.id = lm.contact_id
+            WHERE lm.list_id = ?
+            ORDER BY c.name
+        """, (lst['id'],))
+        return [dict(row) for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def export_list(list_name: str, format: str = "json") -> str:
+    """
+    Export list members as JSON or CSV string.
+    """
+    members = get_list_members(list_name)
+
+    if format == "csv":
+        import csv
+        import io
+        output = io.StringIO()
+        if not members:
+            return ""
+        fields = ['id', 'name', 'email', 'company', 'title', 'location', 'phone', 'linkedin']
+        writer = csv.DictWriter(output, fieldnames=fields, extrasaction='ignore')
+        writer.writeheader()
+        for m in members:
+            writer.writerow(m)
+        return output.getvalue()
+    else:
+        # JSON format
+        export_fields = ['id', 'name', 'email', 'company', 'title', 'location',
+                         'phone', 'linkedin', 'list_added_at', 'list_notes']
+        export_data = []
+        for m in members:
+            export_data.append({k: m.get(k) for k in export_fields})
+        return json.dumps(export_data, indent=2, default=str)
+
+
+# ===========================================
 # MEMORY MANAGEMENT
 # ===========================================
 
@@ -1414,7 +1787,8 @@ def list_tasks(
     include_done: bool = False,
     today_only: bool = False,
     overdue_only: bool = False,
-    limit: int = 100
+    limit: int = 100,
+    sort: str = "priority"
 ) -> List[dict]:
     """List tasks with optional filtering."""
     init_db(silent=True)
@@ -1454,7 +1828,13 @@ def list_tasks(
     if overdue_only:
         sql += " AND t.due_date < DATE('now') AND t.status = 'pending'"
 
-    sql += " ORDER BY t.priority ASC, t.due_date ASC NULLS LAST, t.created_at ASC LIMIT ?"
+    sort_clauses = {
+        "priority": "t.priority ASC, t.due_date ASC NULLS LAST, t.created_at ASC",
+        "newest": "t.created_at DESC",
+        "due": "t.due_date ASC NULLS LAST, t.priority ASC",
+    }
+    order = sort_clauses.get(sort, sort_clauses["priority"])
+    sql += f" ORDER BY {order} LIMIT ?"
     params.append(limit)
 
     cursor.execute(sql, params)

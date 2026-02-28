@@ -2,7 +2,6 @@
 
 import json
 import logging
-import shutil
 import sqlite3
 import sys
 import zipfile
@@ -176,26 +175,21 @@ def ask(
 ) -> None:
     """Ask a question using RAG (Retrieval Augmented Generation)."""
     try:
-        try:
-            from .rag import get_vault_rag
-        except ImportError:
-            from rag import get_vault_rag
-        rag = get_vault_rag()
+        from .rag import get_vault_rag
+    except ImportError:
+        from rag import get_vault_rag
 
-        console.print(f"[dim]Searching vault...[/dim]")
-        result = rag.ask(question, model=model, use_hybrid=not no_hybrid)
+    rag = get_vault_rag()
 
-        if 'error' in result:
-            console.print(f"[red]Error:[/red] {result['error']}")
-            raise typer.Exit(1)
+    console.print(f"[dim]Searching vault...[/dim]")
+    result = rag.ask(question, model=model, use_hybrid=not no_hybrid)
 
-        console.print(f"\n[cyan]Answer:[/cyan]\n{result['answer']}")
-        console.print(f"\n[dim]Sources: {result['context_used']} items, Mode: {result.get('search_mode', 'unknown')}[/dim]")
-
-    except ImportError as e:
-        console.print(f"[red]Error:[/red] RAG not available: {e}")
-        console.print("Install with: pip install openai chromadb")
+    if 'error' in result:
+        console.print(f"[red]Error:[/red] {result['error']}")
         raise typer.Exit(1)
+
+    console.print(f"\n[cyan]Answer:[/cyan]\n{result['answer']}")
+    console.print(f"\n[dim]Sources: {result['context_used']} items, Mode: {result.get('search_mode', 'unknown')}[/dim]")
 
 
 @app.command("search")
@@ -206,49 +200,83 @@ def search_cmd(
 ):
     """Search the vault using semantic or hybrid search."""
     try:
-        try:
-            from .rag import get_vault_rag
-        except ImportError:
-            from rag import get_vault_rag
-        rag = get_vault_rag()
+        from .rag import get_vault_rag
+    except ImportError:
+        from rag import get_vault_rag
 
-        if hybrid:
-            results = rag.hybrid_search(query, n_results=n)
+    rag = get_vault_rag()
 
-            if not results:
-                console.print("[yellow]No results found[/yellow]")
-                return
+    if hybrid:
+        results = rag.hybrid_search(query, n_results=n)
 
-            console.print(f"\n[cyan]Hybrid Search Results ({len(results)} chunks):[/cyan]\n")
-            for r in results:
-                meta = r.get('metadata', {})
-                doc_title = meta.get('doc_title', 'Unknown')
-                lines = f"lines {meta.get('start_line', '?')}-{meta.get('end_line', '?')}"
-                content = r.get('content', '')[:150]
-                combined = r.get('combined_score', 0)
-                console.print(f"  [{doc_title}, {lines}] score={combined:.3f}")
-                console.print(f"    {content}...")
-                console.print()
-        else:
-            results = rag.semantic_search(query, n_results=n)
+        if not results:
+            console.print("[yellow]No results found[/yellow]")
+            return
 
-            for coll, items in results.items():
-                if items:
-                    console.print(f"\n[cyan]{coll.upper()} ({len(items)} results):[/cyan]")
-                    for item in items[:5]:
-                        doc = item.get('document', '')[:100]
-                        console.print(f"  [{item['id']}] {doc}...")
+        console.print(f"\n[cyan]Hybrid Search Results ({len(results)} chunks):[/cyan]\n")
+        for r in results:
+            meta = r.get('metadata', {})
+            doc_title = meta.get('doc_title', 'Unknown')
+            lines = f"lines {meta.get('start_line', '?')}-{meta.get('end_line', '?')}"
+            content = r.get('content', '')[:150]
+            combined = r.get('combined_score', 0)
+            console.print(f"  [{doc_title}, {lines}] score={combined:.3f}")
+            console.print(f"    {content}...")
+            console.print()
+    else:
+        results = rag.semantic_search(query, n_results=n)
 
-    except ImportError as e:
-        console.print(f"[red]Error:[/red] Vector search not available: {e}")
-        raise typer.Exit(1)
+        for coll, items in results.items():
+            if items:
+                console.print(f"\n[cyan]{coll.upper()} ({len(items)} results):[/cyan]")
+                for item in items[:5]:
+                    doc = item.get('document', '')[:100]
+                    console.print(f"  [{item['id']}] {doc}...")
 
 
 @app.command()
 def backup(
-    destination: Path = typer.Argument(..., help="Directory where the backup zip will be saved"),
+    destination: Optional[Path] = typer.Argument(None, help="Directory where the backup zip will be saved"),
+    list_backups: bool = typer.Option(False, "--list", help="List available backups"),
 ):
     """Create a full zip backup of the entire vault directory."""
+    if list_backups:
+        try:
+            from .config import BACKUPS_PATH
+        except ImportError:
+            from config import BACKUPS_PATH
+
+        if not BACKUPS_PATH.exists():
+            console.print("[yellow]No backups directory found[/yellow]")
+            return
+
+        backups = sorted(BACKUPS_PATH.glob("vault_backup_*.zip"), reverse=True)
+        # Also check the destination if different
+        if not backups:
+            # Check vault path for any zips
+            backups = sorted(VAULT_PATH.parent.glob("vault_backup_*.zip"), reverse=True)
+
+        if not backups:
+            console.print("[yellow]No backups found[/yellow]")
+            return
+
+        table = Table(title="Available Backups")
+        table.add_column("File", style="cyan")
+        table.add_column("Size", justify="right")
+        table.add_column("Date", style="dim")
+
+        for bp in backups:
+            size_mb = bp.stat().st_size / (1024 * 1024)
+            mod_time = datetime.fromtimestamp(bp.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+            table.add_row(str(bp), f"{size_mb:.1f} MB", mod_time)
+
+        console.print(table)
+        return
+
+    if destination is None:
+        console.print("[red]Error:[/red] Provide a destination directory, or use --list to see backups")
+        raise typer.Exit(1)
+
     dest = Path(destination)
     if not dest.is_dir():
         console.print(f"[red]Error:[/red] Destination directory does not exist: {dest}")
@@ -282,6 +310,188 @@ def backup(
         raise typer.Exit(1)
 
 
+@app.command("repair-vectors")
+def repair_vectors():
+    """Delete and rebuild the vector index from SQLite chunks."""
+    console.print("[dim]Repairing vector index...[/dim]")
+
+    try:
+        try:
+            from .vectors import VaultVectors
+            from .db import get_db as get_db_conn, init_db
+        except ImportError:
+            from vectors import VaultVectors
+            from db import get_db as get_db_conn, init_db
+
+        init_db(silent=True)
+
+        # Step 1: Clear all vec_embeddings
+        conn = get_db_conn()
+        try:
+            conn.execute("DELETE FROM vec_embeddings")
+            conn.commit()
+            console.print("  Cleared vector embeddings table")
+        finally:
+            conn.close()
+
+        # Step 2: Re-index all chunks
+        vecs = VaultVectors()
+
+        conn = get_db_conn()
+        try:
+            cursor = conn.execute("""
+                SELECT c.id, c.document_id, c.content, c.content_hash,
+                       c.start_line, c.end_line, c.chunk_index,
+                       d.title as doc_title, d.path as doc_path, d.doc_type
+                FROM chunks c
+                JOIN documents d ON c.document_id = d.id
+                ORDER BY c.document_id, c.chunk_index
+            """)
+            chunks = cursor.fetchall()
+        finally:
+            conn.close()
+
+        if not chunks:
+            console.print("[yellow]No chunks found in database to index[/yellow]")
+            return
+
+        # Index in batches
+        batch_size = 50
+        indexed = 0
+        batch = []
+
+        for chunk in chunks:
+            chunk_meta = {
+                'document_id': chunk['document_id'],
+                'doc_title': chunk['doc_title'] or '',
+                'doc_path': chunk['doc_path'] or '',
+                'doc_type': chunk['doc_type'] or '',
+                'start_line': chunk['start_line'] or 0,
+                'end_line': chunk['end_line'] or 0,
+                'chunk_index': chunk['chunk_index'] or 0
+            }
+            batch.append({
+                'id': f"chunk_{chunk['id']}",
+                'content': chunk['content'],
+                'metadata': chunk_meta
+            })
+
+            if len(batch) >= batch_size:
+                vecs.add_chunks_batch(batch)
+                indexed += len(batch)
+                console.print(f"  Indexed {indexed}/{len(chunks)} chunks...")
+                batch = []
+
+        # Final batch
+        if batch:
+            vecs.add_chunks_batch(batch)
+            indexed += len(batch)
+
+        # Update vector IDs in SQLite
+        conn = get_db_conn()
+        try:
+            for chunk in chunks:
+                conn.execute(
+                    "UPDATE chunks SET vector_id = ? WHERE id = ?",
+                    (f"chunk_{chunk['id']}", chunk['id'])
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Log migration hint if old vectors directory exists
+        if VECTORS_PATH.exists():
+            console.print(f"[dim]NOTE: Old vectors/ directory still exists at {VECTORS_PATH}[/dim]")
+            console.print("[dim]It is no longer needed and can be deleted.[/dim]")
+
+        console.print(f"[green]Repair complete:[/green] {indexed} chunks indexed")
+
+    except RuntimeError as e:
+        console.print(f"[red]Error during repair:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def restore(
+    zip_file: Path = typer.Argument(..., help="Path to vault backup zip file"),
+):
+    """Restore the vault from a backup zip file."""
+    zip_path = Path(zip_file)
+
+    if not zip_path.exists():
+        console.print(f"[red]Error:[/red] File not found: {zip_path}")
+        raise typer.Exit(1)
+
+    if not zip_path.suffix == '.zip':
+        console.print(f"[red]Error:[/red] Not a zip file: {zip_path}")
+        raise typer.Exit(1)
+
+    # Validate zip contains vault.db
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            names = zf.namelist()
+            if 'vault.db' not in names:
+                console.print("[red]Error:[/red] Backup does not contain vault.db - not a valid vault backup")
+                raise typer.Exit(1)
+    except zipfile.BadZipFile:
+        console.print(f"[red]Error:[/red] Corrupt zip file: {zip_path}")
+        raise typer.Exit(1)
+
+    # Create safety backup of current vault first
+    try:
+        from .config import BACKUPS_PATH
+    except ImportError:
+        from config import BACKUPS_PATH
+
+    BACKUPS_PATH.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    safety_path = BACKUPS_PATH / f'vault_backup_pre_restore_{timestamp}.zip'
+
+    console.print("[dim]Creating safety backup of current vault...[/dim]")
+    file_count = 0
+    try:
+        with zipfile.ZipFile(safety_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file in VAULT_PATH.rglob('*'):
+                try:
+                    file.relative_to(VAULT_PATH / 'backups')
+                    continue
+                except ValueError:
+                    pass
+                if file.is_file():
+                    arcname = file.relative_to(VAULT_PATH)
+                    zf.write(file, arcname)
+                    file_count += 1
+        console.print(f"  Safety backup: {safety_path} ({file_count} files)")
+    except OSError as e:
+        console.print(f"[red]Error creating safety backup:[/red] {e}")
+        raise typer.Exit(1)
+
+    # Extract backup to vault path
+    console.print(f"[dim]Restoring from: {zip_path}[/dim]")
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            zf.extractall(VAULT_PATH)
+            restored_count = len(zf.namelist())
+    except (zipfile.BadZipFile, OSError) as e:
+        console.print(f"[red]Error extracting backup:[/red] {e}")
+        console.print(f"[yellow]Safety backup available at:[/yellow] {safety_path}")
+        raise typer.Exit(1)
+
+    # Run schema migrations
+    try:
+        try:
+            from .db import init_db
+        except ImportError:
+            from db import init_db
+        init_db(silent=True)
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Schema migration issue: {e}")
+
+    console.print(f"[green]Restore complete:[/green] {restored_count} files restored")
+    console.print(f"  Safety backup: {safety_path}")
+    console.print("[dim]Run 'cc-vault repair-vectors' if vector search doesn't work[/dim]")
+
+
 # =============================================================================
 # Tasks Commands
 # =============================================================================
@@ -290,6 +500,7 @@ def backup(
 def tasks_list(
     status: str = typer.Option("pending", "-s", "--status", help="Filter by status: pending, completed, all"),
     contact_id: Optional[int] = typer.Option(None, "-c", "--contact", help="Filter by contact"),
+    sort: str = typer.Option("priority", "--sort", help="Sort: priority, newest, due"),
     limit: int = typer.Option(20, "-n", help="Max results"),
 ):
     """List tasks."""
@@ -297,9 +508,9 @@ def tasks_list(
 
     try:
         if status == "all":
-            tasks = db.list_tasks(status=None, contact_id=contact_id, limit=limit)
+            tasks = db.list_tasks(status=None, contact_id=contact_id, limit=limit, sort=sort)
         else:
-            tasks = db.list_tasks(status=status, contact_id=contact_id, limit=limit)
+            tasks = db.list_tasks(status=status, contact_id=contact_id, limit=limit, sort=sort)
 
         if not tasks:
             console.print(f"[yellow]No {status} tasks found[/yellow]")
@@ -411,6 +622,170 @@ def tasks_cancel(
 
     except sqlite3.Error as e:
         console.print(f"[red]Error cancelling task:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@tasks_app.command("show")
+def tasks_show(
+    task_id: int = typer.Argument(..., help="Task ID"),
+):
+    """Show full details of a task."""
+    db = get_db()
+
+    try:
+        task = db.get_task(task_id)
+
+        if not task:
+            console.print(f"[red]Task #{task_id} not found[/red]")
+            raise typer.Exit(1)
+
+        # Convert numeric priority to label
+        priority_num = task.get('priority', 3)
+        if isinstance(priority_num, int):
+            if priority_num <= 2:
+                priority_label = 'high'
+            elif priority_num >= 4:
+                priority_label = 'low'
+            else:
+                priority_label = 'medium'
+        else:
+            priority_label = str(priority_num)
+
+        # Build detail lines
+        lines = []
+        lines.append(f"[bold]Status:[/bold] {task.get('status', 'pending')}")
+        lines.append(f"[bold]Priority:[/bold] {priority_label} ({priority_num})")
+        if task.get('due_date'):
+            lines.append(f"[bold]Due:[/bold] {task['due_date'][:10]}")
+        if task.get('context'):
+            lines.append(f"[bold]Context:[/bold] {task['context']}")
+        if task.get('contact_name'):
+            contact_info = task['contact_name']
+            if task.get('contact_email'):
+                contact_info += f" ({task['contact_email']})"
+            lines.append(f"[bold]Contact:[/bold] {contact_info}")
+        if task.get('goal_title'):
+            lines.append(f"[bold]Goal:[/bold] {task['goal_title']}")
+        lines.append(f"[bold]Created:[/bold] {task.get('created_at', '-')}")
+        if task.get('completed_at'):
+            lines.append(f"[bold]Completed:[/bold] {task['completed_at']}")
+        if task.get('description'):
+            lines.append("")
+            lines.append("[bold]Description:[/bold]")
+            lines.append(task['description'])
+
+        console.print(Panel("\n".join(lines), title=f"Task #{task_id}: {task['title']}"))
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error showing task:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@tasks_app.command("update")
+def tasks_update(
+    task_id: int = typer.Argument(..., help="Task ID"),
+    title: Optional[str] = typer.Option(None, "--title", help="New title"),
+    description: Optional[str] = typer.Option(None, "-d", "--description", help="New description"),
+    priority: Optional[str] = typer.Option(None, "-p", "--priority", help="Priority: low, medium, high (or 1-5)"),
+    due: Optional[str] = typer.Option(None, "--due", help="Due date (YYYY-MM-DD)"),
+    context: Optional[str] = typer.Option(None, "--context", help="Context tag"),
+    contact_id: Optional[int] = typer.Option(None, "-c", "--contact", help="Link to contact ID (0 to unlink)"),
+    goal_id: Optional[int] = typer.Option(None, "-g", "--goal", help="Link to goal ID (0 to unlink)"),
+):
+    """Update a task's details."""
+    db = get_db()
+
+    # Convert priority string to int if provided
+    priority_int = None
+    if priority is not None:
+        priority_map = {'high': 1, 'medium': 3, 'low': 5}
+        if priority.lower() in priority_map:
+            priority_int = priority_map[priority.lower()]
+        else:
+            try:
+                priority_int = int(priority)
+            except ValueError:
+                console.print(f"[red]Error:[/red] Invalid priority. Use low, medium, high, or 1-5")
+                raise typer.Exit(1)
+
+    try:
+        success = db.update_task(
+            task_id,
+            title=title,
+            description=description,
+            priority=priority_int,
+            due_date=due,
+            context=context,
+            contact_id=contact_id,
+            goal_id=goal_id,
+        )
+        if success:
+            console.print(f"[green]Task #{task_id} updated[/green]")
+        else:
+            console.print(f"[red]Task #{task_id} not found[/red]")
+            raise typer.Exit(1)
+
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error updating task:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@tasks_app.command("search")
+def tasks_search(
+    query: str = typer.Argument(..., help="Search query"),
+):
+    """Search tasks by title, description, or context."""
+    db = get_db()
+
+    try:
+        tasks = db.search_tasks(query)
+
+        if not tasks:
+            console.print(f"[yellow]No tasks found matching '{query}'[/yellow]")
+            return
+
+        console.print(f"[bold]Search results for '{query}':[/bold] {len(tasks)} found\n")
+
+        table = Table()
+        table.add_column("ID", style="dim")
+        table.add_column("Task", style="cyan")
+        table.add_column("Status")
+        table.add_column("Due", style="yellow")
+        table.add_column("Priority")
+        table.add_column("Contact")
+
+        for task in tasks:
+            # Convert numeric priority to label
+            priority_num = task.get('priority', 3)
+            if isinstance(priority_num, int):
+                if priority_num <= 2:
+                    priority_label = 'high'
+                elif priority_num >= 4:
+                    priority_label = 'low'
+                else:
+                    priority_label = 'medium'
+            else:
+                priority_label = str(priority_num)
+
+            priority_style = {'high': '[red]', 'low': '[dim]'}.get(priority_label, '')
+            priority_end = '[/red]' if priority_label == 'high' else '[/dim]' if priority_label == 'low' else ''
+
+            table.add_row(
+                str(task['id']),
+                task['title'][:50],
+                task.get('status', 'pending'),
+                task.get('due_date', '-')[:10] if task.get('due_date') else '-',
+                f"{priority_style}{priority_label}{priority_end}",
+                task.get('contact_name', '-') or '-',
+            )
+
+        console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error searching tasks:[/red] {e}")
         raise typer.Exit(1)
 
 
