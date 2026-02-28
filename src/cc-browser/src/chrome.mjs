@@ -308,6 +308,7 @@ export async function launchChrome(opts = {}) {
     workspaceName = 'default',
     useSystemProfile = false,
     profileDir = null,
+    incognito = false,
   } = opts;
 
   // Find Chrome
@@ -345,6 +346,10 @@ export async function launchChrome(opts = {}) {
         `Alternatively, use 'cc-browser start' without --profileDir for an isolated session.`
       );
     }
+  } else if (incognito) {
+    // Use a temp directory that Chrome needs but won't persist meaningful data
+    userDataDir = join(tmpdir(), `cc-browser-incognito-${Date.now()}`);
+    mkdirSync(userDataDir, { recursive: true });
   } else {
     // Use isolated persistent workspace
     userDataDir = getChromeUserDataDir(browserKind, workspaceName);
@@ -393,6 +398,10 @@ export async function launchChrome(opts = {}) {
   // the #1 bot detection signal. The cc-browser indicator bar (injected via JS
   // in session.mjs) provides the visual workspace indicator instead.
 
+  if (incognito) {
+    args.push('--incognito');
+  }
+
   args.push(
     '--disable-features=TranslateUI',
     '--disable-background-networking',
@@ -427,6 +436,9 @@ export async function launchChrome(opts = {}) {
 
   // Store PID for later cleanup
   setLaunchedChromePid(child.pid);
+  if (incognito) {
+    setIncognitoUserDataDir(userDataDir);
+  }
 
   // Wait for CDP to be available
   const cdpUrl = `http://127.0.0.1:${port}`;
@@ -451,6 +463,7 @@ export async function launchChrome(opts = {}) {
           browserKind,
           userDataDir,
           profileDir: profileDirArg,
+          incognito,
           tabs: pageTabs.map((t) => ({
             targetId: t.id,
             title: t.title,
@@ -528,8 +541,9 @@ export async function ensureChromeAvailable(opts = {}) {
 // Stop Chrome
 // ---------------------------------------------------------------------------
 
-// Track launched Chrome PID
+// Track launched Chrome PID and incognito temp dir
 let launchedChromePid = null;
+let incognitoUserDataDir = null;
 
 export function setLaunchedChromePid(pid) {
   launchedChromePid = pid;
@@ -537,6 +551,14 @@ export function setLaunchedChromePid(pid) {
 
 export function getLaunchedChromePid() {
   return launchedChromePid;
+}
+
+export function setIncognitoUserDataDir(dir) {
+  incognitoUserDataDir = dir;
+}
+
+export function getIncognitoUserDataDir() {
+  return incognitoUserDataDir;
 }
 
 export async function stopChrome(port = DEFAULT_CDP_PORT) {
@@ -602,6 +624,16 @@ export async function stopChrome(port = DEFAULT_CDP_PORT) {
     }
   } catch {
     stopped = true; // Not responding = stopped
+  }
+
+  // Clean up incognito temp directory
+  if (stopped && incognitoUserDataDir) {
+    try {
+      rmSync(incognitoUserDataDir, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+    incognitoUserDataDir = null;
   }
 
   return { stopped };

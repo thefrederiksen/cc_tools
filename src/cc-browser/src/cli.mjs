@@ -163,7 +163,7 @@ function parseArgs(argv) {
 // HTTP Client
 // ---------------------------------------------------------------------------
 
-async function request(method, path, body, port = DEFAULT_DAEMON_PORT) {
+async function request(method, path, body, port = DEFAULT_DAEMON_PORT, timeoutMs = 60000) {
   const url = `http://127.0.0.1:${port}${path}`;
   console.error(`[DEBUG] Request: ${method} ${url}`);
 
@@ -172,7 +172,7 @@ async function request(method, path, body, port = DEFAULT_DAEMON_PORT) {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     const data = await res.json();
@@ -258,15 +258,19 @@ const commandHelp = {
   Options:
     --browser <name>        Browser: chrome, edge, brave
     --workspace <name>      Named workspace (persists logins, isolated sessions)
+    --incognito             Launch in incognito mode (temp profile, no saved data)
     --profileDir <dir>      Use existing system Chrome profile (e.g., "Default", "Profile 1")
     --cdpPort <port>        Chrome CDP port (default: from workspace.json or 9222)
     --headless              Start in headless mode
     --no-indicator          Hide the automation info bar
     --mode <mode>           Initial mode: fast, human, stealth
 
+  Note: --incognito cannot be used with --workspace.
+
   Examples:
     cc-browser start --workspace mindzie
     cc-browser start --browser chrome --workspace personal
+    cc-browser start --incognito
     cc-browser start --profileDir "Default"
     cc-browser start --browser edge --workspace work --mode human`,
 
@@ -666,6 +670,40 @@ const commandHelp = {
 
   Close all open tabs. A blank tab is created first (Chrome requires >= 1 tab).
   Tabs are also removed from any sessions they belong to.`,
+
+  record: `Usage: cc-browser record <start|stop|status> [options]
+
+  Record browser interactions for later replay.
+
+  Subcommands:
+    start               Start recording (captures clicks, typing, navigation)
+    stop                Stop recording and save to file
+    status              Check if recording is active
+
+  Options (stop):
+    --output <file>     Save recording to JSON file (required for stop)
+    --name <name>       Optional name for the recording
+
+  Examples:
+    cc-browser record start
+    cc-browser record status
+    cc-browser record stop --output login-flow.json
+    cc-browser record stop --output flows/checkout.json --name "Checkout Flow"`,
+
+  replay: `Usage: cc-browser replay --file <path> [options]
+
+  Replay a previously recorded browser session.
+
+  Options:
+    --file <path>       Path to recording JSON file (required)
+    --mode <mode>       Replay speed: fast or human (default: current mode)
+    --timeout <ms>      Per-step timeout in ms (default: 8000)
+    --tab <targetId>    Target specific tab
+
+  Examples:
+    cc-browser replay --file login-flow.json
+    cc-browser replay --file login-flow.json --mode fast
+    cc-browser replay --file flows/checkout.json --timeout 15000`,
 };
 
 function printCommandHelp(command) {
@@ -713,6 +751,7 @@ BROWSER LIFECYCLE:
   cc-browser start --workspace mindzie      Start using workspace alias
   cc-browser start --browser chrome --workspace personal  Start Chrome with workspace
   cc-browser start --profileDir "Profile 1" Use existing system Chrome profile
+  cc-browser start --incognito              Start in incognito mode (no saved data)
   cc-browser start --no-indicator           Start without automation info bar
   cc-browser stop                           Stop browser
 
@@ -757,6 +796,13 @@ MODE:
   cc-browser mode fast                         Set fast mode (instant, no delays)
   cc-browser mode stealth                      Set stealth mode (human + anti-detect)
   cc-browser start --workspace x --mode human  Start with specific mode
+
+RECORD & REPLAY:
+  cc-browser record start                          Start recording interactions
+  cc-browser record status                         Check if recording is active
+  cc-browser record stop --output login-flow.json  Stop and save recording
+  cc-browser replay --file login-flow.json         Replay a recording
+  cc-browser replay --file flow.json --mode fast   Replay at full speed
 
 CAPTCHA:
   cc-browser captcha detect                    Detect CAPTCHA on current page
@@ -961,6 +1007,9 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
 
   // Start browser
   start: async (args) => {
+    if (args.incognito && args.workspace) {
+      outputError('Cannot use --incognito with --workspace');
+    }
     const port = getDaemonPort(args);
     const result = await request('POST', '/start', {
       headless: args.headless,
@@ -972,6 +1021,7 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       useSystemProfile: args.profileDir ? true : args.systemProfile,
       noIndicator: args['no-indicator'] || false,
       mode: args.mode,
+      incognito: args.incognito || false,
     }, port);
     output(result);
   },
@@ -1382,6 +1432,78 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
     } else {
       outputError('Usage: cc-browser session <create|list|close|heartbeat|prune>');
     }
+  },
+
+  // Record interactions
+  record: async (args) => {
+    const port = getDaemonPort(args);
+    const subcommand = args._[1];
+
+    if (subcommand === 'start') {
+      const result = await request('POST', '/record/start', {
+        tab: args.tab,
+      }, port);
+      output(result);
+    } else if (subcommand === 'stop') {
+      const result = await request('POST', '/record/stop', {
+        tab: args.tab,
+      }, port);
+
+      if (result.success && args.output) {
+        // Save recording to file
+        const recording = {
+          name: args.name || '',
+          recordedAt: result.recordedAt,
+          steps: result.steps,
+        };
+        const outPath = resolve(args.output);
+        writeFileSync(outPath, JSON.stringify(recording, null, 2));
+        console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+      }
+      output(result);
+    } else if (subcommand === 'status') {
+      const result = await request('GET', '/record/status', null, port);
+      output(result);
+    } else {
+      outputError('Usage: cc-browser record <start|stop|status>');
+    }
+  },
+
+  // Replay recording
+  replay: async (args) => {
+    const port = getDaemonPort(args);
+
+    if (!args.file) {
+      outputError('Usage: cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
+      return;
+    }
+
+    const filePath = resolve(args.file);
+    if (!existsSync(filePath)) {
+      outputError(`Recording file not found: ${filePath}`);
+      return;
+    }
+
+    let recording;
+    try {
+      recording = JSON.parse(readFileSync(filePath, 'utf8'));
+    } catch (err) {
+      outputError(`Failed to parse recording file: ${err.message}`);
+      return;
+    }
+
+    if (!recording.steps || !Array.isArray(recording.steps)) {
+      outputError('Invalid recording file: missing "steps" array');
+      return;
+    }
+
+    const result = await request('POST', '/replay', {
+      recording,
+      tab: args.tab,
+      mode: args.mode,
+      timeout: args.timeout,
+    }, port, 300000);
+    output(result);
   },
 
   // Close all tabs

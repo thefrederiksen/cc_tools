@@ -50,6 +50,8 @@ import {
   persistSessions, loadSessions,
   startCleanupTimer, stopCleanupTimer, sessionCount,
 } from './sessions.mjs';
+import { startRecording, stopRecording, getRecordingStatus, receiveBeaconEvents } from './recorder.mjs';
+import { replayRecording } from './replay.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -153,7 +155,7 @@ function parseArgs(argv) {
 // HTTP Client (for CLI commands)
 // ---------------------------------------------------------------------------
 
-async function request(method, path, body, port = DEFAULT_DAEMON_PORT) {
+async function request(method, path, body, port = DEFAULT_DAEMON_PORT, timeoutMs = 60000) {
   const url = `http://127.0.0.1:${port}${path}`;
 
   try {
@@ -161,7 +163,7 @@ async function request(method, path, body, port = DEFAULT_DAEMON_PORT) {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     return await res.json();
@@ -196,6 +198,7 @@ let defaultDaemonCdpPort = null;
 let activeCdpPort = null;
 let activeBrowserKind = null;
 let activeWorkspace = null;
+let activeIncognito = false;
 
 function getActiveCdpPort() {
   if (activeCdpPort) return activeCdpPort;
@@ -203,11 +206,13 @@ function getActiveCdpPort() {
   return DEFAULT_CDP_PORT;
 }
 
-function setActiveSession(cdpPort, browserKind, workspace) {
+function setActiveSession(cdpPort, browserKind, workspace, incognito = false) {
   activeCdpPort = cdpPort;
   activeBrowserKind = browserKind;
   activeWorkspace = workspace;
-  console.log(`[cc-browser] Active session: ${browserKind}-${workspace} on port ${cdpPort}`);
+  activeIncognito = incognito;
+  const label = incognito ? 'incognito' : `${browserKind}-${workspace}`;
+  console.log(`[cc-browser] Active session: ${label} on port ${cdpPort}`);
 }
 
 function clearActiveSession() {
@@ -215,6 +220,7 @@ function clearActiveSession() {
   activeCdpPort = null;
   activeBrowserKind = null;
   activeWorkspace = null;
+  activeIncognito = false;
 }
 
 function validateSession(body) {
@@ -290,7 +296,8 @@ const routes = {
       cdpUrl: status.cdpUrl,
       cdpPort,
       browserKind: activeBrowserKind,
-      workspace: activeWorkspace,
+      workspace: activeIncognito ? null : activeWorkspace,
+      incognito: activeIncognito,
       tabs: status.tabs || [],
       activeTab: status.activeTab,
       playwrightConnected: !!cached,
@@ -299,11 +306,18 @@ const routes = {
   },
 
   'POST /start': async (req, res, params, body) => {
-    const workspaceName = body.workspace || defaultDaemonWorkspace || 'default';
+    const isIncognito = !!body.incognito;
+
+    // Incognito and workspace are mutually exclusive
+    if (isIncognito && body.workspace) {
+      return jsonError(res, 400, 'Cannot use --incognito with --workspace');
+    }
+
+    const workspaceName = isIncognito ? null : (body.workspace || defaultDaemonWorkspace || 'default');
     const browserKind = body.browser || defaultDaemonBrowser || 'chrome';
 
     let cdpPort = body.port;
-    if (!cdpPort) {
+    if (!cdpPort && !isIncognito) {
       const workspaceConfig = readWorkspaceConfig(browserKind, workspaceName);
       if (workspaceConfig && workspaceConfig.cdpPort) cdpPort = workspaceConfig.cdpPort;
     }
@@ -314,20 +328,22 @@ const routes = {
       headless: body.headless,
       executablePath: body.exe,
       browser: body.browser,
-      workspaceName: workspaceName,
+      workspaceName: isIncognito ? 'incognito' : workspaceName,
       useSystemProfile: body.systemProfile || body.useSystemProfile,
       profileDir: body.profileDir,
+      incognito: isIncognito,
     });
 
     await connectBrowser(result.cdpUrl);
-    setActiveSession(cdpPort, result.browserKind, workspaceName);
+    setActiveSession(cdpPort, result.browserKind, workspaceName, isIncognito);
 
     jsonSuccess(res, {
       started: result.started,
       cdpUrl: result.cdpUrl,
       cdpPort,
       browserKind: result.browserKind,
-      workspace: workspaceName,
+      workspace: isIncognito ? null : workspaceName,
+      incognito: isIncognito,
       tabs: result.tabs,
       activeTab: result.activeTab,
     });
@@ -777,6 +793,52 @@ const routes = {
 
     jsonSuccess(res, { closed });
   },
+
+  // -----------------------------------------------------------------------
+  // Record & Replay
+  // -----------------------------------------------------------------------
+
+  'POST /record/start': async (req, res, params, body) => {
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+    const result = await startRecording({ cdpUrl, targetId: body.tab || body.targetId, daemonPort: actualDaemonPort });
+    jsonSuccess(res, result);
+  },
+
+  'POST /record/stop': async (req, res, params, body) => {
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+    const result = await stopRecording({ cdpUrl, targetId: body.tab || body.targetId });
+    jsonSuccess(res, result);
+  },
+
+  'GET /record/status': async (req, res) => {
+    const status = getRecordingStatus();
+    jsonSuccess(res, status);
+  },
+
+  'POST /record/beacon': async (req, res, params, body) => {
+    receiveBeaconEvents(body);
+    res.writeHead(204);
+    res.end();
+  },
+
+  'POST /replay': async (req, res, params, body) => {
+    const v = validateSession(body);
+    if (!v.valid) return jsonError(res, 400, v.error);
+    if (!body.recording) return jsonError(res, 400, 'recording is required');
+    const cdpUrl = `http://127.0.0.1:${getActiveCdpPort()}`;
+    const result = await replayRecording({
+      cdpUrl,
+      targetId: body.tab || body.targetId,
+      recording: body.recording,
+      mode: body.mode,
+      timeoutMs: body.timeout,
+    });
+    jsonSuccess(res, result);
+  },
 };
 
 async function handleRequest(req, res) {
@@ -900,6 +962,7 @@ DAEMON:
 BROWSER LIFECYCLE:
   cc-browser start --workspace mindzie
   cc-browser start --browser chrome --workspace personal
+  cc-browser start --incognito             Start in incognito mode (no saved data)
   cc-browser workspaces                    List configured workspaces
   cc-browser profiles [--browser chrome]   List Chrome built-in profiles
   cc-browser stop
@@ -909,6 +972,11 @@ NAVIGATION:
   cc-browser snapshot [--interactive]
   cc-browser click --ref <e1>
   cc-browser type --ref <e1> --text "hello"
+
+RECORD & REPLAY:
+  cc-browser record start                          Start recording interactions
+  cc-browser record stop --output login-flow.json  Stop and save recording
+  cc-browser replay --file login-flow.json         Replay a recording
 
 OPTIONS:
   --port <port>       Daemon port (default: from workspace.json)
@@ -1009,6 +1077,9 @@ EXAMPLES:
   },
 
   start: async (args) => {
+    if (args.incognito && args.workspace) {
+      outputError('Cannot use --incognito with --workspace');
+    }
     const port = getDaemonPort(args);
     const result = await request('POST', '/start', {
       headless: args.headless,
@@ -1018,6 +1089,7 @@ EXAMPLES:
       workspace: args.workspace,
       profileDir: args.profileDir,
       useSystemProfile: args.profileDir ? true : args.systemProfile,
+      incognito: args.incognito || false,
     }, port);
     output(result);
   },
@@ -1323,6 +1395,72 @@ EXAMPLES:
     } else {
       outputError('Usage: cc-browser session <create|list|close|heartbeat|prune>');
     }
+  },
+
+  // Record interactions
+  record: async (args) => {
+    const port = getDaemonPort(args);
+    const subcommand = args._[1];
+
+    if (subcommand === 'start') {
+      const result = await request('POST', '/record/start', { tab: args.tab }, port);
+      output(result);
+    } else if (subcommand === 'stop') {
+      const result = await request('POST', '/record/stop', { tab: args.tab }, port);
+      if (result.success && args.output) {
+        const recording = {
+          name: args.name || '',
+          recordedAt: result.recordedAt,
+          steps: result.steps,
+        };
+        const outPath = resolve(args.output);
+        writeFileSync(outPath, JSON.stringify(recording, null, 2));
+        console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+      }
+      output(result);
+    } else if (subcommand === 'status') {
+      const result = await request('GET', '/record/status', null, port);
+      output(result);
+    } else {
+      outputError('Usage: cc-browser record <start|stop|status>');
+    }
+  },
+
+  // Replay recording
+  replay: async (args) => {
+    const port = getDaemonPort(args);
+
+    if (!args.file) {
+      outputError('Usage: cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
+      return;
+    }
+
+    const filePath = resolve(args.file);
+    if (!existsSync(filePath)) {
+      outputError(`Recording file not found: ${filePath}`);
+      return;
+    }
+
+    let recording;
+    try {
+      recording = JSON.parse(readFileSync(filePath, 'utf8'));
+    } catch (err) {
+      outputError(`Failed to parse recording file: ${err.message}`);
+      return;
+    }
+
+    if (!recording.steps || !Array.isArray(recording.steps)) {
+      outputError('Invalid recording file: missing "steps" array');
+      return;
+    }
+
+    const result = await request('POST', '/replay', {
+      recording,
+      tab: args.tab,
+      mode: args.mode,
+      timeout: args.timeout,
+    }, port, 300000);
+    output(result);
   },
 
   'tabs-close-all': async (args) => {
