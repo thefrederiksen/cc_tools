@@ -92,10 +92,19 @@ When you run `cc-gmail accounts add`, if App Password authentication fails
 with a connection error, it usually means IMAP is blocked. The error message
 will guide you to OAuth setup.
 
+### Multi-Account Guidance
+
+**Create a separate Google Cloud project for each Gmail account.** This keeps
+credentials isolated and avoids cross-org permission issues. For example, if
+you have both a personal Gmail and a Workspace account, each should have its
+own Google Cloud project with its own OAuth credentials.
+
 ### OAuth Setup Steps
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create or select a project
+2. **Create a new project** (one project per Gmail account is recommended)
+   - Name it `cc-gmail` or similar
+   - If using a Workspace account, create it under your organization
 3. Enable these APIs (click each link, select your project, click Enable):
    - [Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com) (required for email)
    - [Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) (for calendar commands)
@@ -105,11 +114,27 @@ will guide you to OAuth setup.
    - Select **External** user type (or **Internal** for Workspace)
    - App name: `cc-gmail`, add your email
    - Under **Test users**, add your Gmail address
-5. Create OAuth credentials:
+5. **Register scopes on the Data Access page** (critical step):
+   - Click **Data Access** in the left sidebar
+   - Click **Add or remove scopes**
+   - Scroll to **"Manually add scopes"** at the bottom of the panel
+   - Add each scope one at a time: type it, check the box, click **Update**
+   - Add these 6 scopes:
+     - `gmail.send`
+     - `gmail.readonly`
+     - `gmail.compose`
+     - `gmail.modify`
+     - `auth/calendar` (pick the shortest match, no suffix)
+     - `auth/contacts` (pick the shortest match, no suffix)
+   - After all 6 are added, click **Save**
+   - Without this step, Google silently drops unregistered scopes from the
+     consent screen, leading to "Insufficient Permission" errors
+   - IMPORTANT: Do NOT add `mail.google.com` -- that is a different scope
+6. Create OAuth credentials:
    - Go to [Credentials](https://console.cloud.google.com/apis/credentials)
    - **Create Credentials** -> **OAuth client ID** -> **Desktop app**
    - Download the JSON file
-6. Set up the account:
+7. Set up the account:
 
 ```bash
 # During account add, type 'oauth' when prompted for app password
@@ -122,6 +147,10 @@ cc-gmail accounts add work
 
 # Authenticate
 cc-gmail -a work auth
+
+# If authenticating on a machine without a browser (e.g., remote server),
+# or if you need to use a specific browser profile:
+cc-gmail -a work auth --no-browser
 ```
 
 Or switch an existing account to OAuth:
@@ -389,6 +418,29 @@ Enable the People API:
 2. Select your project
 3. Click **Enable**
 
+### OAuth: "Insufficient Permission" / Consent screen missing scopes
+
+Google silently drops scopes that are not registered on the project's Data
+Access page. The consent screen appears to work, but the token is granted
+fewer permissions than requested.
+
+Fix:
+1. Go to [Data Access](https://console.cloud.google.com/auth/data-access)
+2. Click **Add or remove scopes**
+3. Add exactly these scopes (they must match what cc-gmail requests):
+   - `https://www.googleapis.com/auth/gmail.readonly`
+   - `https://www.googleapis.com/auth/gmail.send`
+   - `https://www.googleapis.com/auth/gmail.compose`
+   - `https://www.googleapis.com/auth/gmail.modify`
+   - `https://www.googleapis.com/auth/calendar`
+   - `https://www.googleapis.com/auth/contacts`
+4. Click **Update** then **Save**
+5. Re-authenticate: `cc-gmail auth --force`
+
+IMPORTANT: Do NOT register `https://mail.google.com/` -- that is a different
+(broader) scope. cc-gmail uses the granular `gmail.*` scopes and they must
+match exactly, or Google silently drops them from the consent screen.
+
 ### Calendar/Contacts: "Token missing permissions"
 
 Your OAuth token was created before calendar/contacts support was added.
@@ -402,7 +454,7 @@ cc-gmail auth --force
 ## Configuration
 
 ```
-~/.cc_tools/gmail/
+%LOCALAPPDATA%\cc-tools\data\gmail\
     config.json              # Default account setting
     accounts/
         personal/
@@ -412,6 +464,8 @@ cc-gmail auth --force
         work/
             config.json
 ```
+
+On Windows, this is typically: `C:\Users\<you>\AppData\Local\cc-tools\data\gmail\`
 
 App passwords are stored separately in your OS credential manager (not in files).
 

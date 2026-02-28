@@ -546,7 +546,9 @@ def _setup_oauth_account(name: str, email_addr: str, set_as_default: bool) -> No
         console.print("1. Go to Google Cloud Console:")
         console.print("   https://console.cloud.google.com/")
         console.print()
-        console.print("2. Create or select a project")
+        console.print("2. Create a new project (one project per Gmail account is recommended)")
+        console.print("   - Name it 'cc-gmail' or similar")
+        console.print("   - For Workspace accounts, create under your organization")
         console.print()
         console.print("3. Enable these APIs (click each link, select your project, click Enable):")
         console.print()
@@ -565,17 +567,36 @@ def _setup_oauth_account(name: str, email_addr: str, set_as_default: bool) -> No
         console.print("   - Fill in app name (e.g., 'cc-gmail') and your email")
         console.print("   - Under 'Test users', add your Gmail address")
         console.print()
-        console.print("5. Create OAuth credentials:")
+        console.print("5. Register scopes on the Data Access page (critical step):")
+        console.print("   Click 'Data Access' in the left sidebar")
+        console.print("   - Click 'Add or remove scopes'")
+        console.print("   - Scroll to 'Manually add scopes' at the bottom")
+        console.print("   - Add each scope one at a time: type it, check the box, click Update")
+        console.print("   - Add these 6 scopes:")
+        console.print("     gmail.send")
+        console.print("     gmail.readonly")
+        console.print("     gmail.compose")
+        console.print("     gmail.modify")
+        console.print("     auth/calendar  (pick the shortest match)")
+        console.print("     auth/contacts  (pick the shortest match)")
+        console.print("   - After all 6 are added, click 'Save'")
+        console.print("   (Without this, Google silently drops scopes from consent)")
+        console.print("   NOTE: Do NOT add mail.google.com -- that is a different scope")
+        console.print()
+        console.print("6. Create OAuth credentials:")
         console.print("   https://console.cloud.google.com/apis/credentials")
         console.print("   - Click 'Create Credentials' -> 'OAuth client ID'")
         console.print("   - Select 'Desktop app' as application type")
         console.print("   - Download the JSON file")
         console.print()
-        console.print("6. Save the downloaded file as:")
+        console.print("7. Save the downloaded file as:")
         console.print(f"   [green]{creds_path}[/green]")
         console.print()
-        console.print("7. Run authentication:")
+        console.print("8. Run authentication:")
         console.print(f"   cc-gmail -a {name} auth")
+        console.print()
+        console.print("   If using a specific browser profile or remote machine:")
+        console.print(f"   cc-gmail -a {name} auth --no-browser")
 
     if set_as_default or not get_default_account():
         set_default_account(name)
@@ -706,6 +727,7 @@ def auth(
     force: bool = typer.Option(False, "--force", "-f", help="Force re-authentication"),
     revoke: bool = typer.Option(False, "--revoke", help="Revoke current token / delete app password"),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Auth method: app_password or oauth"),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Don't auto-open browser; print auth URL instead"),
 ):
     """Authenticate with Gmail."""
     try:
@@ -788,8 +810,11 @@ def auth(
 
         try:
             console.print(f"[blue]Authenticating account '{acct}'...[/blue]")
-            console.print("A browser window will open for authentication.")
-            creds = authenticate(acct, force=force)
+            if no_browser:
+                console.print("Auth URL will be printed below. Open it in your preferred browser.")
+            else:
+                console.print("A browser window will open for authentication.")
+            creds = authenticate(acct, force=force, open_browser=not no_browser)
 
             client = GmailClient(creds)
             profile = client.get_profile()
