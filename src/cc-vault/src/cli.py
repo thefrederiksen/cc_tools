@@ -345,6 +345,7 @@ def repair_vectors():
                        d.title as doc_title, d.path as doc_path, d.doc_type
                 FROM chunks c
                 JOIN documents d ON c.document_id = d.id
+                WHERE c.content IS NOT NULL AND LENGTH(TRIM(c.content)) > 0
                 ORDER BY c.document_id, c.chunk_index
             """)
             chunks = cursor.fetchall()
@@ -1681,6 +1682,149 @@ def docs_search(
 
     except sqlite3.Error as e:
         console.print(f"[red]Error searching documents:[/red] {e}")
+        raise typer.Exit(1)
+
+
+def _resolve_docs_to_index(
+    docs: List[dict],
+) -> tuple[List[tuple[dict, str]], List[dict]]:
+    """Read document files from disk, separating indexable from missing/empty."""
+    to_index = []
+    missing = []
+
+    for doc in docs:
+        doc_path = doc.get('path', '')
+        if not doc_path:
+            missing.append(doc)
+            continue
+
+        full_path = DOCUMENTS_PATH / doc_path
+        if not full_path.exists():
+            missing.append(doc)
+            continue
+
+        content = full_path.read_text(encoding='utf-8', errors='replace')
+        if not content.strip():
+            missing.append(doc)
+            continue
+
+        to_index.append((doc, content))
+
+    return to_index, missing
+
+
+def _print_dry_run(
+    docs_to_index: List[tuple[dict, str]],
+    missing_files: List[dict],
+) -> None:
+    """Print dry-run report of what would be indexed."""
+    console.print("\n[dim]-- Dry run, no changes made --[/dim]\n")
+    for doc, content in docs_to_index[:20]:
+        console.print(f"  #{doc['id']} {doc.get('title', 'Untitled')} ({len(content)} chars)")
+    if len(docs_to_index) > 20:
+        console.print(f"  ... and {len(docs_to_index) - 20} more")
+    if missing_files:
+        console.print(f"\n[yellow]Files missing or empty:[/yellow]")
+        for doc in missing_files[:10]:
+            console.print(f"  #{doc['id']} {doc.get('title', 'Untitled')} -> {doc.get('path', 'no path')}")
+        if len(missing_files) > 10:
+            console.print(f"  ... and {len(missing_files) - 10} more")
+
+
+@docs_app.command("reindex")
+def docs_reindex(
+    doc_id: Optional[int] = typer.Argument(None, help="Specific document ID to reindex"),
+    all_docs: bool = typer.Option(False, "--all", help="Reindex all documents (re-chunk everything)"),
+    unchunked: bool = typer.Option(False, "--unchunked", help="Only index documents that have no chunks"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be indexed without doing it"),
+):
+    """Chunk and index documents that are missing from the search index."""
+    try:
+        try:
+            from .vectors import VaultVectors
+            from .db import get_db as get_db_conn, init_db, get_document
+        except ImportError:
+            from vectors import VaultVectors
+            from db import get_db as get_db_conn, init_db, get_document
+
+        init_db(silent=True)
+        conn = get_db_conn()
+
+        # Determine which documents to process
+        if doc_id is not None:
+            doc = get_document(doc_id)
+            if not doc:
+                console.print(f"[red]Document #{doc_id} not found[/red]")
+                raise typer.Exit(1)
+            docs = [doc]
+        elif all_docs:
+            cursor = conn.execute(
+                "SELECT id, title, path, doc_type FROM documents ORDER BY id"
+            )
+            docs = [dict(row) for row in cursor.fetchall()]
+        else:
+            cursor = conn.execute("""
+                SELECT id, title, path, doc_type FROM documents d
+                WHERE NOT EXISTS (SELECT 1 FROM chunks c WHERE c.document_id = d.id)
+                ORDER BY id
+            """)
+            docs = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+
+        if not docs:
+            console.print("[green]All documents are already indexed.[/green]")
+            return
+
+        docs_to_index, missing_files = _resolve_docs_to_index(docs)
+
+        console.print(f"\n[cyan]Documents to index:[/cyan] {len(docs_to_index)}")
+        if missing_files:
+            console.print(f"[yellow]Skipping {len(missing_files)} docs (file missing or empty)[/yellow]")
+
+        if dry_run:
+            _print_dry_run(docs_to_index, missing_files)
+            return
+
+        # Index documents
+        vecs = VaultVectors()
+        indexed = 0
+        errors = 0
+
+        for i, (doc, content) in enumerate(docs_to_index, 1):
+            try:
+                chunk_ids = vecs.index_document_chunks(
+                    document_id=doc['id'],
+                    content=content,
+                    metadata={
+                        'doc_title': doc.get('title', ''),
+                        'doc_type': doc.get('doc_type', ''),
+                        'doc_path': doc.get('path', ''),
+                    }
+                )
+
+                ts_conn = get_db_conn()
+                try:
+                    ts_conn.execute(
+                        "UPDATE documents SET indexed_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        (doc['id'],)
+                    )
+                    ts_conn.commit()
+                finally:
+                    ts_conn.close()
+
+                indexed += 1
+                if i % 10 == 0 or i == len(docs_to_index):
+                    console.print(f"  Indexed {i}/{len(docs_to_index)} ({len(chunk_ids)} chunks for #{doc['id']})")
+
+            except (OSError, sqlite3.Error, ValueError, RuntimeError) as e:
+                errors += 1
+                console.print(f"  [red]Error indexing #{doc['id']} {doc.get('title', '')}:[/red] {e}")
+
+        console.print(f"\n[green]Done.[/green] Indexed: {indexed} | Errors: {errors} | Skipped: {len(missing_files)}")
+
+    except (OSError, sqlite3.Error) as e:
+        console.print(f"[red]Error during reindex:[/red] {e}")
         raise typer.Exit(1)
 
 
