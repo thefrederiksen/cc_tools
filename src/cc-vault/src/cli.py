@@ -5,6 +5,7 @@ import logging
 import shutil
 import sqlite3
 import sys
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from types import ModuleType
@@ -53,6 +54,7 @@ docs_app = typer.Typer(help="Document management")
 config_app = typer.Typer(help="Configuration")
 health_app = typer.Typer(help="Health data")
 posts_app = typer.Typer(help="Social media posts")
+lists_app = typer.Typer(help="Contact list management")
 
 app.add_typer(tasks_app, name="tasks")
 app.add_typer(goals_app, name="goals")
@@ -62,6 +64,7 @@ app.add_typer(docs_app, name="docs")
 app.add_typer(config_app, name="config")
 app.add_typer(health_app, name="health")
 app.add_typer(posts_app, name="posts")
+app.add_typer(lists_app, name="lists")
 
 console = Console()
 
@@ -243,24 +246,37 @@ def search_cmd(
 
 @app.command()
 def backup(
-    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Output directory"),
+    destination: Path = typer.Argument(..., help="Directory where the backup zip will be saved"),
 ):
-    """Create a backup of the vault database."""
-    db = get_db()
+    """Create a full zip backup of the entire vault directory."""
+    dest = Path(destination)
+    if not dest.is_dir():
+        console.print(f"[red]Error:[/red] Destination directory does not exist: {dest}")
+        raise typer.Exit(1)
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    zip_path = dest / f'vault_backup_{timestamp}.zip'
 
-    if output:
-        backup_dir = output
-    else:
-        backup_dir = VAULT_PATH / 'backups'
-
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    backup_file = backup_dir / f'vault_backup_{timestamp}.db'
-
+    file_count = 0
     try:
-        shutil.copy2(DB_PATH, backup_file)
-        console.print(f"[green]Backup created:[/green] {backup_file}")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file in VAULT_PATH.rglob('*'):
+                # Skip the backups subdirectory
+                try:
+                    file.relative_to(VAULT_PATH / 'backups')
+                    continue
+                except ValueError:
+                    pass
+
+                if file.is_file():
+                    arcname = file.relative_to(VAULT_PATH)
+                    zf.write(file, arcname)
+                    file_count += 1
+
+        size_mb = zip_path.stat().st_size / (1024 * 1024)
+        console.print(f"[green]Backup created:[/green] {zip_path}")
+        console.print(f"  Files: {file_count}")
+        console.print(f"  Size:  {size_mb:.1f} MB")
     except OSError as e:
         console.print(f"[red]Error creating backup:[/red] {e}")
         raise typer.Exit(1)
@@ -1766,6 +1782,227 @@ def graph_sync_fk(
 
     except sqlite3.Error as e:
         console.print(f"[red]Error syncing FK relationships:[/red] {e}")
+        raise typer.Exit(1)
+
+
+# ===========================================
+# LISTS COMMANDS
+# ===========================================
+
+
+@lists_app.callback(invoke_without_command=True)
+def lists_default(ctx: typer.Context):
+    """List all contact lists."""
+    if ctx.invoked_subcommand is not None:
+        return
+
+    db = get_db()
+    try:
+        lists = db.list_lists()
+
+        if not lists:
+            console.print("[yellow]No lists found. Create one with: cc-vault lists create \"List Name\"[/yellow]")
+            return
+
+        table = Table(title="Contact Lists")
+        table.add_column("ID", style="dim")
+        table.add_column("Name", style="cyan")
+        table.add_column("Type")
+        table.add_column("Members", justify="right")
+        table.add_column("Description")
+        table.add_column("Created", style="dim")
+
+        for lst in lists:
+            table.add_row(
+                str(lst['id']),
+                lst['name'],
+                lst.get('list_type', 'general') or 'general',
+                str(lst.get('member_count', 0)),
+                (lst.get('description') or '-')[:40],
+                lst.get('created_at', '-')[:10] if lst.get('created_at') else '-',
+            )
+
+        console.print(table)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error listing lists:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("create")
+def lists_create(
+    name: str = typer.Argument(..., help="List name"),
+    description: Optional[str] = typer.Option(None, "--description", "-d", help="List description"),
+    list_type: str = typer.Option("general", "--type", "-t", help="List type (e.g. general, mailing, outreach)"),
+):
+    """Create a new contact list."""
+    db = get_db()
+    try:
+        list_id = db.create_list(name=name, description=description, list_type=list_type)
+        console.print(f"[green]List created:[/green] #{list_id} - {name}")
+    except sqlite3.IntegrityError:
+        console.print(f"[red]List already exists:[/red] {name}")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error creating list:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("show")
+def lists_show(
+    name: str = typer.Argument(..., help="List name"),
+):
+    """Show members of a contact list."""
+    db = get_db()
+    try:
+        lst = db.get_list(name)
+        if not lst:
+            console.print(f"[red]List not found:[/red] {name}")
+            raise typer.Exit(1)
+
+        members = db.get_list_members(name)
+
+        console.print(f"\n[bold cyan]{lst['name']}[/bold cyan]")
+        if lst.get('description'):
+            console.print(f"[dim]{lst['description']}[/dim]")
+        console.print(f"Type: {lst.get('list_type', 'general')}  |  Members: {len(members)}\n")
+
+        if not members:
+            console.print("[yellow]No members in this list[/yellow]")
+            return
+
+        table = Table(title=f"Members of \"{name}\"")
+        table.add_column("ID", style="dim")
+        table.add_column("Name", style="cyan")
+        table.add_column("Email")
+        table.add_column("Company")
+        table.add_column("Location")
+        table.add_column("Added", style="dim")
+
+        for m in members:
+            table.add_row(
+                str(m['id']),
+                m['name'],
+                m.get('email', '-') or '-',
+                m.get('company', '-') or '-',
+                m.get('location', '-') or '-',
+                m.get('list_added_at', '-')[:10] if m.get('list_added_at') else '-',
+            )
+
+        console.print(table)
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error showing list:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("delete")
+def lists_delete(
+    name: str = typer.Argument(..., help="List name"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+):
+    """Delete a contact list."""
+    db = get_db()
+    try:
+        lst = db.get_list(name)
+        if not lst:
+            console.print(f"[red]List not found:[/red] {name}")
+            raise typer.Exit(1)
+
+        if not yes:
+            members = db.get_list_members(name)
+            confirm = typer.confirm(f"Delete list \"{name}\" with {len(members)} members?")
+            if not confirm:
+                console.print("[yellow]Cancelled[/yellow]")
+                raise typer.Exit()
+
+        deleted = db.delete_list(name)
+        if deleted:
+            console.print(f"[green]List deleted:[/green] {name}")
+        else:
+            console.print(f"[red]Failed to delete list:[/red] {name}")
+            raise typer.Exit(1)
+
+    except sqlite3.Error as e:
+        console.print(f"[red]Error deleting list:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("add")
+def lists_add(
+    name: str = typer.Argument(..., help="List name"),
+    contact_id: Optional[int] = typer.Option(None, "--contact-id", "-c", help="Single contact ID to add"),
+    query: Optional[str] = typer.Option(None, "--query", "-q", help="SQL WHERE clause to match contacts"),
+):
+    """Add contacts to a list (by ID or query)."""
+    if not contact_id and not query:
+        console.print("[red]Provide --contact-id or --query[/red]")
+        raise typer.Exit(1)
+
+    db = get_db()
+    try:
+        if contact_id:
+            added = db.add_list_member(name, contact_id)
+            if added:
+                console.print(f"[green]Added contact #{contact_id} to \"{name}\"[/green]")
+            else:
+                console.print(f"[yellow]Contact #{contact_id} is already in \"{name}\"[/yellow]")
+        elif query:
+            count = db.add_list_members_by_query(name, query)
+            console.print(f"[green]Added {count} contacts to \"{name}\"[/green]")
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error adding to list:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("remove")
+def lists_remove(
+    name: str = typer.Argument(..., help="List name"),
+    contact_id: int = typer.Option(..., "--contact-id", "-c", help="Contact ID to remove"),
+):
+    """Remove a contact from a list."""
+    db = get_db()
+    try:
+        removed = db.remove_list_member(name, contact_id)
+        if removed:
+            console.print(f"[green]Removed contact #{contact_id} from \"{name}\"[/green]")
+        else:
+            console.print(f"[yellow]Contact #{contact_id} was not in \"{name}\"[/yellow]")
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error removing from list:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@lists_app.command("export")
+def lists_export(
+    name: str = typer.Argument(..., help="List name"),
+    format: str = typer.Option("json", "--format", "-f", help="Export format: json or csv"),
+):
+    """Export list members as JSON or CSV."""
+    db = get_db()
+    try:
+        output = db.export_list(name, format=format)
+        if not output:
+            console.print(f"[yellow]List \"{name}\" is empty[/yellow]")
+            return
+        console.print(output)
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except sqlite3.Error as e:
+        console.print(f"[red]Error exporting list:[/red] {e}")
         raise typer.Exit(1)
 
 
