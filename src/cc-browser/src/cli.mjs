@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import { dirname, join, resolve, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync, readdirSync, writeFileSync, mkdirSync } from 'fs';
+import { saveRecording, findRecording, listRecordings } from './recordings.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -674,36 +675,40 @@ const commandHelp = {
   record: `Usage: cc-browser record <start|stop|status> [options]
 
   Record browser interactions for later replay.
+  Recordings are saved to the vault automatically.
 
   Subcommands:
-    start               Start recording (captures clicks, typing, navigation)
-    stop                Stop recording and save to file
+    start               Start recording
+    stop                Stop recording and save to vault
     status              Check if recording is active
 
   Options (stop):
-    --output <file>     Save recording to JSON file (required for stop)
-    --name <name>       Optional name for the recording
+    --name <name>       Name for the recording (default: "recording")
+    --output <file>     Save to explicit file path instead of vault
 
   Examples:
     cc-browser record start
-    cc-browser record status
-    cc-browser record stop --output login-flow.json
-    cc-browser record stop --output flows/checkout.json --name "Checkout Flow"`,
+    cc-browser record stop --name "mindzie login flow"
+    cc-browser record stop --output my-flow.json`,
 
-  replay: `Usage: cc-browser replay --file <path> [options]
+  recordings: `Usage: cc-browser recordings
+
+  List all saved recordings in the vault.`,
+
+  replay: `Usage: cc-browser replay --name <name> [options]
 
   Replay a previously recorded browser session.
+  Finds the most recent recording matching the name from the vault.
 
   Options:
-    --file <path>       Path to recording JSON file (required)
+    --name <name>       Name of recording to replay (searches vault)
+    --file <path>       Path to recording JSON file (alternative to --name)
     --mode <mode>       Replay speed: fast or human (default: current mode)
     --timeout <ms>      Per-step timeout in ms (default: 8000)
-    --tab <targetId>    Target specific tab
 
   Examples:
-    cc-browser replay --file login-flow.json
-    cc-browser replay --file login-flow.json --mode fast
-    cc-browser replay --file flows/checkout.json --timeout 15000`,
+    cc-browser replay --name "mindzie login flow"
+    cc-browser replay --file my-flow.json --mode fast`,
 };
 
 function printCommandHelp(command) {
@@ -1449,16 +1454,24 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
         tab: args.tab,
       }, port);
 
-      if (result.success && args.output) {
-        // Save recording to file
+      if (result.success && result.steps) {
         const recording = {
           name: args.name || '',
           recordedAt: result.recordedAt,
           steps: result.steps,
         };
-        const outPath = resolve(args.output);
-        writeFileSync(outPath, JSON.stringify(recording, null, 2));
-        console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+
+        if (args.output) {
+          // Legacy: save to explicit path
+          const outPath = resolve(args.output);
+          writeFileSync(outPath, JSON.stringify(recording, null, 2));
+          console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+        } else {
+          // Save to vault recordings directory
+          const name = args.name || 'recording';
+          const savedPath = saveRecording(name, recording);
+          console.error(`Recording saved: ${savedPath} (${recording.steps.length} steps)`);
+        }
       }
       output(result);
     } else if (subcommand === 'status') {
@@ -1473,23 +1486,34 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
   replay: async (args) => {
     const port = getDaemonPort(args);
 
-    if (!args.file) {
-      outputError('Usage: cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
-      return;
-    }
-
-    const filePath = resolve(args.file);
-    if (!existsSync(filePath)) {
-      outputError(`Recording file not found: ${filePath}`);
+    if (!args.file && !args.name) {
+      outputError('Usage: cc-browser replay --name <name> [--mode fast|human] [--timeout <ms>]\n       cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
       return;
     }
 
     let recording;
-    try {
-      recording = JSON.parse(readFileSync(filePath, 'utf8'));
-    } catch (err) {
-      outputError(`Failed to parse recording file: ${err.message}`);
-      return;
+
+    if (args.name) {
+      // Look up recording by name in vault
+      const found = findRecording(args.name);
+      if (!found) {
+        outputError(`No recording found matching: ${args.name}`);
+        return;
+      }
+      console.error(`Replaying: ${found.path}`);
+      recording = found.recording;
+    } else {
+      const filePath = resolve(args.file);
+      if (!existsSync(filePath)) {
+        outputError(`Recording file not found: ${filePath}`);
+        return;
+      }
+      try {
+        recording = JSON.parse(readFileSync(filePath, 'utf8'));
+      } catch (err) {
+        outputError(`Failed to parse recording file: ${err.message}`);
+        return;
+      }
     }
 
     if (!recording.steps || !Array.isArray(recording.steps)) {
@@ -1504,6 +1528,21 @@ MULTI-WORKSPACE (SIMULTANEOUS BROWSERS):
       timeout: args.timeout,
     }, port, 300000);
     output(result);
+  },
+
+  // List saved recordings
+  recordings: async (args) => {
+    const items = listRecordings();
+    if (items.length === 0) {
+      console.error('No recordings found.');
+      output({ success: true, recordings: [] });
+      return;
+    }
+    for (const item of items) {
+      console.error(`  ${item.name || '(unnamed)'} -- ${item.date} -- ${item.steps} steps`);
+      console.error(`    ${item.path}`);
+    }
+    output({ success: true, recordings: items });
   },
 
   // Close all tabs

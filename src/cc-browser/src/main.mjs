@@ -5,6 +5,7 @@
 import { createServer } from 'http';
 import { parse as parseUrl } from 'url';
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'fs';
+import { saveRecording, findRecording, listRecordings } from './recordings.mjs';
 import { join, resolve, dirname, extname } from 'path';
 import { homedir } from 'os';
 
@@ -1407,15 +1408,21 @@ EXAMPLES:
       output(result);
     } else if (subcommand === 'stop') {
       const result = await request('POST', '/record/stop', { tab: args.tab }, port);
-      if (result.success && args.output) {
+      if (result.success && result.steps) {
         const recording = {
           name: args.name || '',
           recordedAt: result.recordedAt,
           steps: result.steps,
         };
-        const outPath = resolve(args.output);
-        writeFileSync(outPath, JSON.stringify(recording, null, 2));
-        console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+        if (args.output) {
+          const outPath = resolve(args.output);
+          writeFileSync(outPath, JSON.stringify(recording, null, 2));
+          console.error(`Recording saved to: ${outPath} (${recording.steps.length} steps)`);
+        } else {
+          const name = args.name || 'recording';
+          const savedPath = saveRecording(name, recording);
+          console.error(`Recording saved: ${savedPath} (${recording.steps.length} steps)`);
+        }
       }
       output(result);
     } else if (subcommand === 'status') {
@@ -1430,23 +1437,33 @@ EXAMPLES:
   replay: async (args) => {
     const port = getDaemonPort(args);
 
-    if (!args.file) {
-      outputError('Usage: cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
-      return;
-    }
-
-    const filePath = resolve(args.file);
-    if (!existsSync(filePath)) {
-      outputError(`Recording file not found: ${filePath}`);
+    if (!args.file && !args.name) {
+      outputError('Usage: cc-browser replay --name <name> [--mode fast|human] [--timeout <ms>]\n       cc-browser replay --file <path> [--mode fast|human] [--timeout <ms>]');
       return;
     }
 
     let recording;
-    try {
-      recording = JSON.parse(readFileSync(filePath, 'utf8'));
-    } catch (err) {
-      outputError(`Failed to parse recording file: ${err.message}`);
-      return;
+
+    if (args.name) {
+      const found = findRecording(args.name);
+      if (!found) {
+        outputError(`No recording found matching: ${args.name}`);
+        return;
+      }
+      console.error(`Replaying: ${found.path}`);
+      recording = found.recording;
+    } else {
+      const filePath = resolve(args.file);
+      if (!existsSync(filePath)) {
+        outputError(`Recording file not found: ${filePath}`);
+        return;
+      }
+      try {
+        recording = JSON.parse(readFileSync(filePath, 'utf8'));
+      } catch (err) {
+        outputError(`Failed to parse recording file: ${err.message}`);
+        return;
+      }
     }
 
     if (!recording.steps || !Array.isArray(recording.steps)) {
